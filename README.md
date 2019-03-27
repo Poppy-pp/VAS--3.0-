@@ -31,7 +31,7 @@
 
 ## 启动
 
-执行 dev 脚本将自动启动 http://localhost:8081
+执行 dev 脚本将自动启动 http://localhost:10000
 
 ```
 # install dependency
