@@ -1,0 +1,15 @@
+import axios from 'axios';
+
+
+export const getPartsInfo = params => {
+    return axios.get(`/sto/stoAccessory/query`, {params: params})
+};
+
+// 设备选择列表
+export const getProductInfoList = params => {
+    return axios.get(`/sto/stoProduct/page`, {params: params});
+};
+// 查看物流
+export const getViewLogistics = params => {
+    return axios.get(`/sto/stoDelivery/queryLogisticsInfo/${param.id}`)
+};

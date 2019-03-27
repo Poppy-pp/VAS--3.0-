@@ -1,0 +1,267 @@
+<template>
+    <section class="tab_content-wrapper">
+        <!--工具条-->
+        <el-col :span="24" class="toolbar" style="padding-bottom: 0px;">
+            <el-form :inline="true" :model="filters">
+                <template v-for="(item,index) in filters.domSearch">
+                    <template v-if="index == 0">
+                        <div style="display:inline-block;margin:0 10px 10px 0;">
+                            <el-input class="noborder color icon nofocus" @keyup.native.ctrl.8="clearAll()" @keyup.native.13="handleQuerySelect"
+                                      placeholder="请输入查询内容" v-model="filters.domSearch[index].content">
+                                <el-select class="wp_select" multiple clearable filterable v-model="filters.domSearch[index].select" slot="prepend"
+                                           placeholder="选择条件">
+                                    <el-option label="接口名称" value="interfacename"></el-option>
+                                    <el-option label="使用范围" value="system"></el-option>
+                                </el-select>
+                                <template v-if="index == filters.domSearch.length-1">
+                                    <el-button slot="append" @click="addSelect" icon="el-icon-plus" title="添加查询条件"></el-button>
+                                </template>
+                                <template v-else>
+                                    <el-button slot="append" @click="removeSelect(index)" icon="el-icon-minus" title="移除查询条件"></el-button>
+                                </template>
+                            </el-input>
+                        </div>
+                    </template>
+                    <template v-else>
+                        <el-col :span="24">
+                            <div style="display:inline-block;margin:0 10px 10px 0;">
+                                <el-input class="noborder color icon nofocus" @keyup.native.ctrl.8="clearAll()" @keyup.native.13="handleQuerySelect"
+                                          placeholder="请输入查询内容" v-model="filters.domSearch[index].content">
+                                    <el-select class="wp_select" multiple clearable filterable v-model="filters.domSearch[index].select" slot="prepend"
+                                               placeholder="选择条件">
+                                        <el-option label="接口名称" value="interfacename"></el-option>
+                                        <el-option label="使用范围" value="system"></el-option>
+                                    </el-select>
+                                    <template v-if="index == filters.domSearch.length-1">
+                                        <el-button slot="append" @click="addSelect" icon="el-icon-plus" title="添加查询条件"></el-button>
+                                    </template>
+                                    <template v-else>
+                                        <el-button slot="append" @click="removeSelect(index)" icon="el-icon-minus" title="移除查询条件"></el-button>
+                                    </template>
+                                </el-input>
+                            </div>
+                        </el-col>
+                    </template>
+
+                    <template v-if="index == 0">
+                        <el-form-item>
+                            <el-button type="primary" @click="handleQuerySelect" icon="el-icon-search">查询</el-button>
+                        </el-form-item>
+                        <el-form-item>
+                            <el-button type="primary" @click="handleAdd" icon="el-icon-plus">新增</el-button>
+                        </el-form-item>
+                    </template>
+                </template>
+            </el-form>
+        </el-col>
+        <!--列表-->
+        <el-table :max-height="windowOutHeight-215" border :data="listData" highlight-current-row v-loading="listLoading" style="width: 100%;">
+            <el-table-column type="index" width="30" align="center" label="#">
+            </el-table-column>
+            <el-table-column prop="interfacename" label="接口名称" align="center" width="140">
+            </el-table-column>
+            <el-table-column prop="interfaceaddress" label="地址" width="250">
+            </el-table-column>
+            <el-table-column prop="interfaceformat" label="支持格式" align="center" width="80">
+            </el-table-column>
+            <el-table-column prop="requestway" label="请求方式" align="center" width="80">
+            </el-table-column>
+            <el-table-column prop="requestsample" label="请求示例" >
+            </el-table-column>
+            <el-table-column prop="instruction" label="说明" align="center" width="140">
+            </el-table-column>
+            <el-table-column prop="system" label="使用范围" align="center" width="140">
+            </el-table-column>
+            <!-- <el-table-column prop="STATUS" label="状态" align="center" width="60">
+            </el-table-column>
+            <el-table-column prop="SOURCE" label="来源" align="center" width="60">
+            </el-table-column> -->
+            <el-table-column fixed="right" label="操作" width="130" align="center">
+                <template scope="scope">
+                    <el-button id="button" @click="formDetailHandle(scope.row)" title="详情">
+                        <i class='iconfont icon-xiangqing operate operate-xiangqing'></i>
+                    </el-button>
+                    <el-button id="button" @click="handleEdit(scope.$index, scope.row)" title="编辑">
+                        <i class='iconfont icon-bianji1 operate operate-bianji'></i>
+                    </el-button>
+                    <el-button id="button" @click="handleDel(scope.$index, scope.row)" title="删除">
+                        <i class='iconfont icon-p-delet operate operate-p-delet'></i>
+                    </el-button>
+                </template>
+            </el-table-column>
+        </el-table>
+
+        <!--工具条-->
+        <el-col :span="24" class="toolbar">
+            <el-pagination @size-change="handleSizeChange" background @current-change="handleCurrentChange" :page-sizes="[15, 50, 80,99]" :page-size="pageSize"
+                           layout="total, sizes, prev, pager, next" :total="total">
+            </el-pagination>
+        </el-col>
+
+        <!-- 详情 弹窗 start-->
+        <el-dialog title="接口详情" :modal-append-to-body="false" :visible.sync="formDialogTableVisible" size="small" class="details">
+            <el-tabs>
+                <el-row>
+                    <el-col :span="24">
+                        <span class="formTile">接口信息</span>
+                    </el-col>
+                    <el-col :span="12">
+                        <dl class="dllist" style="margin-bottom:10px;">
+                            <dt>名称:</dt>
+                            <dd>{{ interfaceData.interfacename }}</dd>
+                        </dl>
+                        <dl class="dllist" style="margin-bottom:10px;">
+                            <dt>地址:</dt>
+                            <dd>{{ interfaceData.interfaceaddress }}</dd>
+                        </dl>
+                        <dl class="dllist" style="margin-bottom:10px;">
+                            <dt>支持格式:</dt>
+                            <dd>{{ interfaceData.interfaceformat }}</dd>
+                        </dl>
+                        <dl class="dllist" style="margin-bottom:10px;">
+                            <dt>请求方式:</dt>
+                            <dd>{{ interfaceData.requestway }}</dd>
+                        </dl>
+                        
+                    </el-col>
+                    <el-col :span="12">
+                        <dl class="dllist" style="margin-bottom:10px;">
+                            <dt>请求示例:</dt>
+                            <dd>{{ interfaceData.requestsample }}</dd>
+                        </dl>
+                        <dl class="dllist" style="margin-bottom:10px;">
+                            <dt>说明:</dt>
+                            <dd>{{ interfaceData.instruction }}</dd>
+                        </dl>
+                        <dl class="dllist" style="margin-bottom:10px;">
+                            <dt>使用范围:</dt>
+                            <dd>{{ interfaceData.system }}</dd>
+                        </dl>
+                    </el-col>
+                    <el-col :span="24">
+                        <dl class="dllist" style="margin-bottom:10px;">
+                            <dt>明文返回示例:</dt>
+                            <dd>{{ interfaceData.plaintextsample }}</dd>
+                        </dl>
+                        <dl class="dllist" style="margin-bottom:10px;">
+                            <dt>密文返回示例:</dt>
+                            <dd>{{ interfaceData.ciphertextsample}}</dd>
+                        </dl>
+                    </el-col>
+                </el-row>
+
+                <el-row v-show="paraThisList != ''">
+                    <el-col :span="24">
+                        <span class="formTile">参数信息</span>
+                    </el-col>
+                    <template v-for="(item,index) in paraThisList">
+                        <el-col :span="12">
+                            <dl class="dllist" style="margin-bottom:10px;">
+                                <dt>接口ID:</dt>
+                                <dd>{{ item.id }}</dd>
+                            </dl>
+                            <dl class="dllist" style="margin-bottom:10px;">
+                                <dt>参数类型:</dt>
+                                <dd>{{ item.paramtype }}</dd>
+                            </dl>
+                            <dl class="dllist" style="margin-bottom:10px;">
+                                <dt>参数名称:</dt>
+                                <dd>{{ item.paramname }}</dd>
+                            </dl>
+                        </el-col>
+                        <el-col :span="12">
+                            <dl class="dllist" style="margin-bottom:10px;">
+                                <dt>数据类型:</dt>
+                                <dd>{{ item.datatype }}</dd>
+                            </dl>
+                            <dl class="dllist" style="margin-bottom:10px;">
+                                <dt>是否必填:</dt>
+                                <dd>{{ item.mandatory == 'Y' ? '是' : item.mandatory == 'N' ? '否' : '' }}</dd>
+                            </dl>
+                            <dl class="dllist" style="margin-bottom:10px;">
+                                <dt>参数说明:</dt>
+                                <dd>{{ item.description }}</dd>
+                            </dl>
+                        </el-col>
+                    </template>
+                </el-row>
+            </el-tabs>
+        </el-dialog>
+        <!-- 订单详情 弹窗  end-->
+
+        <!--编辑界面-->
+        <el-dialog title="编辑" :modal-append-to-body="false" :visible.sync="editFormVisible" :close-on-click-modal="false">
+            <el-form :model="editForm" label-width="80px" :rules="editFormRules" ref="editForm">
+                <el-form-item label="名称" prop="interfacename">
+                    <el-input v-model="editForm.interfacename" placeholder='请输入接口名称' auto-complete="off"></el-input>
+                </el-form-item>
+                <el-form-item label="地址" prop="interfaceaddress">
+                    <el-input v-model="editForm.interfaceaddress" placeholder='请输入接口地址' auto-complete="off"></el-input>
+                </el-form-item>
+                <el-form-item label="支持格式" prop="interfaceformat">
+                    <el-input v-model="editForm.interfaceformat" placeholder='请输入支持格式' auto-complete="off"></el-input>
+                </el-form-item>
+                <el-form-item label="请求方式" prop="requestway">
+                    <el-input v-model="editForm.requestway" placeholder='请输入请求方式' auto-complete="off"></el-input>
+                </el-form-item>
+                <el-form-item label="请求示例" prop="requestsample">
+                    <el-input v-model="editForm.requestsample" placeholder='请输入请求示例' auto-complete="off"></el-input>
+                </el-form-item>
+                <el-form-item label="说明" prop="instruction">
+                    <el-input v-model="editForm.instruction" placeholder='请输入接口说明' auto-complete="off"></el-input>
+                </el-form-item>
+                <el-form-item label="使用范围" prop="system">
+                    <el-input v-model="editForm.system" placeholder='请输入使用范围' auto-complete="off"></el-input>
+                </el-form-item>
+                <!-- <el-form-item label="状态" prop="STATUS">
+                    <el-input v-model="editForm.STATUS" placeholder='请输入接口状态' auto-complete="off"></el-input>
+                </el-form-item>
+                <el-form-item label="来源" prop="SOURCE">
+                    <el-input v-model="editForm.SOURCE" placeholder='请输入接口来源' auto-complete="off"></el-input>
+                </el-form-item> -->
+            </el-form>
+            <div slot="footer" class="dialog-footer">
+                <el-button @click.native="editFormVisible = false">取消</el-button>
+                <el-button type="primary" @click.native="editSubmit" :loading="editLoading">提交</el-button>
+            </div>
+        </el-dialog>
+
+        <!--新增界面-->
+        <el-dialog title="新增" :modal-append-to-body="false" :visible.sync="addFormVisible" :close-on-click-modal="false">
+            <el-form :model="addForm" label-width="80px" :rules="addFormRules" ref="addForm">
+                <el-form-item label="名称" prop="interfacename">
+                    <el-input v-model="addForm.interfacename" placeholder='请输入接口名称' auto-complete="off"></el-input>
+                </el-form-item>
+                <el-form-item label="地址" prop="interfaceaddress">
+                    <el-input v-model="addForm.interfaceaddress" placeholder='请输入接口地址' auto-complete="off"></el-input>
+                </el-form-item>
+                <el-form-item label="支持格式" prop="interfaceformat">
+                    <el-input v-model="addForm.interfaceformat" placeholder='请输入支持格式' auto-complete="off"></el-input>
+                </el-form-item>
+                <el-form-item label="请求方式" prop="requestway">
+                    <el-input v-model="addForm.requestway" placeholder='请输入请求方式' auto-complete="off"></el-input>
+                </el-form-item>
+                <el-form-item label="请求示例" prop="requestsample">
+                    <el-input v-model="addForm.requestsample" placeholder='请输入请求示例' auto-complete="off"></el-input>
+                </el-form-item>
+                <el-form-item label="说明" prop="instruction">
+                    <el-input v-model="addForm.instruction" placeholder='请输入接口说明' auto-complete="off"></el-input>
+                </el-form-item>
+                <el-form-item label="使用范围" prop="system">
+                    <el-input v-model="addForm.system" placeholder='请输入使用范围' auto-complete="off"></el-input>
+                </el-form-item>
+                <!-- <el-form-item label="状态" prop="STATUS">
+                    <el-input v-model="addForm.STATUS" placeholder='请输入接口状态' auto-complete="off"></el-input>
+                </el-form-item>
+                <el-form-item label="来源" prop="SOURCE">
+                    <el-input v-model="addForm.SOURCE" placeholder='请输入接口来源' auto-complete="off"></el-input>
+                </el-form-item> -->
+            </el-form>
+            <div slot="footer" class="dialog-footer">
+                <el-button @click.native="addFormVisible = false">取消</el-button>
+                <el-button type="primary" @click.native="addSubmit" :loading="addLoading">提交</el-button>
+            </div>
+        </el-dialog>
+    </section>
+</template>
+<script src="./index.js"></script>

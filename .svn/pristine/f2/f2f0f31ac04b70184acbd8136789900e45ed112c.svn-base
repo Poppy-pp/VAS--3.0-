@@ -1,0 +1,233 @@
+<template>
+    <div>
+        <template v-if="!showHistory">
+            <el-row>
+                <el-form :inline="true">
+                    <el-form-item>
+                        <el-button type="primary">确定采购</el-button>
+                    </el-form-item>
+                    <el-form-item>
+                        <el-button type="primary" @click="showHistory = true">查看采购历史</el-button>
+                    </el-form-item>
+                </el-form>
+            </el-row>
+            <el-row>
+                <h3 class="plan-title">四川万网鑫成设备采购计划</h3>
+                <div ref="stockChart" style="height: 300px; width: 100%; margin: 10px 0;"></div>
+                <el-table
+                        v-loading="purchaseLoading"
+                        border
+                        :data="purchaseList"
+                        style="width: 100%">
+                    <el-table-column
+                            align="center"
+                            type="index"
+                            width="50">
+                    </el-table-column>
+                    <el-table-column
+                            align="center"
+                            prop="prodspec"
+                            label="设备类别"
+                            min-width="180">
+                    </el-table-column>
+                    <el-table-column
+                            align="center"
+                            prop="parchasenum"
+                            label="所有地区采购总量"
+                            min-width="180">
+                    </el-table-column>
+                    <el-table-column
+                            align="center"
+                            prop="remainnum"
+                            min-width="180"
+                            label="新品库+周转库库存量">
+                    </el-table-column>
+                </el-table>
+            </el-row>
+            <el-row style="margin-top: 10px;">
+                <el-col :span="24">
+                    <span class="formTile">各个地区要货情况</span>
+                </el-col>
+            </el-row>
+            <el-row>
+                <el-col :span="6" style="display: flex;">
+                    <div style="overflow: auto; flex: 1; height: 400px; margin-right: 10px;" v-loading="treeLoading">
+                        <el-tree :data="storageTree" :props="defaultProps" @node-click="handleNodeClick" node-key="id" :default-expanded-keys="key"></el-tree>
+                    </div>
+                </el-col>
+                <el-col :span="18">
+                    <el-table :data="purchaseList" border ref="todeTable" highlight-current-row>
+                        <el-table-column type="index" align="center" label="序号" width="50">
+                        </el-table-column>
+                        <el-table-column prop="storagearea" align="center" label="设备类别" min-width="50">
+                        </el-table-column>
+                        <el-table-column prop="receiver" align="center" label="本月期初库存量" min-width="50">
+                        </el-table-column>
+                        <el-table-column prop="operator" align="center" label="当前库存量" min-width="50">
+                        </el-table-column>
+                        <el-table-column prop="actionstatus" align="center" label="在途量" min-width="50">
+                        </el-table-column>
+                        <el-table-column prop="actionstatus" align="center" label="本月安装量" min-width="50">
+                        </el-table-column>
+                        <el-table-column prop="actionstatus" align="center" label="本月出库量" min-width="50">
+                        </el-table-column>
+                        <el-table-column prop="actionstatus" align="center" label="平均每日安装量" min-width="50">
+                        </el-table-column>
+                        <el-table-column prop="actionstatus" align="center" label="预计下月安装量" min-width="50">
+                        </el-table-column>
+                        <el-table-column prop="actionstatus" align="center" label="要货量" min-width="50">
+                        </el-table-column>
+                        <el-table-column prop="actionstatus" align="center" label="前三月每月平均安装量" min-width="50">
+                        </el-table-column>
+                        <el-table-column prop="actionstatus" align="center" label="去年同期安装量" min-width="50">
+                        </el-table-column>
+                        <el-table-column prop="actionstatus" align="center" label="要求最晚到货日期" min-width="50">
+                        </el-table-column>
+                        <el-table-column prop="actionstatus" align="center" label="备注" min-width="50">
+                        </el-table-column>
+                        <el-table-column prop="actionstatus" align="center" label="采购量" min-width="50">
+                        </el-table-column>
+                        <el-table-column prop="actionstatus" align="center" label="新品库+周转库库存量" min-width="50">
+                        </el-table-column>
+                        <el-table-column label="操作" width="100" align="center" fixed="right">
+                            <template slot-scope="scope">
+                                <el-button type="text">
+                                    发起调拨
+                                </el-button>
+                            </template>
+                        </el-table-column>
+                    </el-table>
+                </el-col>
+            </el-row>
+        </template>
+        <template v-else>
+            <template v-if="!showDetail">
+                <el-row>
+                    <el-form :inline="true">
+                        <el-form-item>
+                            <el-select v-model="historyTime" placeholder="请选择" @change="purchasePlanHistory">
+                                <el-option
+                                        v-for="item in options"
+                                        :key="item.value"
+                                        :label="item.label"
+                                        :value="item.value">
+                                </el-option>
+                            </el-select>
+                        </el-form-item>
+                        <el-form-item>
+                            <el-button type="primary" @click="viewDetail">查看详情</el-button>
+                        </el-form-item>
+                        <el-form-item>
+                            <el-button type="primary">导出采购清单</el-button>
+                        </el-form-item>
+                    </el-form>
+                </el-row>
+                <el-row>
+                    <el-table
+                            border
+                            :data="historyList"
+                            v-loading="historyLoading"
+                            style="width: 100%">
+                        <el-table-column
+                                align="center"
+                                type="index"
+                                width="50">
+                        </el-table-column>
+                        <el-table-column
+                                align="center"
+                                prop="modelcategory"
+                                label="类型"
+                                min-width="180">
+                        </el-table-column>
+                        <el-table-column
+                                align="center"
+                                prop="modelname"
+                                label="型号名称"
+                                min-width="180">
+                        </el-table-column>
+                        <el-table-column
+                                align="center"
+                                prop="modelspec"
+                                label="规格"
+                                min-width="180">
+                        </el-table-column>
+                        <el-table-column
+                                align="center"
+                                prop="suppliername"
+                                min-width="180"
+                                label="供应商">
+                        </el-table-column>
+                        <el-table-column
+                                align="center"
+                                prop="qty"
+                                min-width="180"
+                                label="采购数量">
+                        </el-table-column>
+                    </el-table>
+                </el-row>
+                <el-button style="float: right; margin: 10px 0" @click="showHistory = false">返回</el-button>
+            </template>
+            <el-row v-else>
+                <div style="overflow: hidden">
+                    <h3 class="plan-title">四川万网鑫成设备采购清单</h3>
+                    <div class="current-date">{{currentDate}}</div>
+                </div>
+                <el-card class="box-card">
+                    <el-col :span="6" style="display: flex;">
+                        <div style="overflow: auto; flex: 1; margin-right: 10px;" v-loading="treeLoading">
+                            <el-tree :data="storageTree" :props="defaultProps" @node-click="treeHandleNodeClick" node-key="id" highlight-current class="tree-highlight" :default-expanded-keys="defaultExpandedKeys">
+                                <div class="custom-tree-node" slot-scope="{ node, data }">
+                                    <span>{{ node.label }}</span>
+                                    <span>({{data.newProductCount}}/{{data.productTotalCount}})</span>
+                                </div>
+                            </el-tree>
+                        </div>
+                    </el-col>
+                    <el-col :span="18">
+                        <el-table :data="purchaseList" border ref="todeTable" highlight-current-row>
+                            <el-table-column type="index" align="center" label="序号" width="50">
+                            </el-table-column>
+                            <el-table-column prop="modelspec" align="center" label="规格" min-width="100">
+                            </el-table-column>
+                            <el-table-column prop="modelname" align="center" label="类型名称" min-width="100">
+                            </el-table-column>
+                            <el-table-column prop="count" align="center" label="库存量" min-width="100">
+                            </el-table-column>
+                            <el-table-column prop="actionstatus" align="center" label="最低预警值" width="160">
+                            </el-table-column>
+                            <el-table-column prop="actionstatus" align="center" label="最高预警值" width="160">
+                            </el-table-column>
+                            <el-table-column label="操作" width="160" align="center" fixed="right">
+                                <template slot-scope="scope">
+                                    <el-button type="text" @click="viewDetails(scope.row)" v-if="scope.row.order !== 3">
+                                        查看详情
+                                    </el-button>
+                                </template>
+                            </el-table-column>
+                        </el-table>
+                    </el-col>
+                </el-card>
+                <el-button style="float: right; margin: 10px 0" @click="showDetail = false">返回</el-button>
+            </el-row>
+        </template>
+    </div>
+</template>
+
+<script src="./index.js"></script>
+
+<style scoped lang="stylus">
+    @import "../../../../assets/styl/variables.styl";
+
+    .plan-title {
+        text-align: center;
+        font-size: 16px;
+        color: font-color;
+    }
+
+    .current-date
+        color font-color
+        font-size 16px;
+        float right
+        margin 10px;
+
+</style>

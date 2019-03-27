@@ -1,0 +1,434 @@
+import util from 'utils/tools';
+import {
+    addApprovaperInsurance,
+    getCorpNameInsuList,
+    cldeviceIsOnstate,
+    addInsuranceDetail,
+    getCorpList,
+    checkAllMobile,
+    checkNum,
+    get,
+    add,
+    getCidSearchDevice,
+    getSearchVinNum
+} from './service';
+import { getVehList } from "@/views/basicManage/ownerVehicleManage/service";
+import { getParentInfoList } from '@/views/sysManage/organizationManage/service'
+import { modifyEmployeeInfo } from "../../basicManage/customerManage/service";
+import { getToken } from '@/utils/auth'
+import Vue from 'vue'
+
+//自定义搜索组件模板样式
+Vue.component('my-item-zh', {
+    functional: true,
+    render (h, ctx) {
+        var item = ctx.props.item;
+        return h('li', ctx.data, [
+            h('div', {
+                attrs: {
+                    class: 'model'
+                }
+            }, [item.model]),
+            h('span', {
+                attrs: {
+                    class: 'vin'
+                }
+            }, ["车架号：", item.vin]),
+            h('span', {
+                attrs: {
+                    class: 'vin'
+                }
+            }, ["车牌号：", item.licenseplatenum])
+        ]);
+    },
+    props: {
+        item: {
+            type: Object,
+            required: true
+        }
+    }
+});
+
+export default {
+    name: 'addInsurance',
+    props: ['curTaskId'],
+    components: {
+        // gdmap3
+    },
+    data () {
+        return {
+            // serialnumList: [{//人寿公司保单组
+            //     value: '815152018440370000004',
+            //     label: '815152018440370000004'
+            // }, {
+            //     value: '815152018440370000006',
+            //     label: '815152018440370000006'
+            // }, {
+            //     value: '815152018440370000007',
+            //     label: '815152018440370000007'
+            // }],
+            // corptwolist: [], //受理银行
+            // corptwoLoading: false, //
+            // indDe: 0,
+            // editFormdialogActiveName: '1',
+            // bxDialogVisible: false,
+            // insuranceCompany: [],
+            loading: false,
+            ruleFormStatic: {
+                vehicleInfo: {
+                    model: '',
+                    color: '',
+                    licenseplatenum: '',
+                    vin: '',
+                    price: '',
+                    yearsofservice: '',
+                    receivingbank: {
+                        corpname: ''
+                    }
+                },
+                corporateInfo: {
+                    corpname: ''
+                },
+                insuranceInfo: {
+                    insurancecorpid: ''
+                },
+                ownerInfo: {
+                    name: '',
+                    idcard: '',
+                    mobile: ''
+                },
+                flowData: {
+                    verify_result: '',
+                    apply_remark: ''
+                },
+                declarEmployee: {},
+                installEmployee: {
+                    employeename: ''
+                },
+                installGroupInfo: {
+                    groupname: ''
+                },
+                declaretype: ''
+            },
+            //启动报单提交表单信息
+            ruleForm: {
+                // insurancecorpid: '',
+                // serialnum: '',
+                // issuedate: util.formatDate.format(new Date(), 'yyyy-MM-dd'),
+                // effectivedate: util.formatDate.format(new Date(), 'yyyy-MM-dd'),
+                // expiredate: util.getDateThreeYers(util.addReduceDate(new Date(), -1), 3),
+                // indemnitylimit: '',
+                // price: '',
+                // insurancestatus: '出单',
+                // owner_idcard:this.$store.state.formObj.flowData.owner_idcard,
+                // owner_name:this.$store.state.formObj.flowData.owner_name,
+                // owner_address:this.$store.state.formObj.flowData.owner_address,
+                // owner_mobile:this.$store.state.formObj.flowData.owner_mobile,
+                // VehicleInfo_enginenum:this.$store.state.formObj.flowData.VehicleInfo_enginenum,
+                // VehicleInfo_model_number:this.$store.state.formObj.flowData.VehicleInfo_modle,
+                // VehicleInfo_licenseplatenum:this.$store.state.formObj.flowData.VehicleInfo_licenseplatenum,
+                // VehicleInfo_vin:this.$store.state.formObj.flowData.VehicleInfo_vin,
+                // registration_date:util.formatDate.format(new Date(), 'yyyy-MM-dd'),
+                // remark: '',
+                // bankname: '',
+                pictures: [
+                    {
+                        piclink: ''
+                    }, {
+                        piclink: ''
+                    }, {
+                        piclink: ''
+                    }, {
+                        piclink: ''
+                    }, {
+                        piclink: ''
+                    },
+                ]
+            },
+            ruleFormrules: {
+                // insurancecorpid: [{required: true, message: '请选择保险公司', trigger: 'blur'}],
+                // serialnum: [{required: true, message: '请输入保单编号', trigger: 'blur'}],
+                // // wwserialnum: [{required: true,message: '请输入万网保单编号',trigger: 'blur'}],
+                // issuedate: [{required: true, message: '请选择出单日期', trigger: 'blur'}],
+                // effectivedate: [{required: true, message: '请选择保险生效日期', trigger: 'blur'}],
+                // expiredate: [{required: true, message: '请选择失效日期', trigger: 'blur'}],
+                // indemnitylimit: [{required: true, message: '请输入保单赔偿限额', trigger: 'blur'}, {validator: checkNum, trigger: 'blur'}],
+                // price: [{required: true, message: '请输入万网盗抢保障服务费', trigger: 'blur'}, {validator: checkNum, trigger: 'blur'}],
+                // owner_name: [{required: true, message: '请输入车主姓名', trigger: 'blur'}],
+                // owner_idcard: [{required: true, message: '请输入身份证号', trigger: 'blur'}],
+                // owner_mobile: [{required: true, message: '请输入手机号', trigger: 'blur'}, {validator: checkAllMobile, trigger: 'blur'}],
+                // VehicleInfo_enginenum: [{required: true, message: '请输入发动机号', trigger: 'blur'}],
+                // VehicleInfo_model_number: [{required: true, message: '请输入厂牌型号', trigger: 'blur'}],
+                // // VehicleInfo_licenseplatenum: [{required: true,message: '请输入车牌号',trigger: 'blur'}],
+                // // registration_date: [{required: true,message: '请选择初登日期',trigger: 'blur'}],
+                // bankname: [{required: true, message: '请选择第一受益人', trigger: 'change'}],
+            },
+
+            form: {
+                vehiclevin: '',
+                vehicleowner: '',
+                vehiclelicenseplatenum: '',
+                vehicleownercontact: '',
+                vehicleowneridcard: '',
+                vehiclemodel: '',
+                vehicleplatecolor: '',
+                vehiclecolor: '',
+                vehicleprice: '',
+                picinvoice: '',
+                picvehiclelicense: '',
+                picidcard: '',
+                picregistration: '',
+                piccertificate: '',
+                picimport: '',
+                corpname: '',
+                corpid: '',
+                vehicleid: ''
+            },
+            //启动报单表单验证信息
+            rules: {
+                vehiclevin: [{required: true, message: '请输入车架号', trigger: 'change'}],
+                vehicleowner: [{required: true, message: '请输入车主姓名', trigger: 'blur'}],
+                vehiclelicenseplatenum: [{required: true, message: '请输入车牌号', trigger: 'blur'}],
+                vehicleownercontact: [{required: true, message: '请输入车主电话', trigger: 'blur'}],
+                vehicleowneridcard: [{required: true, message: '请输入车主证件号码', trigger: 'blur'}],
+                vehiclemodel: [{required: true, message: '请输入车辆型号', trigger: 'blur'}],
+                // vehicleplatecolor: [{required: true, message: '请选择车类型', trigger: 'change'}],
+                vehicleprice: [{required: true, message: '请输入车价', trigger: 'blur'}],
+                // insurancecorpid: [{
+                // 	required: true,
+                // 	validator: checkInsu,
+                // 	trigger: 'blur'
+                // }] //保险公司验证
+            },
+            activeNames: ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '10086'],
+            addLoading: false,
+            // realTimeRefreshLoading: false,
+            // receLoading: false,
+            accept: '.jpg,.png',
+            util: util,
+            vinList: [
+                {
+                    // id: '11280074',
+                    vin: 'LBV2A3408HMJ20454'
+                }, {
+                    // id: '11222887',
+                    vin: 'JTEBH9FJXHK192206'
+                }
+            ],
+            currentVehicleVin: '',
+            vehlist: [],
+            carColor: [],
+            corplist: [],
+            token: getToken()
+        };
+    },
+    methods: {
+        /* 提交表单数据 */
+        submitForm () {
+            this.$refs.form.validate(async (valid) => {
+                if (valid) {
+                    this.addLoading = true
+                    this.form.vehicleid = this.currentVehicleVin
+                    try {
+                        await add(this.form)
+                        this.addLoading = false
+                        // this.$message.success('新建保险单成功')
+                        this.$confirm('保单创建成功，是否前往待办处理保单？', '提示', {
+                            type: 'success '
+                        }).then(() => {
+
+                        }).catch(() => {
+                            this.initForm()
+                        });
+                    } catch (e) {
+                        this.addLoading = false
+                    }
+                } else {
+                    this.$message.warning('请完善信息')
+                    return false;
+                }
+            })
+        },
+        getCustoHistoryInfo (res, row) {
+            this.ruleFormStatic = res;
+            this.form.vehiclevin = res.vehicleInfo.vin
+            this.form.corpid = res.corpid
+            this.form.vehicleowner = res.ownerInfo.name
+            this.form.vehiclelicenseplatenum = res.vehicleInfo.licenseplatenum
+            this.form.vehicleownercontact = res.ownerInfo.mobile
+            this.form.vehicleowneridcard = res.ownerInfo.idcard
+            this.form.vehiclemodel = res.vehicleInfo.model
+            this.form.vehicleplatecolor = res.vehicleInfo.vehicleplatecolor
+            this.form.vehiclecolor = res.vehicleInfo.color
+            this.form.vehicleprice = res.vehicleInfo.price
+            // this.form.id = res.id
+            if (res.corporateInfo) {
+                this.form.corpname = res.corporateInfo.corpname
+            } else {
+                this.ruleFormStatic.corporateInfo = {
+                    corpname: ''
+                }
+            }
+
+            if(!res.installGroupInfo)
+                this.ruleFormStatic.installGroupInfo = {}
+            this.initViewer()
+        },
+        changeCorp(corpid) {
+            this.form.corpid = corpid
+        },
+        /* 重置表单数据 */
+        // resetForm (formName) {
+        //启动报单提交表单信息
+        // this.ruleForm = {};
+        // },
+        uploadSuccessInvoice (res, file) {
+            this.form.picinvoice = res.data
+        },
+        uploadSuccessVehiclelicense (res, file) {
+            this.form.picvehiclelicense = res.data
+        },
+        uploadSuccessIdcard (res, file) {
+            this.form.picidcard = res.data
+        },
+        uploadRegistration (res, file) {
+            this.form.picregistration = res.data
+        },
+        uploadSuccessCertificate (res, file) {
+            this.form.piccertificate = res.data
+        },
+        uploadSuccessImport (res, file) {
+            this.form.picimport = res.data
+        },
+        async init () {
+            this.loading = true
+            const params = {
+                vehicleId: this.currentVehicleVin
+            }
+            try {
+                const {data} = await get(params)
+                this.loading = false
+                this.getCustoHistoryInfo(data.data)
+                // this.ruleFormStatic = data
+            } catch (e) {
+                this.loading = false
+            }
+        },
+        remoteMethod (query) {
+            // if (query){
+            //     this.vinList = [];
+            //     this.$refs['ruleFormStatic'].resetFields();
+            // }
+        },
+        // selectVin (value) {
+        //     this.currentVehicleVin = value;
+        //     if (value) {
+        //         this.init();
+        //     } else {
+        //         this.initForm()
+        //     }
+        // },
+        initForm () {
+            const vehiclevin = this.form.vehiclevin
+            this.currentVehicleVin = '';
+            this.form.picinvoice = ''
+            this.form.picvehiclelicense = ''
+            this.form.picidcard = ''
+            this.form.picregistration = ''
+            this.form.piccertificate = ''
+            this.form.picimport = ''
+            this.$refs.form.resetFields();
+            this.form.vehiclevin = vehiclevin
+        },
+        vehChange (r) {
+            if (!r || this.vehlist.length > 0) return;
+            this.vehLoading = true;
+            const params = {
+                page: 1,
+                limit: 10000,
+                isactive: 1
+            }
+            getVehList(params).then((res) => {
+                this.vehlist = res.data.data;
+                this.vehLoading = false;
+            });
+        },
+        initViewer () {
+            if (this.viewer)
+                this.viewer.destroy()
+            const el = this.$refs['rpShowimgDialog'].$el
+            this.$nextTick(() => {
+                this.viewer = new Viewer(el)
+            });
+        },
+        getCorpnList () {
+            let param = {
+                page: 1,
+                limit: 10000
+            }
+            getParentInfoList(param).then(({data}) => {
+                this.corplist = data.data.records;
+            }, () => {
+            });
+        },
+        //根据车架号/车牌号查询
+        querySearchVins (queryString, cb) {
+            this.initForm()
+            let para = {
+                key: $.trim(queryString.toUpperCase()) ? $.trim(queryString.toUpperCase()) : "2"
+            };
+            getSearchVinNum(para).then((res) => {
+                cb(res.data.data.records)
+            });
+        },
+        //根据车架号/车牌号查询
+        handleSelectVin (item) {
+            this.currentVehicleVin = item.id;
+            this.init();
+            // if (value) {
+            //     this.init();
+            // } else {
+            //     this.initForm()
+            // }
+            // console.log(item)
+            //车信息
+            // this.formInfo.car.vin = item.vin;
+            // this.formInfo.car.num = item.licenseplatenum;
+            // this.formInfo.car.model = item.model;
+            // if(item.vin) {
+            //     this.ruleForm.vinnum = item.vin;
+            // } else {
+            //     this.ruleForm.vinnum = item.licenseplatenum;
+            // }
+            //
+            // this.isShow = true;
+            // let para = {
+            //     carid: item.id
+            // };
+            // this.ruleForm.vehicleid = item.id;
+            // nanobar.go(70);
+            // //设备信息
+            // getCidSearchDevice(para).then((res) => {
+            //     nanobar.go(100);
+            //     this.deviceData = [];
+            //     this.checkedCities = [];
+            //     this.checkedCities1 = [];
+            //     this.checkedCities2 = [];
+            //     if(res.data.result.code == 0) {
+            //         let data = res.data.data.records;
+            //         if(data.length == 0) {
+            //             this.$message({
+            //                 message: "当前车辆没有安装任何设备！",
+            //                 duration: 10000,
+            //                 type: 'warning'
+            //             });
+            //             return;
+            //         }
+            //         this.deviceData = data;
+            //     }
+            // });
+        },
+    },
+    /*初始化页面数据*/
+    mounted () {}
+}

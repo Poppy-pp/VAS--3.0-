@@ -1,0 +1,78 @@
+import axios from 'axios';
+import Qs from 'qs';
+
+let base = '/vasms-web';
+let api = '/api';
+
+export const getSIMInfoList = params => {
+	return axios.get(`${base}/api/v1/device/productInfo/simcard`, {
+		params: params
+	});
+};
+
+export const addSIMInfo = params => {
+	return axios.post(`${base}/api/v1/device/productInfo`, params);
+};
+
+export const modifySIMInfo = params => {
+	return axios.put(`${base}/api/v1/device/productInfo/` + params.id, params);
+};
+
+export const removeSIMInfo = params => {
+	return axios.post(`${base}/api/v1/device/productInfo/batch`, Qs.stringify(params));
+};
+//获取SIM卡型号
+export const getSIMNameList = params => {
+	return axios.get(`${base}/api/v1/device/productModel?prodcategory=C`);
+};
+/*SIM搜索模糊查询接口*/
+export const getSelectListSIM = params => {
+	return axios.get(`${base}/api/v1/device/productInfo/query/like`, {
+		params: params
+	});
+};
+//获取库房名称列表
+export const getStoNameList = params => {
+	return axios.get(`${base}/api/v1/sto/storageInfo`, {
+		params: params
+	});
+};
+// 设备信息接口
+export const getProductInfoList = params => {
+	return axios.get(`${base}/api/v1/device/productInfo/query/vw`, {
+		params: params
+	});
+};
+// 查设备和SIM卡
+export const getAllProSimInfoList = params => {
+	return axios.get(`${base}/api/v1/device/productInfo/getband`, {
+		params: params
+	});
+};
+// 绑卡接口
+export const addUnbundleSIM = params => {
+	return axios.post(`${base}/api/v1/device/packInfo/addUnbundle`, params);
+};
+// 解绑接口
+export const cancelUnbundleSIM = params => {
+	return axios.delete(`${base}/api/v1/device/packInfo/unbundle/` + params.packID);
+};
+// 查询当前登录员工的设备和卡
+export const getStoProductInfoList = params => {
+	return axios.get(`${base}/api/v1/device/productInfo/query/like/one`, {
+		params: params
+	});
+};
+export const getCheckoutOfProdInfo = params => {
+	return axios.get(`${base}/api/v1/device/productInfo/checkout/` + params.para + '/' + params.value);
+};
+//根据员工userid获取员工姓名
+export const getNamebyUserid = params => {
+	return axios.get(`${base}/api/v1/org/employeeInfo/getNameByUserid`, {
+		params: params
+	});
+};
+// 详情获取绑定车辆信息
+export const getProductOwnerListPlat = params => {
+	return axios.get(`${base}/api/v1/device/productInfo/query/otherInfo`, params);
+};

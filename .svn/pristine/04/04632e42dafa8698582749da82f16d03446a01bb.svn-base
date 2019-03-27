@@ -1,0 +1,47 @@
+export default {
+    name:'newLabel',
+    props:{
+       show:Boolean,
+       required:false
+    },
+    data(){
+        return {
+            tags: [
+                { name: '有保险', type: '' },
+                { name: '已扣车', type: 'success' },
+                { name: '已逾期', type: 'info' },
+                { name: '已垫款', type: 'warning' },
+                { name: '已结清', type: 'success' },
+                { name: '疑似风险', type: 'danger' }
+            ],
+            AddOtherLabels:'',
+            otherLabels:[
+                {
+                    value: '1',
+                    label: '添加其他标签'
+                }, {
+                    value: '2',
+                    label: '已卖车'
+                }
+            ],
+            addInput:false,
+            customlabel:'',
+        }
+    },
+    methods:{
+        handleClose(index){
+            this.tags.splice(index,1)
+        },
+        addLabel(){
+            if(this.customlabel!=''){
+                let arrayObj={};
+                arrayObj.name=this.customlabel;
+                arrayObj.type='success';
+                this.tags.push(arrayObj);
+                this.customlabel='';
+            }else{
+                
+            }
+        },
+    }
+}

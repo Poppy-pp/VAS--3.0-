@@ -1,0 +1,43 @@
+import axios from 'axios';
+
+
+export const getEmpAllocation = params => {
+    return axios.get(`/sto/allocation/page`, {params: params})
+};
+
+// 生成调拨单单号
+export const getAllocationBatchno = params => {
+    return axios.get(`/sto/qrcode/serialnumber/DB`, {params: params});
+};
+// 设备选择列表
+export const getProductInfoList = params => {
+    return axios.get(`/sto/stoProduct/operate/prod/page`, {params: params});
+};
+// 确认添加设备
+export const addProductAllocation = params => {
+    return axios.post(`/sto/allocation/add/temp`, params);
+};
+// 删除添加设备
+export const removeProductAllocation = params => {
+    return axios.delete(`/sto/allocation/detail/tmp/delete/`+ params.batchno + `/`+ params.prodid +`/`+ params.modelcategory);
+};
+// 查询已添加设备
+export const getChooseProduct = params => {
+    return axios.get(`/sto/allocation/detail/count/`+ params.batchno );
+};
+// 查询添加设备详情
+export const getChooseProductDetails = params => {
+    return axios.get(`/sto/allocation/detail/tmp/`+ params.batchno );
+};
+// 查看物流
+export const getViewLogistics = params => {
+    return axios.get(`/sto/stoDelivery/queryLogisticsInfo/${param.id}`)
+};
+// 查询配件
+export const getPurchaseCascader = params => {
+    return axios.get(`/sto/stoModel/purchase/cascader/key?key=A`, {params: params})
+};
+// 确认添加配件
+export const addPartsAllocation = params => {
+    return axios.get(`/sto/allocation//add/one/temp`, {params: params})
+};

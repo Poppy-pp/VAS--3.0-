@@ -1,0 +1,42 @@
+import axios from 'axios';
+import Qs from 'qs';
+
+const getVehTypeList = params => {
+	return axios.get(`admin/carModel/query`, {params:params})
+};
+const addVehType = params => {
+	return axios.post(`admin/carModel/add`, params)
+};
+const modifyVehType = params => {
+	return axios.put(`admin/carModel/mod`, params)
+};
+const removeVehType = params => {
+	return axios.delete(`admin/carModel/del`, Qs.stringify(params))
+};
+// 模糊查询
+const getVehTypeListSelect = params => {
+    return axios.get(`admin/carModel/query/like`, {params:params})
+};
+// 获取品牌、车系、车型接口
+const getAllInfoList = params => {
+    return axios.get(`admin/carModel/query/vehicleClass`, {params: params});
+};
+// 获取车型颜色接口
+const getAllColorList = params => {
+    return axios.get(`admin/carModel/query/vehicleColor`, {params: params});
+};
+// 详情接口
+const getVehTypeDetail = params => {
+    return axios.get(`admin/carModel/query/` + params.id)
+};
+
+export{
+    getVehTypeList, 
+    addVehType, 
+    modifyVehType, 
+    removeVehType, 
+    getVehTypeDetail,
+    getAllInfoList, 
+    getAllColorList, 
+    getVehTypeListSelect
+}

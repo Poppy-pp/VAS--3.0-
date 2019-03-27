@@ -1,0 +1,138 @@
+import { loginbyUser, logout, getUserInfo } from '@/api/login'
+import { getFormCounts } from '@/api/api.js'
+import { setToken, removeToken,getToken } from '@/utils/auth'
+// import Cookies from 'js-cookie'
+import * as types from '../mutaion-types'
+import storage from '@/utils/storage'
+import { encryption } from '@/utils/tools'
+
+const user = {
+  state: {
+    token: '',
+    refresh_token:'',
+    roles: [],
+    name: '',
+    avatar: '',
+    employeeinfo: '',
+    userid:'',
+    amountcount:0
+  },
+  mutations: {
+    [types.SET_TOKEN]: (state, token) => {
+      state.token = token
+    },
+    [types.SET_REFRESH_TOKEN]: (state, refresh_token) => {
+      state.refresh_token = refresh_token
+    },
+    [types.SET_ROLES]: (state, roles) => {
+      state.roles = roles
+    },
+    [types.SET_EMPLOYEEINFO]: (state, employeeinfo) => {
+      state.employeeinfo = employeeinfo
+    },
+    [types.SET_NAME]: (state, name) => {
+      state.name = name
+    },
+    [types.SET_AVATAR]: (state, avatar) => {
+      state.avatar = avatar
+    },
+    [types.SET_USERID]: (state, userid) => {
+      state.userid = userid
+    },
+    [types.SET_AMOUNTCOUNT]: (state, amountcount) => {
+      state.amountcount = amountcount
+    },
+  },
+  actions: {
+    // 登录
+    loginbyUser({ commit }, { username, password, remember_me,grant_type }) {
+      return new Promise(async (resolve, reject) => {
+        try {
+          // 加密
+          var userInfo = { password:password }
+          const encryptData = encryption({
+            data: userInfo,
+            key: '1234567887654321',
+            param: ['password']
+          })
+          const response = await loginbyUser(username, encryptData.password, remember_me,grant_type)
+          if (response) {
+            commit(types.SET_TOKEN, response.access_token)
+            commit(types.SET_REFRESH_TOKEN, response.refresh_token)
+            setToken(response.access_token)
+          }
+          resolve(response)
+        } catch (error) {
+          reject(error)
+        }
+      })
+    },
+    // 退出登录
+    logout({ commit, state }) {
+      return new Promise(async (resolve, reject) => {
+        try {
+          await logout(state.token, state.refresh_token)
+          commit(types.SET_ROLES, [])
+          commit(types.SET_TOKEN, '')
+          commit(types.SET_REFRESH_TOKEN, '')
+          removeToken()
+          resolve()
+        } catch (error) {
+          reject(error)
+        }
+      })
+    },
+    // 注销session
+    felogout({ commit }) {
+      return new Promise(resolve => {
+        commit(types.SET_TOKEN, '')
+        commit(types.SET_REFRESH_TOKEN, '')
+        removeToken()
+        resolve()
+      })
+    },
+    // 资源权限
+    getUserInfo({ commit }) {
+      return new Promise(async (resolve, reject) => {
+        try {
+          const response = await getUserInfo(getToken())
+
+          const roles = response.data.permissions
+          const employeeinfo = response.data
+          const userid = response.data.vasSysUserinfo.id
+          let name = '暂无'
+          let avatar = ''
+          if (response.data.employeeInfo != null) {//当有员工信息时
+            name = response.data.employeeInfo.employeename
+            avatar = response.data.employeeInfo.headiconpath
+          }
+          storage.set('user', JSON.stringify(response.data));//存储user信息(name/token/id/corporateInfo/departmentInfo/employeeInfo)
+
+          commit(types.SET_ROLES, roles)
+          commit(types.SET_NAME, name)
+          commit(types.SET_AVATAR, avatar)
+          commit(types.SET_EMPLOYEEINFO, employeeinfo)
+          commit(types.SET_USERID, userid)
+
+          resolve(response)
+        } catch (error) {
+          reject(error)
+        }
+      })
+    },
+    getAmountCount({ commit }) {
+        return new Promise(async (resolve, reject) => {
+          try {
+            const response = await getFormCounts()
+            const amountCount = response.data.data
+            commit(types.SET_AMOUNTCOUNT, amountCount)
+            resolve(response)
+          } catch (error) {
+            reject(error)
+          }
+        })
+      }
+  }
+}
+
+export default user

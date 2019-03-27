@@ -1,0 +1,282 @@
+<template>
+    <div class="count-chart-box">
+        <div class="left-count">
+            <div>
+                <p>总出单数</p>
+                <span>{{countData.issue_num}}</span>
+            </div>
+            <div>
+                <p>总出单保费</p>
+                <span>{{countData.issue_price}}元</span>
+            </div>
+            <div>
+                <p>总累计车价</p>
+                <span>{{countData.vehicle_total_price}}元</span>
+            </div>
+            <div>
+                <p>平均车价</p>
+                <span>{{countData.vehicle_avg_price}}元</span>
+            </div>
+        </div>
+        <div style="flex: auto">
+            <div class="chart-operate">
+                <el-date-picker
+                        style="width: 200px; margin-right: 10px;"
+                        v-model="date"
+                        type="daterange"
+                        size="mini"
+                        value-format="yyyy-MM-dd"
+                        format="yyyy-MM-dd"
+                        @change="getChartData"
+                        start-placeholder="开始日期"
+                        end-placeholder="结束日期">
+                </el-date-picker>
+                <el-button type="text" :class="{'active': dateType === 'day'}" @click="setDate('day')">按日</el-button>
+                <el-button type="text" :class="{'active': dateType === 'month'}" @click="setDate('month')">按月</el-button>
+                <el-button type="text" :class="{'active': dateType === 'quarter'}" @click="setDate('quarter')">按季度</el-button>
+                <el-button type="text" :class="{'active': dateType === 'year'}" @click="setDate('year')">按整年</el-button>
+            </div>
+            <div ref="countChart" style="height: 100%; width: 100%"></div>
+        </div>
+    </div>
+</template>
+
+<script>
+    import echarts from 'echarts'
+    import { addReduceDate } from '@/utils/tools'
+    import { getCountChart } from './service'
+
+    const option = {
+        tooltip: {
+            trigger: 'axis',
+            axisPointer: {
+                type: 'cross',
+                crossStyle: {
+                    color: '#999'
+                }
+            }
+        },
+        toolbox: {
+            feature: {
+                dataView: {show: true, readOnly: false},
+                magicType: {show: true, type: ['line', 'bar']},
+                restore: {show: true},
+                saveAsImage: {show: true}
+            }
+        },
+        legend: {
+            data: ['平均车价', '累计车价', '出单保费', '已出单数']
+        },
+        dataZoom: [
+            {
+                show: true,
+                realtime: true,
+                start: 0,
+                end: 50
+            },
+            {
+                type: 'inside',
+                realtime: true,
+                start: 0,
+                end: 50
+            }
+        ],
+        xAxis: [],
+        yAxis: [
+            {
+                type: 'value',
+                name: '人民币',
+                min: 0,
+                // max: 250,
+                // interval: 50,
+                axisLabel: {
+                    formatter: '{value}元'
+                }
+            },
+            {
+                type: 'value',
+                name: '单数',
+                min: 0,
+                // max: 25,
+                // interval: 5,
+                axisLabel: {
+                    formatter: '{value}'
+                }
+            }
+        ],
+        series: []
+    };
+
+    const series = [{
+        name: '平均车价',
+        type: 'bar',
+        data: []
+    }, {
+        name: '累计车价',
+        type: 'bar',
+        data: []
+    }, {
+        name: '出单保费',
+        type: 'bar',
+        data: []
+    }, {
+        name: '已出单数',
+        type: 'line',
+        yAxisIndex: 1,
+        data: []
+    },]
+
+    const xAxis = [{
+        type: 'category',
+        data: [],
+        axisPointer: {
+            type: 'shadow'
+        }
+    }]
+
+    export default {
+        name: "insuranceCountChart",
+        data () {
+            return {
+                date: [addReduceDate(-30), new Date().format('yyyy-MM-dd')],
+                dateType: 'day',
+                chartInstance: null,
+                countData: {
+                    issue_num: 0,
+                    issue_price: 0,
+                    vehicle_total_price: 0,
+                    vehicle_avg_price: 0
+                },
+                dataTypeMap: {
+                    day: {
+                        url: 'issueStatisticByDay'
+                    },
+                    month: {
+                        url: 'issueStatisticByMonth'
+                    },
+                    quarter: {
+                        url: 'issueStatisticByQuarter'
+                    },
+                    year: {
+                        url: 'issueStatisticByYear'
+                    }
+                }
+            }
+        },
+        props: {
+            corporateinfo: {
+                type: Object,
+                default: {}
+            },
+            policyno: {
+                type: String,
+                default: ''
+            }
+        },
+        mounted () {
+            this.getChartData();
+        },
+        watch: {
+            policyno () {
+                this.getChartData();
+            }
+        },
+        methods: {
+            async getChartData () {
+                try {
+                    if (!this.date)
+                        this.date = []
+                    const params = {
+                        insurancecorpid: this.corporateinfo.id,
+                        policyno: this.policyno,
+                        startTime: this.date[0] || '',
+                        endTime: this.date[1] || ''
+                    }
+                    const url = this.dataTypeMap[this.dateType].url
+                    const {data} = await getCountChart(url, params)
+                    this.initData(data.data)
+                    this.initChart()
+                } catch (e) {
+
+                }
+            },
+            async initChart () {
+                if (this.chartInstance)
+                    this.chartInstance.clear();
+                else
+                    this.chartInstance = echarts.init(this.$refs.countChart)
+                this.chartInstance.setOption(option)
+            },
+            setDate (dateType) {
+                this.dateType = dateType
+                this.getChartData();
+            },
+            initData (data) {
+                option.xAxis = _.cloneDeep(xAxis)
+                option.series = _.cloneDeep(series)
+                _.forEach(data, item => {
+                    let date = item.time
+                    if (this.dateType === 'day') {
+                        date = new Date(item.time).format('yyyy-MM-dd')
+                    } else if (this.dateType === 'quarter') {
+                        date = item.time.split('-')
+                        date = `${date[0]}年${date[1]}季度`
+                    }
+                    option.xAxis[0].data.push(date)
+                    option.series[0].data.push(item.vehicle_avg_price)
+                    option.series[1].data.push(item.vehicle_total_price)
+                    option.series[2].data.push(item.issue_price)
+                    option.series[3].data.push(item.issue_num)
+                })
+                this.countData.vehicle_total_price = 0
+                this.countData.issue_price = 0
+                this.countData.issue_num = 0
+                this.countData.vehicle_avg_price = 0
+
+                this.countData.vehicle_total_price = _.sumBy(data, function (o) {
+                    return o.vehicle_total_price;
+                })
+                this.countData.issue_price = _.sumBy(data, function (o) {
+                    return o.issue_price;
+                })
+                this.countData.issue_num = _.sumBy(data, function (o) {
+                    return o.issue_num;
+                })
+                this.countData.vehicle_avg_price = (this.countData.vehicle_total_price / this.countData.issue_num).toFixed(2)
+                if (isNaN(this.countData.vehicle_avg_price)) {
+                    this.countData.vehicle_avg_price = 0
+                }
+            }
+        }
+    }
+</script>
+
+<style scoped lang="stylus">
+
+    .count-chart-box
+        display flex
+        height 500px
+        > div
+            padding 10px;
+
+    .left-count
+        width 200px;
+        border-right 1px solid #ccc
+        font-size 14px;
+        div
+            margin-top 40px;
+            p
+                margin 10px 0;
+        div:first-child
+            margin-top 20px;
+            span
+                font-size 20px;
+                font-weight bold
+
+    .chart-operate
+        .el-button
+            color #1b1b1b
+            font-weight 600
+        .active
+            color #41B883
+</style>

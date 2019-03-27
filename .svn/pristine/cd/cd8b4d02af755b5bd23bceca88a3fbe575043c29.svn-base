@@ -1,0 +1,114 @@
+import util from '../../../utils/tools.js'
+import { getOperationRecordList, getOperationRecordDetails } from './service';
+
+export default {
+    props: ['windowOutHeight'],
+    data () {
+        return {
+            filters: {
+                startDate: '',
+                vin: '',
+                employeename: ''
+            },
+            activeName: 'first',
+            recordFormVisible: false,
+            listData: [],//操作记录
+            total: 0,
+            currentPage: 0,
+            pageSize: 15,
+            listLoading: false,
+            interfaceData:[],//接口日志
+            interfaceTotal: 0,
+            interfaceCurrentPage: 0,
+            interfacePageSize: 15,
+            interfaceLoading: false,
+            dlistData: [],
+            dlistLoading: false,
+        }
+    },
+    methods: {
+        // 点击切换查询
+        handleTabsClick(tab, event) {
+                if (tab.index == '1') {
+                    
+                }else if (tab.index == '2') {
+                    
+                }else if (tab.index == '0') {
+                    
+                }
+        },
+        //查看日志记录详情
+        showDetails (index, row) {
+            let para = {
+                id: row.id
+            };
+            this.recordFormVisible = true;
+            this.dlistLoading = true;
+            getOperationRecordDetails(para).then((res) => {
+                this.dlistLoading = false;
+                if (res.data.result.code == 0) {
+                    this.dlistData = res.data.data;
+                }
+            });
+        },
+        //格式化后台传来的时间戳
+        dateFormatter (row, col) {
+            return util.formatDate.format(new Date(row.logtime), 'yyyy-MM-dd hh:mm:ss');
+        },
+        //切换每页显示数量
+        handleSizeChange (val) {
+            this.pageSize = val;
+            this.handleQuery();
+        },
+        handleCurrentChange (val) {
+            this.currentPage = val;
+            this.handleQuery();
+        },
+        //获取操作记录列表
+        handleQuery () {
+            let para = {
+                currentPage: this.currentPage,
+                showCount: this.pageSize,
+                employeename: this.filters.employeename,
+                startTime: this.filters.startDate ? (this.filters.startDate[0] ? util.formatDate.format(new Date(this.filters.startDate[0]), 'yyyy-MM-dd hh:mm:ss') : '') : '',
+                endTime: this.filters.startDate ? (this.filters.startDate[1] ? util.formatDate.format(new Date(this.filters.startDate[1]), 'yyyy-MM-dd hh:mm:ss') : '') : ''
+            };
+            this.listLoading = true;
+            getOperationRecordList(para).then((res) => {
+                this.listLoading = false;
+                if (res.data.result.code == 0) {
+                    this.total = res.data.data.totalResult;
+                    this.listData = res.data.data.records;
+                }
+            });
+        },
+        //切换每页显示数量
+        handleSizeChangeInterface (val) {
+            this.interfacePageSize = val;
+            this.handleQueryInterface();
+        },
+        handleCurrentChangeInterface (val) {
+            this.interfaceCurrentPage = val;
+            this.handleQueryInterface();
+        },
+        //获取操作记录列表
+        handleQueryInterface () {
+            let para = {
+                currentPage: this.interfaceCurrentPage,
+                showCount: this.interfacePageSize,
+                employeename: this.filters.employeename,
+            };
+            this.interfaceLoading = true;
+            getOperationRecordList(para).then((res) => {
+                this.interfaceLoading = false;
+                if (res.data.result.code == 0) {
+                    this.interfaceTotal = res.data.data.totalResult;
+                    this.interfaceData = res.data.data.records;
+                }
+            });
+        },
+    },
+    created () {
+        this.handleQuery();
+    }
+}

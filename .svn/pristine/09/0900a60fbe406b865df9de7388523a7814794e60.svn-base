@@ -1,0 +1,11 @@
+import axios from 'axios'
+
+export const getStorageTree = params => {
+    return axios.get('sto/stoStat/query/storageTree')
+}
+
+export const getStockNumList = params => {
+    return axios.get('sto/stoStat/query/storageProductStatistics', {
+        params
+    })
+}

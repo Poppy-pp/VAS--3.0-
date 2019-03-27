@@ -1,0 +1,596 @@
+<!--* 
+* @description: 异常车辆待办
+* @author: mt 
+* @update: mt
+*-->
+<template>
+	<section class="tab_content-wrapper">
+		<!--工具条-->
+		<el-col :span="24" class="toolbar" style="padding-bottom: 0px;">
+			<el-form :inline="true" :model="filters">
+				<template v-for="(item,index) in filters.domSearch">
+					<template v-if="index == 0">
+						<div style="display:inline-block;margin:0 10px 10px 0;">
+							<el-input class="noborder color icon nofocus" @keyup.native.ctrl.8="clearAll()" @keyup.native.13="handleQuerySelect" placeholder="请输入查询内容" v-model="filters.domSearch[index].content">
+								<el-select class="wp_select" multiple clearable filterable v-model="filters.domSearch[index].select" slot="prepend" placeholder="选择条件">
+									<el-option label="品牌" value="brand"></el-option>
+									<el-option label="车系" value="serious"></el-option>
+									<el-option label="车型" value="model"></el-option>
+									<el-option label="外观颜色" value="wgys"></el-option>
+									<el-option label="颜色码" value="wgysm"></el-option>
+									<el-option label="年款" value="yeartomarket"></el-option>
+									<el-option label="首字母" value="firstcategory"></el-option>
+									<el-option label="状态" value="salestatus"></el-option>
+									<el-option label="厂商指导价" value="standardprice"></el-option>
+								</el-select>
+								<template v-if="index == filters.domSearch.length-1">
+									<el-button slot="append" @click="addSelect" icon="el-icon-plus" title="添加查询条件"></el-button>
+								</template>
+								<template v-else>
+									<el-button slot="append" @click="removeSelect(index)" icon="el-icon-minus" title="移除查询条件"></el-button>
+								</template>
+							</el-input>
+						</div>
+					</template>
+					<template v-else>
+						<el-col :span="24">
+							<div style="display:inline-block;margin:0 10px 10px 0;">
+								<el-input class="noborder color icon nofocus" @keyup.native.ctrl.8="clearAll()" @keyup.native.13="handleQuerySelect" placeholder="请输入查询内容" v-model="filters.domSearch[index].content">
+									<el-select class="wp_select" multiple clearable filterable v-model="filters.domSearch[index].select" slot="prepend" placeholder="选择条件">
+										<el-option label="品牌" value="brand"></el-option>
+										<el-option label="车系" value="serious"></el-option>
+										<el-option label="车型" value="model"></el-option>
+										<el-option label="外观颜色" value="wgys"></el-option>
+										<el-option label="颜色码" value="wgysm"></el-option>
+										<el-option label="年款" value="yeartomarket"></el-option>
+										<el-option label="首字母" value="firstcategory"></el-option>
+										<el-option label="状态" value="salestatus"></el-option>
+										<el-option label="厂商指导价" value="standardprice"></el-option>
+									</el-select>
+									<template v-if="index == filters.domSearch.length-1">
+										<el-button slot="append" @click="addSelect" icon="el-icon-plus" title="添加查询条件"></el-button>
+									</template>
+									<template v-else>
+										<el-button slot="append" @click="removeSelect(index)" icon="el-icon-minus" title="移除查询条件"></el-button>
+									</template>
+								</el-input>
+							</div>
+						</el-col>
+					</template>
+					<template v-if="index == 0">
+                        <el-form-item prop="startDate" class="sf100">
+                            <el-date-picker v-model="filters.startDate" type="datetimerange" range-separator="至" start-placeholder="开始日期" end-placeholder="结束日期">
+                            </el-date-picker>
+                        </el-form-item>
+						<el-form-item>
+							<el-button type="primary" @click="handleQuerySelect" icon="el-icon-search">查询</el-button>
+						</el-form-item>
+						<!-- <el-form-item>
+							<el-button type="primary" @click="handleAdd" icon="el-icon-plus">新增</el-button>
+						</el-form-item> -->
+					</template>
+				</template>
+			</el-form>
+		</el-col>
+        <!-- 工具条 -->
+        <section style="margin-bottom:20px;">
+            <el-select v-model="value1" placeholder="全部待办" style="width:19%;margin-right:10px;">
+                <el-option
+                v-for="item in options"
+                :key="item.value"
+                :label="item.label"
+                :value="item.value">
+                </el-option>
+            </el-select>
+            <el-button type="primary" @click="jump('handoverLlist')">交班/交接</el-button>
+            <el-button type="primary" @click="jump('myShiftRecord')">我的交班记录</el-button>
+        </section>
+
+		<!--列表-->
+		<el-table :max-height="windowOutHeight-215" border :data="listData" :row-class-name="tableRowClassName" highlight-current-row v-loading="listLoading" style="width: 100%;" @sort-change="sortChange">
+			<el-table-column type="index" width="30" align="center" label="#">
+			</el-table-column>
+			<el-table-column prop="toDoNum" label="待办编号" align="center" width="130" >
+			</el-table-column>
+			<el-table-column prop="AbnormalCauses" label="异常原因（当前状态）" align="center" width="340">
+                <template slot-scope="scope">
+                    <el-popover trigger="click" placement="bottom">
+                    <div class="alarmComponent">
+                        <div style="font-weight:bold;">报警组成</div>
+                        <div class="deviceInfo">
+                            <p>设备型号：有线WA</p>
+                            <p>编号：12345678965</p>
+                        </div>
+                        <ul>
+                            <li>2018-12-19 08:30:35,设备XXX报警</li>
+                            <li>2018-12-19 08:30:35,设备XXX报警</li>
+                            <li>2018-12-19 08:30:35,设备XXX报警</li>
+                        </ul>
+                    </div>
+                    <div slot="reference" class="name-wrapper">
+                        {{ scope.row.AbnormalCauses }}
+                    </div>
+                    </el-popover>
+                </template>
+			</el-table-column>
+			<el-table-column prop="generationtime" label="待办生成时间" align="center" width="155">
+			</el-table-column>
+			<el-table-column prop="carInfo" label="车辆信息" align="center" width="250">
+                <template slot-scope="scope">
+                    <div>
+                       <table>
+                           <tr style="background-color: transparent;">
+                               <td style="border:0;">车牌号：</td>
+                               <td style="border:0;">川A12345</td>
+                           </tr>
+                           <tr style="background-color: transparent;">
+                               <td style="border:0;">车架号：</td>
+                               <td style="border:0;">LGWEF4A52JF538615</td>
+                           </tr>
+                       </table>
+                    </div>
+                </template>
+			</el-table-column>
+			<el-table-column prop="AffiliatedCompany" label="所属公司" align="center" >
+			</el-table-column>
+			<el-table-column prop="VehicleLabels" label="车辆标签" align="center" width="250">
+                 <template slot-scope="scope">
+                     <div v-for="(item,index) in scope.row.VehicleLabels" style="display:inline-block;margin-left:10px;">
+                          <el-tag :type="item === '有保险' ? 'primary' : 'success'" disable-transitions>{{item}}</el-tag>
+                     </div>
+                     <div style='display:inline-block;margin-left:10px;'>
+                         <el-button type="text" @click="openMore=true">更多</el-button>
+                     </div>
+                </template>
+			</el-table-column>
+			<el-table-column prop="TaskHandler" label="任务处理人" align="center" width="120" >
+			</el-table-column>
+			<el-table-column prop="LatestProcessingDetails" label="最新处理详情" align="center" width="180" >
+                <template slot-scope="scope">
+                    <el-popover trigger="click" placement="bottom">
+                    <div class="handlingDetails">
+                        <div style="font-weight:bold;margin-bottom:20px;">处理详情</div>
+                        <ul>
+                            <li class="handlingDetailsList">
+                                <p class="timeNode"></p>
+                                <p class="solid"></p>
+                                <div>
+                                    <div style="display:flex;">
+                                        <p>万网-小张</p>
+                                        <p>2018-12-29 10:30:35</p>
+                                    </div>
+                                    <div style="display:flex;"> 
+                                        <p>【派单维护】</p>
+                                        <p>已派单-维修</p>
+                                    </div>
+                                </div>
+                            </li>
+                            <li class="handlingDetailsList">
+                                <p class="timeNode"></p>
+                                <p class="solid"></p>
+                                <div>
+                                    <div style="display:flex;">
+                                        <p>万网-小张</p>
+                                        <p>2018-12-29 10:30:35</p>
+                                    </div>
+                                    <div style="display:flex;">
+                                        <p>【派单维护】</p>
+                                        <p>已派单-维修</p>
+                                    </div>
+                                </div>
+                            </li>
+                            <li class="handlingDetailsList">
+                                <p class="timeNode"></p>
+                                <!-- <p class="solid"></p> -->
+                                <div>
+                                    <div style="display:flex;">
+                                        <p>万网-小张</p>
+                                        <p>2018-12-29 10:30:35</p>
+                                    </div>
+                                    <div style="display:flex;">
+                                        <p>【派单维护】</p>
+                                        <p>已派单-维修</p>
+                                    </div>
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+                    <div slot="reference" class="name-wrapper">
+                        {{ scope.row.AbnormalCauses }}
+                    </div>
+                    </el-popover>
+                </template>
+			</el-table-column>
+			<el-table-column fixed="right" label="操作" width="120" align="center">
+				<template scope="scope">
+					<el-button id="button" title="详情" @click="formDetailHandle(scope.row)">
+						<i class="iconfont icon-xiangqing operate operate-xiangqing"></i>
+					</el-button>
+                    <el-button id="button" title="推送给客户">
+						<i class="iconfont icon-jiaoseshezhi operate operate-bianji-coc"></i>
+					</el-button>
+                    <!-- <el-button id="button" title="处理">
+						<i class="el-icon-arrow-down el-icon--right size"></i>
+					</el-button> -->
+
+                    <el-dropdown>
+                             <span class="el-dropdown-link">
+                                <i class="el-icon-arrow-down el-icon--right size"></i>
+                              </span>
+                            <el-dropdown-menu slot="dropdown">
+                                <el-dropdown-item @click.native="handleNote(0, scope.row)"
+                                >远程处理
+                                </el-dropdown-item>
+                                <el-dropdown-item @click.native="handleNote(1, scope.row)" 
+                                >设备检测
+                                </el-dropdown-item>
+                                <el-dropdown-item @click.native="handleNote(2, scope.row)" 
+                                >跟进处理
+                                </el-dropdown-item>
+                                <el-dropdown-item @click.native="handleNote(3, scope.row)" 
+                                >关闭待办
+                                </el-dropdown-item>
+                                <el-dropdown-item @click.native="handleNote(4, scope.row)" 
+                                >派单维护
+                                </el-dropdown-item>
+                                <el-dropdown-item @click.native="handleNote(6, scope.row)" 
+                                >待办交接
+                                </el-dropdown-item>
+                            </el-dropdown-menu>
+                        </el-dropdown>
+
+
+				</template>
+			</el-table-column>
+		</el-table>
+
+		<!--工具条-->
+		<el-col :span="24" class="toolbar">
+			<el-pagination @size-change="handleSizeChange" background @current-change="handleCurrentChange" :page-sizes="[15, 50, 80, 99]" :page-size="pageSize" layout="total, sizes, prev, pager, next" :total="total" style="float:right;">
+			</el-pagination>
+		</el-col>
+
+		<!-- 详情 弹窗 start-->
+		<el-dialog title="详情" :modal-append-to-body="false" :visible.sync="formDialogTableVisible">
+			<el-tabs>
+				<el-row>
+					<el-col :span="24">
+						<span class="formTile">设备信息</span>
+					</el-col>
+                    <el-col :span="24">
+						<span>无线WH</span>
+					</el-col>
+					<el-col :span="8">
+						<dl class="dllist" style="margin-bottom:10px;">
+							<dt>设备编号:</dt>
+							<dd> 111 </dd>
+						</dl>
+						<dl class="dllist" style="margin-bottom:10px;">
+							<dt>设备接入时间:</dt>
+							<dd> 222 </dd>
+						</dl>
+					</el-col>
+                    <el-col :span="8">
+                        <dl class="dllist" style="margin-bottom:10px;">
+							<dt>SIM卡号:</dt>
+							<dd> 333 </dd>
+						</dl>
+						<dl class="dllist" style="margin-bottom:10px;">
+							<dt>设备最近安装时间:</dt>
+							<dd> 444</dd>
+						</dl>
+                    </el-col>
+                    <el-col :span="8">
+                        <dl class="dllist" style="margin-bottom:10px;">
+							<dt>设备电量:</dt>
+							<dd> 333 </dd>
+						</dl>
+						<dl class="dllist" style="margin-bottom:10px;">
+							<dt>设备安装位置:</dt>
+							<dd> 主座内[查看图片]444</dd>
+						</dl>
+                    </el-col>
+                    <el-col :span="24">
+						<span>有线WA</span>
+					</el-col>
+					<el-col :span="8">
+						<dl class="dllist" style="margin-bottom:10px;">
+							<dt>设备编号:</dt>
+							<dd> 333 </dd>
+						</dl>
+						<dl class="dllist" style="margin-bottom:10px;">
+							<dt>设备接入时间:</dt>
+							<dd> 444</dd>
+						</dl>
+					</el-col>
+                    <el-col :span="8">
+						<dl class="dllist" style="margin-bottom:10px;">
+							<dt>SIM卡号:</dt>
+							<dd> 333 </dd>
+						</dl>
+						<dl class="dllist" style="margin-bottom:10px;">
+							<dt>设备最近安装时间:</dt>
+							<dd> 444</dd>
+						</dl>
+					</el-col>
+                    <el-col :span="8">
+                        <dl class="dllist" style="margin-bottom:10px;">
+							<dt>设备电量:</dt>
+							<dd> 333 </dd>
+						</dl>
+						<dl class="dllist" style="margin-bottom:10px;">
+							<dt>设备安装位置:</dt>
+							<dd> 主座内[查看图片]444</dd>
+						</dl>
+                    </el-col>
+				</el-row>
+                <el-row>
+					<el-col :span="24">
+						<span class="formTile">车辆信息</span>
+					</el-col>
+					<el-col :span="8">
+						<dl class="dllist" style="margin-bottom:10px;">
+							<dt>车架号:</dt>
+							<dd> 111 </dd>
+						</dl>
+						<dl class="dllist" style="margin-bottom:10px;">
+							<dt>所属公司:</dt>
+							<dd> 222 </dd>
+						</dl>
+                        <dl class="dllist" style="margin-bottom:10px;">
+							<dt>车主电话:</dt>
+							<dd> 111 </dd>
+						</dl>
+					</el-col>
+					<el-col :span="8">
+						<dl class="dllist" style="margin-bottom:10px;">
+							<dt>车牌号:</dt>
+							<dd> 333 </dd>
+						</dl>
+						<dl class="dllist" style="margin-bottom:10px;">
+							<dt>车辆购置价:</dt>
+							<dd> 444</dd>
+						</dl>
+                        <dl class="dllist" style="margin-bottom:10px;">
+							<dt>车辆服务期限:</dt>
+							<dd> 333 </dd>
+						</dl>
+					</el-col>
+                    <el-col :span="8">
+                        <dl class="dllist" style="margin-bottom:10px;">
+							<dt>车辆型号:</dt>
+							<dd> 333 </dd>
+						</dl>
+						<dl class="dllist" style="margin-bottom:10px;">
+							<dt>车主姓名:</dt>
+							<dd> 444</dd>
+						</dl>
+                        <dl class="dllist" style="margin-bottom:10px;">
+							<dt>车辆保险期限:</dt>
+							<dd> 444</dd>
+						</dl>
+                    </el-col>
+                    <el-col :span="24">
+                        <dl class="dllist" style="margin-bottom:10px;">
+							<dt>车辆标签:</dt>
+							<dd> 11111111111111111111111111111111111111111111111 </dd>
+						</dl>
+                    </el-col>
+				</el-row>
+                <el-row style="margin-bottom:40px;margin-top:20px;">
+                    <el-select v-model="labelsValue" placeholder="请选择" style="width:30%;">
+                        <el-option
+                        v-for="item in Labels"
+                        :key="item.value"
+                        :label="item.label"
+                        :value="item.labelsValue">
+                        </el-option>
+                    </el-select>
+                    <el-button type="text" icon="el-icon-circle-plus-outline" style="margin-left:20px;border:none;" plain>自定义标签</el-button>
+                </el-row>
+                </el-tabs>
+		</el-dialog>
+		<!-- 详情 弹窗 end-->
+
+        <!-- 更多 start-->
+        <el-dialog title="已有车辆标签" :visible.sync="openMore" width="30%">
+            <div>
+                 <div class="moreCarLabel">
+                    <el-tag class="moreCarLabel_one" v-for="(tag,index) in tags" :key="tag.name"
+                        closable
+                        :type="tag.type" @close="handleClose(index)">
+                        {{tag.name}}
+                    </el-tag>
+                </div>
+                <div>
+                    <el-select v-model="AddOtherLabels" placeholder="请选择" style="width:50%;">
+                        <el-option
+                        v-for="item in otherLabels"
+                        :key="item.value"
+                        :label="item.label"
+                        :value="item.value">
+                        </el-option>
+                    </el-select>
+                    <el-button type="text" style="display:block;margin:20px 0;" @click="addInput=true">自定义标签 + </el-button>
+                </div>
+                <div v-show="addInput">
+                    <el-input placeholder="请输入标签，最多五个字" v-model="customlabel" clearable style="width:50%;" validate-event=true>
+                    </el-input>
+                    <el-button type="success" @click="addLabel">添加</el-button>
+                </div>
+            </div>
+            <span slot="footer" class="dialog-footer">
+                <el-button type="primary" @click="openMore = false">确 定</el-button>
+            </span>
+        </el-dialog>
+        <!-- 更多 end -->
+
+		<!--新增界面-->
+		<!-- <el-dialog title="新增车型" :modal-append-to-body="false" :visible.sync="addFormVisible" :close-on-click-modal="false">
+			<el-form :model="addForm" label-width="100px" :rules="addFormRules" ref="addForm">
+				<el-collapse v-model="activeNames">
+					<el-collapse-item name="1">
+						<template slot="title"> 基础信息</template>
+						<el-row :gutter="20">
+							<el-col :span="12">
+								<el-form-item label="品牌" prop="brand">
+									<el-autocomplete class="inline-input searchInput" v-model="addForm.brand" :fetch-suggestions="querySearchBrand" placeholder="请输入品牌" @select="handleSelectBrand" clearable ></el-autocomplete>
+								</el-form-item>
+								<el-form-item label="车系" prop="serious">
+									<el-autocomplete class="inline-input searchInput" v-model="addForm.serious" :fetch-suggestions="querySearchSerious" placeholder="请输入车系" @select="handleSelectSerious" clearable></el-autocomplete>
+								</el-form-item>
+								<el-form-item label="车型" prop="model">
+									<el-autocomplete class="inline-input searchInput" v-model="addForm.model" :fetch-suggestions="querySearchModel" placeholder="请输入车型" @select="sendColorIdData" clearable></el-autocomplete>
+								</el-form-item>
+								<el-form-item label="颜色" prop="colorlist">
+									<el-select v-model="addForm.colorlist" clearable style="flex:1;" placeholder="请选择车辆颜色" multiple value-key="value">
+										<el-option v-for="(item,index) in carColor" :key="index" :label="item.value" :value="item">
+											<p><div :style="{height:'20px',width:'20px',backgroundColor:item.color_rgb,float:'left',margin:'8px 5px 0 0'}"></div>{{ item.value }}</p>
+										</el-option>
+									</el-select>
+								</el-form-item>
+							</el-col>
+							<el-col :span="12">
+								<el-form-item label="年款" prop="yeartomarket">
+									<el-date-picker v-model="addForm.yeartomarket" type="year" placeholder="选择年">
+									</el-date-picker>
+								</el-form-item>
+								<el-form-item label="首字母" prop="firstcategory">
+									<el-select v-model="addForm.firstcategory" :loading="firstLoading" filterable placeholder="请选择首字母" clearable>
+										<el-option v-for="item in firstlist" :key="item" :label="item" :value="item">
+										</el-option>
+									</el-select>
+								</el-form-item>
+								<el-form-item label="厂商指导价" prop="standardprice">
+									<el-input v-model="addForm.standardprice" auto-complete="off">
+										<template slot="append">万</template>
+									</el-input>
+								</el-form-item>
+							</el-col>
+						</el-row>
+					</el-collapse-item>
+				</el-collapse>
+			</el-form>
+			<div slot="footer" class="dialog-footer">
+				<el-button @click.native="addFormVisible = false">取消</el-button>
+				<el-button type="primary" @click.native="addSubmit" :loading="addLoading">提交</el-button>
+			</div>
+		</el-dialog> -->
+
+		<!--编辑界面-->
+		<!-- <el-dialog title="编辑" :modal-append-to-body="false" :visible.sync="editFormVisible" :close-on-click-modal="false">
+			<el-form :model="editForm" label-width="100px" :rules="editFormRules" ref="editForm">
+				<el-collapse v-model="activeNames">
+					<el-collapse-item title="基础信息" name="1">
+						<el-row :gutter="20">
+							<el-col :span="12">
+								<el-form-item label="品牌" prop="brand">
+									<el-autocomplete class="inline-input searchInput" v-model="editForm.brand" :fetch-suggestions="querySearchBrand" :trigger-on-focus="false" placeholder="请输入品牌" @select="handleSelectBrand" clearable></el-autocomplete>
+								</el-form-item>
+								<el-form-item label="车系" prop="serious">
+									<el-autocomplete class="inline-input searchInput" v-model="editForm.serious" :fetch-suggestions="querySearchSerious" :trigger-on-focus="false"  placeholder="请输入车系" @select="handleSelectSerious" clearable></el-autocomplete>
+								</el-form-item>
+								<el-form-item label="车型" prop="model">
+									<el-autocomplete class="inline-input searchInput" v-model="editForm.model" :fetch-suggestions="querySearchModel" :trigger-on-focus="false"  placeholder="请输入车型" @select="sendColorIdData" clearable>
+									</el-autocomplete>
+								</el-form-item>
+								<el-form-item label="颜色" prop="colorlist">
+									<el-select v-model="editForm.colorlist" clearable style="flex:1;" placeholder="请选择车辆颜色" multiple value-key="value">
+										<el-option v-for="(item,index) in carColor" :key="index" :label="item.value" :value="item">
+											<p><div :style="{height:'20px',width:'20px',backgroundColor:item.color_rgb,float:'left',margin:'8px 5px 0 0'}"></div>{{ item.value }}</p>
+										</el-option>
+									</el-select>
+								</el-form-item>
+							</el-col>
+							<el-col :span="12">
+								<el-form-item label="年款" prop="yeartomarket">
+									<el-date-picker v-model="editForm.yeartomarket" type="year" placeholder="选择年">
+									</el-date-picker>
+								</el-form-item>
+								<el-form-item label="首字母" prop="firstcategory">
+									<el-select v-model="editForm.firstcategory" :loading="firstLoading" filterable placeholder="请选择首字母" clearable>
+										<el-option v-for="item in firstlist" :key="item" :label="item" :value="item">
+										</el-option>
+									</el-select>
+								</el-form-item>
+								<el-form-item label="厂商指导价" prop="standardprice">
+									<el-input v-model="editForm.standardprice" auto-complete="off">
+										<template slot="append">万</template>
+									</el-input>
+								</el-form-item>
+							</el-col>
+						</el-row>
+					</el-collapse-item>
+				</el-collapse>
+			</el-form>
+			<div slot="footer" class="dialog-footer">
+				<el-button @click.native="editFormVisible = false">取消</el-button>
+				<el-button type="primary" @click.native="editSubmit" :loading="editLoading">提交</el-button>
+			</div>
+		</el-dialog> -->
+	</section>
+</template>
+<script src="./index.js"></script>
+<style scoped>
+.button {
+  display: inline-block;
+  border: 0;
+  margin: 0 auto;
+}
+.size {
+  font-size: 22px;
+  cursor: pointer;
+  color: #909399;
+}
+.alarmComponent {
+  width: 300px;
+  line-height: 28px;
+  text-align: center;
+}
+.deviceInfo {
+  display: flex;
+  justify-content: space-around;
+  margin-bottom: 8px;
+}
+.handlingDetails ul {
+  padding-bottom: 20px;
+}
+.handlingDetailsList {
+  display: flex;
+  width: 300px;
+  justify-content: flex-start;
+  position: relative;
+}
+.handlingDetailsList .timeNode {
+  border-radius: 50%;
+  width: 15px;
+  height: 15px;
+  background-color: #41b883;
+  margin-top: 6px;
+  margin-left: 20px;
+}
+.handlingDetailsList > div {
+  line-height: 28px;
+  margin-left: 30px;
+}
+.solid {
+  background-color: rgb(148, 145, 145);
+  width: 1px;
+  height: 35px;
+  position: absolute;
+  top: 23px;
+  left: 27px;
+}
+.moreCarLabel{
+   display:flex;
+   justify-content: flex-start;
+   flex-wrap: wrap;
+   padding-bottom:20px;
+}
+.moreCarLabel .moreCarLabel_one{
+    margin:10px 10px 0 10px;
+}
+</style>
+
+
+

@@ -1,0 +1,18 @@
+/* 
+ * @description: 后台数据接口配置中心 
+ */
+import axios from 'axios';
+import Qs from 'qs';
+
+let base = '/vasms-web';
+
+//待办列表信息
+export const getTodoInfoList = params => {
+    return axios.get(`${base}/api/v1/workflow/new_build/tasks`, {
+        params: params
+    })
+};
+// // 保险模板
+// export const getInsTemplate = params => {
+//     return axios.get(`insurance/insuranceTemplate/page`, {params:params});
+// };

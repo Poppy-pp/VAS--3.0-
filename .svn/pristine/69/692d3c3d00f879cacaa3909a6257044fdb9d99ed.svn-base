@@ -1,0 +1,605 @@
+<!--* 
+* @description:  维修单管理
+*-->
+<template>
+    <section>
+        <el-col :span="24" class="mb10">
+            <el-radio-group v-model="stepState" size="medium" @change="changeStateHandle">
+                <el-radio-button label="0" :disabled="listLoading">全部（{{ fromNum.num0 }}）</el-radio-button>
+                <el-radio-button label="1" :disabled="listLoading">派单（{{ fromNum.num1 }}）</el-radio-button>
+                <el-radio-button label="2" :disabled="listLoading">接单（{{ fromNum.num2 }}）</el-radio-button>
+                <el-radio-button label="3" :disabled="listLoading">施工（{{ fromNum.num3 }}）</el-radio-button>
+                <el-radio-button label="4" :disabled="listLoading">订单完成（{{ fromNum.num4 }}）</el-radio-button>
+            </el-radio-group>
+        </el-col>
+        <!--报单中心列表 新装单子 拆除单子 售后单子  start-->
+        <!--工具条-->
+        <el-col :span="24" class="toolbar" style="padding-bottom: 0px;">
+             <el-form :model="filters" ref="filters" :inline="true" class="flexSearchForm">
+                <template v-for="(item,index) in filters.domSearch">
+                    <template v-if="index == 0">
+                        <div style="display:inline-block;margin:0 10px 10px 0;">
+                            <el-input class="noborder color icon nofocus" @keyup.native.ctrl.8="clearAll()" @keyup.native.13="handleQuery" placeholder="请输入查询内容" v-model="filters.domSearch[index].content">
+                                <el-select class="wp_select" multiple clearable filterable v-model="filters.domSearch[index].select" slot="prepend" placeholder="选择条件">
+                                    <el-option label="单号" value="orderno"></el-option>
+                                    <el-option label="订单来源" value="declarefromname"></el-option>
+                                    <el-option label="报单公司" value="corpname"></el-option>
+                                    <el-option label="状态" value="statusname"></el-option>
+                                    <el-option label="处理人" value="assignbyname"></el-option>
+                                    <el-option label="车架号" value="vin"></el-option>
+                                    <el-option label="车主" value="ownername"></el-option>
+                                </el-select>
+                                <template v-if="index == filters.domSearch.length-1">
+                                    <el-button slot="append" @click="addSelect" icon="el-icon-plus" title="添加查询条件"></el-button>
+                                </template>
+                                <template v-else>
+                                    <el-button slot="append" @click="removeSelect(index)" icon="el-icon-minus" title="移除查询条件"></el-button>
+                                </template>
+                            </el-input>
+                        </div>
+                    </template>
+                    <template v-else>
+                        <el-col :span="24">
+                            <div style="display:inline-block;margin:0 10px 10px 0;">
+                                <el-input class="noborder color icon nofocus" @keyup.native.ctrl.8="clearAll()" @keyup.native.13="handleQuery" placeholder="请输入查询内容" v-model="filters.domSearch[index].content">
+                                    <el-select class="wp_select" multiple clearable filterable v-model="filters.domSearch[index].select" slot="prepend" placeholder="选择条件">
+                                        <el-option label="单号" value="orderno"></el-option>
+                                        <el-option label="订单来源" value="declarefromname"></el-option>
+                                        <el-option label="报单公司" value="corpname"></el-option>
+                                        <el-option label="状态" value="statusname"></el-option>
+                                        <el-option label="处理人" value="assignbyname"></el-option>
+                                        <el-option label="车架号" value="vin"></el-option>
+                                        <el-option label="车主" value="ownername"></el-option>
+                                    </el-select>
+                                    <template v-if="index == filters.domSearch.length-1">
+                                        <el-button slot="append" @click="addSelect" icon="el-icon-plus" title="添加查询条件"></el-button>
+                                    </template>
+                                    <template v-else>
+                                        <el-button slot="append" @click="removeSelect(index)" icon="el-icon-minus" title="移除查询条件"></el-button>
+                                    </template>
+                                </el-input>
+                            </div>
+                        </el-col>
+                    </template>
+
+                    <template v-if="index == 0">
+                        <el-form-item label="维修日期">
+                            <el-date-picker style="width:250px;" v-model="filters.timeScope" type="daterange" start-placeholder="开始日期" end-placeholder="结束日期">
+                            </el-date-picker>
+                        </el-form-item>
+                        <el-form-item>
+                            <el-button type="primary" @click="getTodo" icon="el-icon-search">查询</el-button>
+                            <el-button type="info" @click="resetForm('filters')" icon="el-icon-refresh">重置</el-button>
+                        </el-form-item>
+                    </template>
+                </template>
+            </el-form>
+        </el-col>
+
+<el-table :max-height="windowOutHeight-320" :data="todo" border ref="todeTable" highlight-current-row @expand-change="expandHandle" v-loading="listLoading" style="width: 100%;">
+    <el-table-column type="expand">
+        <template slot-scope="props">
+        <el-tabs v-model="activeName" 
+        v-loading="expandLoading"
+        element-loading-text="订单详情加载中，请稍后..."
+        element-loading-spinner="el-icon-loading"
+        element-loading-background="rgba(247, 247, 247, 0.7)"
+        type="border-card">
+            <el-tab-pane label="订单详情" name="1">
+                <el-row>
+                    <el-col :span="24">
+                        <span class="formTile">报单/派单信息</span>
+                    </el-col>
+                    <el-col :span="4">
+                        <dl class="dllist">
+                            <dt>派单公司:</dt>
+                            <dd>{{ props.row.corpname }}</dd>
+                        </dl>
+                        <dl class="dllist">
+                            <dt>安装产品:</dt>
+                            <dd>{{ props.row.packageid }}</dd>
+                        </dl>
+                        <dl class="dllist">
+                            <dt>安装人员:</dt>
+                            <dd>{{ props.row.impbyname }}</dd>
+                        </dl>
+                        <dl class="dllist">
+                            <dt>处理人:</dt>
+                            <dd>{{ props.row.assignbyname }}</dd>
+                        </dl>
+                    </el-col>
+                    <el-col :span="4">
+                        <dl class="dllist">
+                            <dt>派单时间:</dt>
+                            <dd>{{ Dayjs(props.row.assigndate).format('YYYY-MM-DD HH:mm') }}</dd>
+                        </dl>
+                        <dl class="dllist">
+                            <dt>接单时间:</dt>
+                            <dd>{{ props.row.acceptdate ? Dayjs(props.row.acceptdate).format('YYYY-MM-DD HH:mm') : '--' }}</dd>
+                        </dl>
+                        <dl class="dllist">
+                            <dt>安装联系人:</dt>
+                            <dd>{{ props.row.contactname }}</dd>
+                        </dl>
+                        <dl class="dllist">
+                            <dt>安装联系方式:</dt>
+                            <dd>{{ props.row.contactmobile }}</dd>
+                        </dl>
+                    </el-col>
+                    <el-col :span="5">
+                        <dl class="dllist">
+                            <dt>订单编号:</dt>
+                            <dd>{{ props.row.orderno }}</dd>
+                        </dl>
+                        <dl class="dllist">
+                            <dt>安装时间:</dt>
+                            <dd>{{ Dayjs(props.row.impapplydate).format('YYYY-MM-DD HH:mm') }}</dd>
+                        </dl>
+                        <dl class="dllist">
+                            <dt>开始安装时间:</dt>
+                            <dd>{{ props.row.impactualstartdate ? Dayjs(props.row.impactualstartdate).format('YYYY-MM-DD HH:mm') : '--'}}</dd>
+                        </dl>
+                        <dl class="dllist">
+                            <dt>完成安装时间:</dt>
+                            <dd>{{ props.row.impactualenddate ? Dayjs(props.row.impactualenddate).format('YYYY-MM-DD HH:mm') : '--'}}</dd>
+                        </dl>
+                    </el-col>
+                    <el-col :span="10">
+                        <dl class="dllist">
+                            <dt>订单来源:</dt>
+                            <dd>{{ props.row.declarefromname }}</dd>
+                        </dl>
+                        <dl class="dllist">
+                            <dt>安装地址:</dt>
+                            <dd>{{ props.row.impaddress }}</dd>
+                        </dl>
+                        <dl class="dllist">
+                            <dt>开始安装地址:</dt>
+                            <dd>{{ props.row.impaddress }}</dd>
+                        </dl>
+                        <dl class="dllist">
+                            <dt>完成安装地址:</dt>
+                            <dd>{{ props.row.impaddress }}</dd>
+                        </dl>
+                    </el-col>
+                    <el-col :span="24">
+                        
+                    </el-col>
+                    <el-col :span="24">
+                        <span class="formTile">车主车辆信息</span>
+                    </el-col>
+                    <el-col :span="6">
+                        <dl class="dllist">
+                            <dt>车主姓名:</dt>
+                            <dd>{{ props.row.rpvehicleinfo.ownerInfo == null ? '--' :  props.row.rpvehicleinfo.ownerInfo.name }}</dd>
+                        </dl>
+                        <dl class="dllist">
+                            <dt>身份证号:</dt>
+                            <dd>{{ props.row.rpvehicleinfo.ownerInfo == null ? '--' :  props.row.rpvehicleinfo.ownerInfo.idcard  }}</dd>
+                        </dl>
+                        <dl class="dllist">
+                            <dt>车主电话:</dt>
+                            <dd>{{ props.row.rpvehicleinfo.ownerInfo == null ? '--' :  props.row.rpvehicleinfo.ownerInfo.mobile  }}</dd>
+                        </dl>
+                        <dl class="dllist">
+                            <dt>联系地址:</dt>
+                            <dd>{{ props.row.rpvehicleinfo.ownerInfo == null ? '--' :  props.row.rpvehicleinfo.ownerInfo.addresshome  }}</dd>
+                        </dl>
+                    </el-col>
+                    <el-col :span="7">
+                        <dl class="dllist">
+                            <dt>车架号:</dt>
+                            <dd>{{ props.row.rpvehicleinfo.vin }}</dd>
+                        </dl>
+                        <dl class="dllist">
+                            <dt>厂牌型号:</dt>
+                            <dd>{{ props.row.rpvehicleinfo.model }}</dd>
+                        </dl>
+                        <dl class="dllist">
+                            <dt>发动机号:</dt>
+                            <dd>{{ props.row.rpvehicleinfo.enginenum }}</dd>
+                        </dl>
+                        <dl class="dllist">
+                            <dt>车牌号:</dt>
+                            <dd>{{ props.row.rpvehicleinfo.licenseplatenum }}</dd>
+                        </dl>
+                    </el-col>
+                    <el-col :span="5">
+                        <dl class="dllist">
+                            <dt>车辆分类:</dt>
+                            <dd>{{ props.row.rpvehicleinfo.vehiclecategory == 1 ? '新车' : props.row.rpvehicleinfo.vehiclecategory == 2 ? '二手车' 
+                            : '资管追回' }}</dd>
+                        </dl>
+                        <dl class="dllist">
+                            <dt>车辆类型:</dt>
+                            <dd>{{ props.row.rpvehicleinfo.vehicletypename }}</dd>
+                        </dl>
+                        <dl class="dllist">
+                            <dt>车辆购置价:</dt>
+                            <dd>{{ props.row.rpvehicleinfo.price }} 元</dd>
+                        </dl>
+                        <dl class="dllist">
+                            <dt>车辆颜色:</dt>
+                            <dd>{{ props.row.rpvehicleinfo.colorname }}</dd>
+                        </dl>
+                    </el-col>
+                    <el-col :span="6">
+                        <dl class="dllist">
+                            <dt>能源类型:</dt>
+                            <dd>{{ props.row.rpvehicleinfo.vehiclepowername }}</dd>
+                        </dl>
+                        <dl class="dllist">
+                            <dt>初登日期:</dt>
+                            <dd>{{ Dayjs(props.row.rpvehicleinfo.firstregisterdate).format('YYYY-MM-DD') }}</dd>
+                        </dl>
+                        <dl class="dllist">
+                            <dt>第一受益人:</dt>
+                            <dd>{{ props.row.rpvehicleinfo.beneficiary ? props.row.rpvehicleinfo.beneficiary : '--' }}</dd>
+                        </dl>
+                    </el-col>
+                </el-row>
+            </el-tab-pane>
+            
+            <el-tab-pane label="操作记录" name="2">
+                <el-table
+                :data="opHistoryData"
+                style="width: 100%">
+                    <el-table-column prop="name" align="center" label="操作节点"> </el-table-column>
+                    <el-table-column prop="assignee_name" align="center"  label="操作人">  </el-table-column>
+                    <el-table-column align="center" prop="end_time" label="时间"> </el-table-column>
+                    <el-table-column  prop="" align="center" label="操作记录"> </el-table-column>
+                </el-table>
+            </el-tab-pane>
+        </el-tabs>
+    </template>
+</el-table-column>
+<el-table-column prop="orderno" align="center" label="维修单号" width="180"></el-table-column>
+<el-table-column prop="rptype" align="center" label="维修类型" width="80"></el-table-column>
+<el-table-column prop="statusname" align="center" label="当前状态" width="80"></el-table-column>
+<el-table-column prop="assignbyname" align="center" label="处理人" width="80"></el-table-column>
+<el-table-column prop="corpname" align="center" label="所属公司"></el-table-column>
+<el-table-column prop="rpfaultcodename" align="center" label="维修原因"></el-table-column>
+<el-table-column label="车主车辆信息" width="350">
+    <template slot-scope="scope">
+        <p>车主姓名：{{ scope.row.rpvehicleinfo.ownerInfo ? scope.row.rpvehicleinfo.ownerInfo.name : '--' }}</p>
+        <p>车架号：{{ scope.row.rpvehicleinfo ?
+         scope.row.rpvehicleinfo.vin : '--'}}</p>
+        <p>车辆型号：{{ scope.row.rpvehicleinfo ?
+         scope.row.rpvehicleinfo.model : '--'}}</p>
+    </template>
+</el-table-column>
+<el-table-column prop="impapplydate" align="center" label="维修时间" :formatter="dateFormatter" width="140"></el-table-column>
+<el-table-column prop="returnremark" align="center" label="退回原因"></el-table-column>
+
+<el-table-column label="操作" width="100" align="center" fixed="right">
+    <template slot-scope="scope">
+        <el-dropdown trigger="click">
+            <el-button size="mini" type="primary">
+                更多操作<i class="el-icon-arrow-down el-icon--right"></i>
+            </el-button>
+            <el-dropdown-menu slot="dropdown">
+                <el-dropdown-item v-if="scope.row.status == 6" @click.native="detailsOrder(scope.row)">详 情</el-dropdown-item>
+                <el-dropdown-item v-if="scope.row.status == 1" @click.native="dispatchOrder(scope.row)">派 单</el-dropdown-item>
+                <el-dropdown-item v-if="scope.row.status == 2 || scope.row.status == 3" @click.native="transferOrder(scope.row)">转 派</el-dropdown-item>
+                <el-dropdown-item v-if="scope.row.status == 2 || scope.row.status == 3" @click.native="passConstructionOrder(scope.$index, scope.row)">退 回</el-dropdown-item>
+                <el-dropdown-item v-if="scope.row.status == 1 || scope.row.status == 2 || scope.row.status == 3 || scope.row.status == 4" @click.native="deleteOrder(scope.$index, scope.row)">废 单</el-dropdown-item>
+                <el-dropdown-item @click.native="startVindicate(scope.row)" v-if="scope.row.status == 3">开始维修</el-dropdown-item>
+                <el-dropdown-item @click.native="finishVindicate(scope.row)" v-if="scope.row.status == 4">完成维修</el-dropdown-item>
+            </el-dropdown-menu>
+        </el-dropdown>
+    </template>
+</el-table-column>
+</el-table>
+<!-- 分页start-->
+<el-pagination @size-change="handleSizeChange" background @current-change="handleCurrentChange" :page-sizes="[15, 30, 45, 60]" :page-size="pageSize" layout="total,sizes, prev, pager, next" :total="total" style="float:right;margin-top:10px;">
+</el-pagination>
+
+
+<!-- 废除、退回订单 弹窗  start-->
+<el-dialog :title="delorder.title" :visible.sync="delorder.orderReasonDialogVisible" width="30%">
+    <el-form>
+        <el-form-item :label='delorder.title+"原因"'>
+            <el-input type="textarea" :autosize="{ minRows: 2, maxRows: 4}" :placeholder='"请输入"+delorder.title+"原因"' v-model="delorder.reson"></el-input>
+        </el-form-item>
+    </el-form>
+    <span slot="footer" class="dialog-footer">
+        <el-button @click="delorder.orderReasonDialogVisible = false">取 消</el-button>
+        <el-button type="primary" @click="comfirDelOrder(delorder.title)">确 定</el-button>
+    </span>
+</el-dialog>
+<!-- 废除、退回订单 弹窗  end-->
+
+<!-- 完成 步骤 弹窗  start-->
+<el-dialog :title="installStep == '1' ? '开始维修信息' : '完成维修信息'" :visible.sync="finishInstallDialogVisible" :close-on-click-modal="false" @close="closeFinish">
+    <!-- 第一步—开始安装 -->
+    <el-form :model="startForm" ref="startForm" :rules="startFormRules" v-if="installStep == '1'">
+        <el-col :span="24">
+            <span class="formTile">派单信息</span>
+        </el-col>
+        <el-col :span="6">
+            <dl class="dllist">
+                <dt>车架号：</dt>
+                <dd>{{ rowFinishData.rpvehicleinfo ? rowFinishData.rpvehicleinfo.vin : '--' }}</dd>
+            </dl>
+            <dl class="dllist">
+                <dt>派单时间：</dt>
+                <dd>{{ Dayjs(rowFinishData.assigndate).format('YYYY-MM-DD HH:mm') }}</dd>
+            </dl>
+        </el-col>
+        <el-col :span="6">
+            <dl class="dllist">
+                <dt>车牌号：</dt>
+                <dd>{{ rowFinishData.rpvehicleinfo ? rowFinishData.rpvehicleinfo.licenseplatenum : '--' }}</dd>
+            </dl>
+            <dl class="dllist">
+                <dt>维修时间：</dt>
+                <dd>{{ Dayjs(rowFinishData.impapplydate).format('YYYY-MM-DD HH:mm') }}</dd>
+            </dl>
+        </el-col>
+        <el-col :span="6">
+            <dl class="dllist">
+                <dt>厂牌型号：</dt>
+                <dd>{{ rowFinishData.rpvehicleinfo ? rowFinishData.rpvehicleinfo.model : '--'  }}</dd>
+            </dl>
+            <dl class="dllist">
+                <dt>派单备注：</dt>
+                <dd>{{ rowFinishData.clerkremarks }}</dd>
+            </dl>
+        </el-col>
+        <el-col :span="6">
+            <dl class="dllist">
+                <dt>车主姓名：</dt>
+                <dd>{{ rowFinishData.rpvehicleinfo && rowFinishData.rpvehicleinfo.ownerInfo ? rowFinishData.rpvehicleinfo.ownerInfo.name : '--' }}</dd>
+            </dl>
+            <dl class="dllist">
+                <dt>维修原因：</dt>
+                <dd>{{ rowFinishData.rpfaultcodename }}</dd>
+            </dl>
+        </el-col>
+        <el-col :span="24">
+            <span class="formTile">现场车辆信息</span>
+        </el-col>
+        <el-row :gutter="20" style="height: 0;">
+             <el-col :span="24">
+                <p style="color:red;">提示：现场车架号与派单车架号必须一致！</p>
+            </el-col>
+            <el-col :span="8">
+               <el-form-item label="车架号：" prop="vin">
+                    <el-input placeholder="请输入车架号" v-model="startForm.vin" @input="checkVin"></el-input>
+                </el-form-item>
+            </el-col>
+            <el-col :span="8">
+               <el-form-item label="车牌号：" >
+                    <el-input placeholder="请输入" v-model="startForm.licenseplatenum"></el-input>
+                </el-form-item>
+            </el-col>
+            <el-col :span="8">
+                <el-form-item label="车辆类型：" >
+                    <el-select v-model="startForm.vehicletypename" @focus="vehChange" filterable placeholder="请选择车类型" clearable>
+                        <el-option v-for="item in vehlist" :key="item.id" :label="item.typedesc" :value="item.typecode"> </el-option>
+                    </el-select>
+                </el-form-item>
+            </el-col>
+            <el-col :span="24">
+                <el-form-item label="车辆图片：" prop="vehiclePic">
+                    <el-upload
+                        name="file" class="avatar-uploader" 
+                        :headers="{Authorization: 'Bearer '+ token}" 
+                        :accept="accept" 
+                        :on-success="uploadSuccessInvoice"
+                        action="/admin/atta/upload/picture"
+                        :show-file-list="false"
+                        v-model="startForm.vehiclePic">
+                        <img v-if="startForm.vehiclePic" :src="$store.state.IMG_URL+startForm.vehiclePic" class="avatar">
+                        <i v-else class="el-icon-plus avatar-uploader-icon"></i>
+                        <i class="desc">车前45°照</i>
+                    </el-upload>
+                </el-form-item>
+            </el-col>
+        </el-row>
+    </el-form>
+    <!-- 第二步—完成安装 -->
+    <el-form :model="endForm" ref="endForm" label-width="110px" :rules="endFormRules" v-else-if="installStep == '2'">
+        <el-col :span="24">
+            <span class="formTile">选择维修设备</span>
+        </el-col>
+        <div v-for="(item,index) in prodCatagorys" >
+            <el-col :span="24">
+                <p class="invoice-title">{{ item.stoPackinfoDto.promodelspecname + '设备' }}</p>
+                <el-select v-model="item.actiontype" placeholder="请选择维修情况" class="row_select">
+                    <el-option v-for="item in actionTypes" :key="item.value" :label="item.label" :value="item.value"> </el-option>
+                </el-select>
+                <el-button v-if="ischange[index]"  type="warning" round class="updateBtn" icon="el-icon-close" @click="cancelChoose(index)">取消更换</el-button>
+                <el-popover v-else-if="item.actiontype == 'CHANGE' || item.actiontype == 'LOST-INSTALL'" placement="bottom" width="720" trigger="click" @show="getProds(item)">
+                    <el-table :data="prodData" @row-dblclick="deviceClickHandle" v-loading="prodLoading" max-height="400">
+                        <el-table-column align="center" prop="storagename" label="库房" width="130"></el-table-column>
+                        <el-table-column align="center" prop="modelspecname" label="规格" width="80"></el-table-column>
+                        <el-table-column align="center" prop="modelname" label="设备型号"></el-table-column>
+                        <el-table-column align="center" prop="prodnum" label="设备编号"></el-table-column>
+                        <el-table-column align="center" prop="prodstatus" label="设备状态" width="80"></el-table-column>
+                    </el-table>
+                    <el-col :span="24" class="toolbar">
+                        <el-pagination @size-change="dhandleSizeChange" background @current-change="dhandleCurrentChange" :page-sizes="[15, 50,80,99]" :page-size="dpageSize" layout="total, sizes, prev, pager, next" :total="dtotal">
+                        </el-pagination>
+                    </el-col>
+                    <el-button type="danger" round class="updateBtn" icon="el-icon-edit" slot="reference" @click="chooseProd(index)">选择设备</el-button>
+                </el-popover>
+
+                <el-card shadow="never" class="space">
+                    <el-col :span="8">
+                        <dl class="dllist">
+                            <dt>设备型号：</dt>
+                            <dd>{{ item.stoPackinfoDto.promodelname }}</dd>
+                        </dl>
+                    </el-col>
+                    <el-col :span="8">
+                        <dl class="dllist">
+                            <dt>设备编号：</dt>
+                            <dd>{{ item.stoPackinfoDto.prodnum }}</dd>
+                        </dl>
+                    </el-col>
+                    <el-col :span="8">
+                        <dl class="dllist">
+                            <dt>SIM卡号：</dt>
+                            <dd>{{ item.stoPackinfoDto.simnum }}</dd>
+                        </dl>
+                    </el-col>
+                    <el-col :span="8">
+                        <dl class="dllist">
+                            <dt>卡类型：</dt>
+                            <dd>{{ item.stoPackinfoDto.simmodelname }}</dd>
+                        </dl>
+                    </el-col>
+                    <el-col :span="11">
+                        <el-form-item v-if="ischange[index]" label="设备安装位置：">
+                            <el-select filterable :loading="codeloading" @visible-change="changeInstallDecode" v-model="item.installpositioncode" placeholder="请选择设备安装位置">
+                                <el-option v-for="item in InstallPositionArray" :key="item.dictdatavalue" :label="item.dictdatavalue" :value="item.dictdataname">
+                                </el-option>
+                            </el-select>
+                        </el-form-item>
+                        <dl class="dllist" v-else>
+                            <dt>设备安装位置：</dt>
+                            <dd>{{ item.installpositioncodename }}</dd>
+                        </dl>
+                    </el-col>
+                    <el-col :span="5">
+                        <el-popover placement="bottom" width="1000" trigger="click">
+                            <div>信号检测结果:
+                                <el-button style="margin-left: 10px;" type="primary" size="mini" @click="getSignalInfo(item.stoPackinfoDto.prodnum)">再次检测
+                                </el-button>
+                            </div>
+                            <table class="kv-table" style="margin-top: 10px;">
+                                <tr>
+                                    <td class="kv-label">
+                                        设备实时状态：
+                                    </td>
+                                    <td class="kv-content">
+                                        {{signalInfo.curonlinestatus}}
+                                    </td>
+                                    <td class="kv-label">
+                                        上线质量：
+                                    </td>
+                                    <td class="kv-content">
+                                        {{signalInfo.onlineStatus}}
+                                    </td>
+                                    <td class="kv-label">
+                                        定位方式：
+                                    </td>
+                                    <td class="kv-content">
+                                        {{signalInfo.locationmode}}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="kv-label">
+                                        卫星或基站数量：
+                                    </td>
+                                    <td class="kv-content">
+                                        {{signalInfo.gps_satellite_count}}
+                                    </td>
+                                    <td class="kv-label">
+                                        卫星/基站信号强度：
+                                    </td>
+                                    <td class="kv-content">
+                                        {{signalInfo.signalqulity}}
+                                    </td>
+                                    <td class="kv-label"></td>
+                                    <td class="kv-content"></td>
+                                </tr>
+                                <tr>
+                                    <td class="kv-label">
+                                        定位地址：
+                                    </td>
+                                    <td class="kv-content" colspan="5">
+                                        {{signalInfo.curaddress}}
+                                    </td>
+                                </tr>
+                            </table>
+                            <el-button style="margin-left: 20px;" slot="reference" type="success" icon="el-icon-circle-check" round plain @click="getSignalInfo(item.stoPackinfoDto.prodnum)">信号检测 </el-button>
+                        </el-popover>
+                    </el-col>
+                    <el-col :span="24">
+                        <el-form-item label="设备安装图片：">
+                            <el-upload v-if="item.busiPictures.length != 0"
+                                    name="file" class="avatar-uploader" 
+                                    :headers="{Authorization: 'Bearer '+ token}" 
+                                    :accept="accept" 
+                                    :on-success="successInvoiceOne"
+                                    action="/admin/atta/upload/picture"
+                                    :show-file-list="false"
+                                    v-model="item.busiPictures[0].piclink">
+                                    <img v-if="item.busiPictures[0].piclink" :src="$store.state.IMG_URL+item.busiPictures[0].piclink" class="avatar">
+                                    <i v-else class="el-icon-plus avatar-uploader-icon"></i>
+                                    <i class="desc">安装位置照</i>
+                                </el-upload>
+                                <el-upload v-if="item.busiPictures.length != 0"
+                                    name="file" class="avatar-uploader" 
+                                    :headers="{Authorization: 'Bearer '+ token}" 
+                                    :accept="accept" 
+                                    :on-success="successInvoiceTwo"
+                                    action="/admin/atta/upload/picture"
+                                    :show-file-list="false"
+                                    v-model="item.busiPictures[1].piclink">
+                                    <img v-if="item.busiPictures[1].piclink" :src="$store.state.IMG_URL+item.busiPictures[1].piclink" class="avatar">
+                                    <i v-else class="el-icon-plus avatar-uploader-icon"></i>
+                                    <i class="desc">铭牌+设备照</i>
+                                </el-upload>
+                                <p v-else>暂无照片</p>
+                        </el-form-item>
+                    </el-col>
+                </el-card>
+            </el-col>
+        </div>
+        <el-col :span="24">
+            <span class="formTile">备注</span>
+        </el-col>
+        <el-input type="textarea" placeholder="请输维修备注信息" v-model="endForm.impremark"></el-input>
+    </el-form>
+
+    <span slot="footer" class="dialog-footer">
+        <el-button @click="installStep == '1' ? cancelInstall() : previousStep()">{{ installStep == '1' ? '取 消' : '上一步' }}</el-button>
+        <el-button type="primary" @click="installStep == '1' ? nextStep(rowFinishData) : confirmFinishInstall()">{{ installStep == '1' ? '下一步' : '完成维修' }}</el-button>
+    </span>
+</el-dialog>
+<!-- 完成 步骤 弹窗  end-->
+
+ 
+</section>
+</template>
+
+<style scoped>
+dl.dllist { margin-bottom: 5px; }
+.formTile { margin-top: 10px; }
+.el-timeline-item{padding-bottom: 10px;}
+.leftCol{text-align: center;margin-top: 15px;}
+.leftCol p,.leftCol button{margin-bottom:10px;}
+.prompt{text-align: center;font-size: 18px;}
+.img_card{width: 150px;height: 150px;}
+.updateBtn{float: right;}
+.space{margin-bottom:10px;}
+.kv-table {
+    td {
+        line-height: 38px;
+    }
+}
+
+.kv-label {
+    background: #FAFAFA;
+    border-bottom: 1px solid #e7eaec;
+    border-right: 1px solid #e7eaec;
+    text-align: right;
+    padding-right: 30px;
+    font-size: 16px;
+    color: #000;
+    width: 17%;
+    padding: 5px;
+}
+
+.kv-content {
+    border-right: 1px solid #e7eaec;
+    border-bottom: 1px solid #e7eaec;
+    padding-left: 20px;
+    width: 17%;
+}
+</style>
+  
+<script src="./index.js"></script>

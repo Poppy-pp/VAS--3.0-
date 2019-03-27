@@ -1,0 +1,186 @@
+import { getSysDictionaryList, addSysDictionary, modifySysDictionary, removeSysDictionary } from './service';
+
+export default {
+    props: ['windowOutHeight'],
+    data () {
+        return {
+            filters: {
+                model: ''
+            },
+            listData: [],
+            customers: [],
+            total: 0,
+            currentPage: 0,
+            pageSize: 15,
+            listLoading: false,
+            rules: {
+                name: [
+                    {required: true, message: '模板名称必填', trigger: 'blur'}
+                ],
+                address: [
+                    {required: true, message: '模板地址必填', trigger: 'blur'}
+                ]
+            },
+            addFormVisible: false, //新增界面是否显示
+            addLoading: false,
+            //新增界面数据
+            form: {
+                name: '',
+                address: ''
+            },
+            accept: '.html',
+            viewVisible: false,
+            fileList: [],
+            iframeSrc: 'http://222.212.141.40:9104/img/20181017\\d58a5b59-a7f5-45c0-ad91-149aa80563a1.html'
+        }
+    },
+    methods: {
+        //有效转换器
+        formatIsactive (row, column) {
+            return row.isactive == 1 ? '有效' : row.isactive == 0 ? '无效' : '未知';
+        },
+        //切换每页显示数量
+        handleSizeChange (val) {
+            this.pageSize = val;
+            this.handleQuery();
+        },
+        handleCurrentChange (val) {
+            this.currentPage = val;
+            this.handleQuery();
+        },
+        //获取字典列表
+        handleQuery () {
+            let para = {
+                page: this.currentPage,
+                limit: this.pageSize
+            };
+            this.listLoading = true;
+            getSysDictionaryList(para).then((res) => {
+                if (res.data.data) {
+                    this.total = res.data.data.total;
+                    this.listData = res.data.data.records;
+                }
+                this.listLoading = false;
+            }, () => {
+                this.listLoading = false;
+            });
+        },
+        //删除
+        handleDel (index, row) {
+            this.$confirm('确认删除该记录吗?', '提示', {
+                type: 'warning'
+            }).then(() => {
+                // this.listLoading = true;
+                //NProgress.start();
+                let para = {
+                    ids: row.id
+                };
+                // let para = new FormData();
+                // para.append('ids', row.id);
+                // para.append('method','delete');
+
+                removeSysDictionary(para).then((res) => {
+                    //NProgress.done();
+                    this.$message({
+                        message: '删除成功',
+                        type: 'success'
+                    });
+                    this.handleQuery();
+                });
+            }).catch(() => {
+
+            });
+        },
+        //显示新增界面
+        handleAdd () {
+            this.addFormVisible = true;
+            this.form = {
+                name: '',
+                address: ''
+            };
+        },
+        //新增
+        addSubmit () {
+            this.$refs.form.validate((valid) => {
+                if (valid) {
+                    // this.$confirm('确认提交吗？', '提示', {}).then(() => {
+                    this.addLoading = true;
+                    //NProgress.start();
+                    let para = Object.assign({}, this.form);
+                    addSysDictionary(para).then((res) => {
+                        this.addLoading = false;
+                        //NProgress.done();
+                        this.$message({
+                            message: '提交成功',
+                            type: 'success'
+                        });
+                        this.$refs['form'].resetFields();
+                        this.addFormVisible = false;
+                        this.handleQuery();
+                    }, () => {
+                        this.addLoading = false;
+                    });
+                    // });
+                }
+            });
+        },
+        formDetailHandle () {
+            this.viewVisible = true
+            const data = {
+                "VehicleInfo_enginenum": null,
+                "owner_idcard": "522526199308280031",
+                "serialnum": "SCWW0176346",
+                "VehicleInfo_vin": "LFBJDBB43WJ000118",
+                "owner_name": "一点一",
+                "corpid": 3,
+                "indemnitylimit": "1000",
+                "insurancecorpid": 10413,
+                "owner_mobile": "15822484336",
+                "install_num": "t86912",
+                "expiredate": "2021-04-22",
+                "effectivedate": "2018-04-23",
+                "issuedate": "2018-04-23",
+                "insurancestatus": "出单",
+                "VehicleInfo_licenseplatenum": null,
+                "VehicleInfo_modle": null,
+                "registration_date": "2018-04-23",
+                "VehicleInfo_price": null,
+                "VehicleInfo_id": 10010094,
+                "price": "100",
+                "wwserialnum": "SCWW0176346",
+                "bank_name": "中国工商银行股份有限公司贵阳中西支行",
+                "corpname": "海口众汇",
+                "install_date": 1510993201000
+            }
+            this.iframeSrc = this.parseParams(this.iframeSrc, data)
+        },
+        parseParams (url, data) {
+            try {
+                let tempArr = [];
+                for (let i in data) {
+                    if (data[i]) {
+                        let key = encodeURIComponent(i);
+                        let value = encodeURIComponent(data[i]);
+                        tempArr.push(key + '=' + value);
+                    }
+                }
+                return `${url}?${tempArr.join('&')}`;
+            } catch (err) {
+                return '';
+            }
+        },
+        handleChange (file, fileList) {
+            if (fileList.length > 1) {
+                this.fileList = fileList.slice(1)
+            } else {
+                this.fileList = fileList
+            }
+        },
+        uploadSuccess (response, file, fileList) {
+            this.form.address = response
+        }
+    },
+    created () {
+        this.handleQuery();
+    }
+}

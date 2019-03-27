@@ -1,0 +1,448 @@
+import util from 'utils/tools.js'
+import {
+    getSysRoleInfoList,
+    addSysRoleInfo,
+    modifySysRoleInfo,
+    removeSysRoleInfo,
+    fetchTree,
+    editRuleResourceInfo,
+    getRoleResource,
+    getRuleResourceInfo
+} from './service';
+
+export default {
+    props: ['windowOutHeight'],
+    data () {
+        //验证角色名称是否为中文
+        var checkname = (rule,value,callback) => {
+            var reg =/^(?!_)(?!.*?_$)[a-zA-Z0-9_\u4e00-\u9fa5]{2,}$/g,
+            flag = reg.test(value);
+            if(!flag){
+                return callback(new Error('只能输入2个以上的中文英文数字'));
+            } else{
+                callback();
+            }
+        };
+        //验证角色值是否为英文
+        var checkvalue = (rule,value,callback) => {
+            var reg =/^[a-zA-Z]+$/g,
+            flag = reg.test(value);
+            if(!flag){
+                return callback(new Error('请输入英文字符'));
+            } else{
+                callback();
+            }
+        };
+        return {
+            filters: {
+                roleName: '',
+                delFlag:'0'
+            },
+            listData: [],
+            customers: [],
+            total: 0,
+            currentPage: 0,
+            pageSize: 15,
+            listLoading: false,
+            addRourceInfoVisible: false,
+            sels: [], //列表选中列
+            editFormVisible: false, //编辑界面是否显示
+            editLoading: false,
+            nodeLoading: false,
+            defaultCheckedKeys: [],
+            defaultExpandedKeys: [],
+            curRoleId: '',
+            editFormRules: {
+                roleName: [{
+                    required: true,
+                    message: '请输入角色名称',
+                    trigger:'blur'
+                },
+                {
+                    validator: checkname,
+                    trigger:'blur'
+               }
+            ],  
+            roleCode : [{
+                    required: true,
+                    message: '请输入角色值',
+                    trigger:'blur'
+                },
+                {
+                    validator: checkvalue,
+                    trigger:'blur'
+            }]   
+            },
+            //编辑界面数据
+            editForm: {
+                id: 0,
+                roleName: '',
+                roleCode: '',
+                roleDesc: '',
+                delFlag: '',
+            },
+            addFormVisible: false, //新增界面是否显示
+            addLoading: false,
+            addFormRules: {
+                roleName: [{
+                        required: true,
+                        message: '请输入角色名称',
+                        trigger:'blur'
+                    },
+                    {
+                        validator: checkname,
+                        trigger:'blur'
+                   }
+                ],  
+                roleCode : [{
+                        required: true,
+                        message: '请输入角色值',
+                        trigger:'blur'
+                    },
+                    {
+                        validator: checkvalue,
+                        trigger:'blur'
+                }]   
+            },
+            //新增界面数据
+            addForm: {
+                roleName: '',
+                roleCode: '',
+                roleDesc: '',
+                delFlag: '0',
+            },
+            regions: [],
+            regionsGis: [],
+            regionsEct: [],
+            treeRouseLoading: false,
+            treeRouseGisLoading: false,
+            treeRouseEctLoading: false,
+            defaultProps: {
+                label: 'name',
+                children: 'children'
+            },
+            isPewe: true
+        }
+    },
+    methods: {
+        rouseEditClose () {
+            this.regions = [];
+            this.regionsGis = [];
+            this.regionsEct = [];
+        },
+       
+        handleCheckChange (data, checked, indeterminate) {
+        //     var arr = this.$refs.treeRouse.getCheckedKeys(),
+        //         kesarry = this.$refs.treeRouse.getCheckedNodes(),
+        //         isClearFl = false;
+        //     /*如果子菜单有选中不能取消当前选择 start*/
+        //     if (!checked && data.parentid != 0) {
+        //         kesarry.forEach((res, index) => {
+        //             if (res.id == data.parentid) {
+        //                 res.children.forEach((res, index) => {
+        //                     if ($.inArray(res.id, arr) > 0) {
+        //                         isClearFl = true;
+        //                         return false;
+        //                     }
+        //                 });
+        //                 if (!isClearFl) {
+        //                     this.$refs.treeRouse.setChecked(data.parentid, false);
+        //                     return false;
+        //                 }
+        //             }
+        //         });
+        //     }
+        //     /*如果子菜单有选中不能取消当前选择 end*/
+        //     /*选中子类的时候选中 至少一个父类*/
+        //     if ($.inArray(data.parentid, arr) < 0 && checked && data.parentid != 0) {
+        //         this.$refs.treeRouse.setChecked(data.parentid, true);
+        //         /*选中父类时候选中所有子类*/
+        //         if (data.children.length > 0 && this.isPewe) {
+        //             util.setChecked(this.$refs.treeRouse, data, true, true);
+        //         }
+        //         ;
+        //         this.isPewe = false;
+        //         return;
+        //     }
+        //     ;
+
+        //     /*选中父类时候选中给所有子类*/
+        //     if (data.parentid == 0 && checked && this.isPewe) {
+        //         util.setChecked(this.$refs.treeRouse, data, true, true);
+        //         return;
+        //     }
+        //     ;
+        //     /*选中父类时候取消所有子类*/
+        //     if (data.parentid == 0 && !checked && this.isPewe) {
+        //         util.setChecked(this.$refs.treeRouse, data, false, true);
+        //         return;
+        //     }
+        //     ;
+        //     /*选中父类时候选中所有子类*/
+        //     if (data.parentid != 0 && data.children.length > 0 && checked && this.isPewe) {
+        //         util.setChecked(this.$refs.treeRouse, data, true, true);
+        //         return;
+        //     }
+        //     ;
+        //     /*选中父类时候取消所有子类*/
+        //     if (data.parentid != 0 && data.children.length > 0 && !checked && this.isPewe) {
+        //         util.setChecked(this.$refs.treeRouse, data, false, true);
+        //         return;
+        //     }
+        //     ;
+        //     this.isPewe = true;
+        },
+        handleNodeClick () {
+            let treeNode = this.$refs.treeRouse.getCheckedNodes()
+                // treeRouseGis = this.$refs.treeRouseGis.getCheckedNodes(),//GIS
+                // treeRouseEct = this.$refs.treeRouseEct.getCheckedNodes(),//ECT
+            const para = {
+                menuIds: [],
+                roleId: this.curRoleId
+            };
+
+            treeNode.forEach(function (item) {
+                para.menuIds.push(item.id);
+            });
+            // para.menuIds = para.menuIds.join(',')//返回包含由','组成的所有数组项的字符串
+            this.nodeLoading = true;
+            // 编辑角色资源后提交
+            editRuleResourceInfo(para).then((res) => {
+                this.nodeLoading = false;
+                this.addRourceInfoVisible = false;
+               // if (res.data.result.code == 0) {
+                    this.$message({
+                        message: '编辑资源成功！',
+                        type: 'success'
+                    });
+              //  }
+            }, () => {
+                this.nodeLoading = false;
+            });
+        },
+        //有效转换器
+        // formatIsactive (row, column) {
+        //     return row.isactive == 1 ? '有效' : row.isactive == 0 ? '无效' : '未知';
+        // },
+        //切换每页显示数量
+        handleSizeChange (val) {
+            this.pageSize = val;
+            this.handleQuery();
+        },
+        handleCurrentChange (val) {
+            this.currentPage = val;
+            this.handleQuery();
+        },
+        //编辑角色资源
+        addResource (index, row) {
+            this.curRoleId = row.roleId;
+            this.addRourceInfoVisible = true;
+            // let para = {
+            //     roleid: row.id,
+            //     showCount: 2000,
+            //     roleName: this.filters.roleName
+            // };
+            this.treeRouseLoading = true;
+            //this.treeRouseGisLoading = true;
+            //this.treeRouseEctLoading = true;
+            // getRuleResourceInfo(para).then((res) => {
+            //     var dk = [], ek = [],
+            //         para = {
+            //             parentid: 0,
+            //             system: 'A'
+            //         };
+            //     res.data.data.records.forEach(function (obj) {
+            //         dk.push(obj.resid);
+            //         ek.push(obj.resid);
+            //     });
+            //     this.defaultCheckedKeys = dk; //选中当前树
+            //     this.defaultExpandedKeys = ek; //展开
+            //     if (this.regions.length > 0) return;
+                
+                //this.defaultCheckedKeys = []
+                
+
+            // 查询当前角色拥有资源
+            let para = {
+                roleId: row.roleId
+            };
+            //获得当前角色的资源
+            getRoleResource(para).then((res) => {
+                var dk = [], ek = [];
+                res.data.data.forEach(function (obj) {
+                    dk.push(obj.menuId);
+                    ek.push(obj.menuId);
+                });
+                this.defaultCheckedKeys = dk; //选中当前树
+                this.defaultExpandedKeys = ek; //展开
+
+                //初始化所有资源菜单
+                fetchTree().then((res) => {
+                    this.regions = res.data;
+                    this.treeRouseLoading = false;
+                })
+
+            }, () => {
+                this.treeRouseLoading = false;
+            });
+                
+        },
+        renderContent (h, {
+            node,
+            data,
+            store
+        }) {
+            if (data.hidden == 1 && data.restype == 1) store.remove(data);
+            if (!data.name && !data.children[0]) return;
+            return (
+                <span>
+		              <span>{!data.name ? data.children[0].name : data.name}</span>
+		            </span>);
+        },
+        //搜索按钮——模糊查询
+        handleQuerySelect() {
+            let para = {
+                page: 1,
+                limit: this.pageSize,
+                roleName: this.filters.roleName,
+                delFlag:this.filters.delFlag
+            };
+            this.listLoading = true;
+            getSysRoleInfoList(para).then((res) => {
+                this.total = res.data.data.total;
+                this.listData = res.data.data.records;
+                this.listLoading = false;
+            }).catch((error) => {
+                this.listLoading = false;
+            });
+        },
+        //获取保单列表
+        handleQuery () {
+            let para = {
+                page: this.currentPage,
+                limit: this.pageSize,
+                roleName: this.filters.roleName,
+                delFlag:this.filters.delFlag
+            };
+            this.listLoading = true;
+            getSysRoleInfoList(para).then((res) => {
+                this.listLoading = false;
+                this.total = res.data.data.total;
+                this.listData = res.data.data.records;
+            }, () => {
+                this.listLoading = false;
+            });
+        },
+        //删除
+        handleDel (row) {
+            this.$confirm('确认删除该记录吗?', '提示', {
+                type: 'warning'
+            }).then(() => {
+                this.listLoading = true;
+                removeSysRoleInfo(row.roleId).then((res) => {
+                    this.listLoading = false;
+                    if(res.data.data==true){
+                        this.$message({
+                            message: '删除成功',
+                            type: 'success'
+                        }); 
+                    }else{
+                        this.$message({
+                            message: res.data.msg,
+                            type: 'error'
+                        });
+                    }
+                    this.handleQuerySelect();
+                });
+            }).catch(() => {
+
+            });
+        },
+        //显示编辑界面
+        handleEdit (index, row) {
+            this.editFormVisible = true;
+            this.editForm = Object.assign({}, row);
+        },
+        // 有效无效开关
+		showData(i) {
+			this.filters.delFlag = i;
+			this.handleQuerySelect();
+		},
+        //显示新增界面
+        handleAdd () {
+            this.addFormVisible = true;
+        },
+        //编辑
+        editSubmit () {
+            this.$refs.editForm.validate((valid) => {
+                if (valid) {
+                    this.editLoading = true;
+                    let para = Object.assign({}, this.editForm);
+                    modifySysRoleInfo(para).then((res) => {
+                        this.editLoading = false;
+                        this.$message({
+                            message: '编辑成功',
+                            type: 'success'
+                        });
+                        this.$refs['editForm'].resetFields();
+                        this.editFormVisible = false;
+                        this.handleQuery();
+                    }, () => {
+                        this.editLoading = false;
+                    });
+                }
+            });
+        },
+        //新增
+        addSubmit () {
+            this.$refs.addForm.validate((valid) => {
+                if (valid) {
+                    this.addLoading = true;
+                    let para = Object.assign({}, this.addForm);
+                    addSysRoleInfo(para).then((res) => {
+                        this.addLoading = false;
+                        this.$message({
+                            message: '新增成功',
+                            type: 'success'
+                        });
+                        this.$refs['addForm'].resetFields();
+                        this.addFormVisible = false;
+                        this.handleQuery();
+                    }, () => {
+                        this.addLoading = false;
+                    });
+
+                }
+            });
+        },
+        selsChange (sels) {
+            this.sels = sels;
+        },
+        //批量删除
+        batchRemove () {
+            var ids = this.sels.map(item => item.id).toString();
+            this.$confirm('确认删除选中记录吗？', '提示', {
+                type: 'warning'
+            }).then(() => {
+                this.listLoading = true;
+                let para = {
+                    ids: ids,
+                    method: "delete"
+                };
+                removeSysRoleInfo(para).then((res) => {
+                    this.listLoading = false;
+                    this.$message({
+                        message: '删除成功',
+                        type: 'success'
+                    });
+                    this.handleQuery();
+                });
+            }).catch(() => {
+
+            });
+        }
+    },
+    created () {
+        this.handleQuery();
+    }
+}

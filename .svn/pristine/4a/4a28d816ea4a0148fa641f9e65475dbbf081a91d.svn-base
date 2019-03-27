@@ -1,0 +1,36 @@
+import http from '@/utils/http'
+import Qs from 'qs'
+// Qs.stringify处理成表单格式，以&形式拼接在url后面
+
+let base = '/vasms-web';
+//登陆
+export function loginbyUser(username, password, remember_me) {
+  const data = {
+    username,
+    password,
+    remember_me
+  }
+  return http({
+    url:`${base}/login`,
+    method: 'post',
+    data:Qs.stringify(data)
+  })
+}
+//查询用户权限，存储导航树
+export function getUserInfo(userToken) {
+  return http({
+    url:`${base}/api/v1/sys/sysResourceInfo/currentResource`,
+    method: 'get',
+    headers: {
+      token: userToken
+    },
+  })
+}
+// 退出登录
+export function logout() {
+  return http({
+    url: `${base}/api/v1/sys/sysUserInfo/logout`,
+    method: 'get'
+  })
+}
+

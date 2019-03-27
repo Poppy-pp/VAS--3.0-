@@ -1,0 +1,679 @@
+import util from 'utils/tools';
+import {
+    getEmployeeInfoList,
+    addEmployeeInfo,
+    modifyEmployeeInfo,
+    checkRepeat
+} from './service.js';
+
+import { getDepartmentInfoList } from '@/views/sysManage/department/service'
+import { getGroupInfoList } from '@/views/sysManage/group/service'
+import { getSysDictionaryDataList } from '@/views/sysManage/dictionaryManage/SysDictionaryData/service'
+import { getSysRoleInfoList } from '@/views/sysManage/roleManage/service'
+import { getUserRole, editUserRole } from '@/views/sysManage/userCenter/service'
+import { getToken } from '@/utils/auth'
+import { checkMobile, checkName, checkOaNumber } from '@/utils/formValidation'
+
+export default {
+    name: 'employeeInfo',
+    props: ['windowOutHeight'],
+    data () {
+        return {
+            fmtdata: util,
+            filters: {
+                isactive: '1',
+                domSearch: [{
+                    select: ['employeename'],
+                    content: ''
+                }] //查询框
+            },
+            radio: '1',
+            editRoleInfoVisible: false,
+            isIndeterminate: true,
+            prOptions: util.initProvince(),
+            listData: [],
+            emptype: [
+                // '兼职员工',
+                // '正式员工'
+            ], //员工类型列表
+            poslist: [], //员工职位列表
+            posLoading: false,
+            deptlist: [], //员工所属部门列表
+            deptLoading: false,
+            corplist: [], //所属公司
+            // corpLoading: false,
+            grouplist: [], //所属分组
+            // createname: "",
+            // updatename: "",
+            otherinfoData: [], //详情数据
+            formDialogTableVisible: false, //是否显示订单详情弹出
+            // etLoading: false,
+            ptLoading: false,
+            total: 0,
+            checkoutDataT: true, //数据验证返回的布尔值true
+            checkoutDataF: [], //数据验证组
+            thisInput: '', //编辑时存入row验证的值
+            currentPage: 1,
+            pageSize: 15,
+            listLoading: false,
+            curUserId: '',
+            cities: [],
+            checkAll: true,
+            nodeLoading: false,
+            groupLoading: false, //
+            imageUrl: '', //头像
+            accept: '.jpg,.png,.jpeg',
+            // headers:{token:JSON.parse(localStorage.getItem('user')).token},
+            sels: [], //列表选中列
+            editFormVisible: false, //编辑界面是否显示
+            editLoading: false,
+            //编辑界面数据
+            editForm: {
+                id: '',
+                headiconpath: '',
+                employeetype: '',
+                employeecode: '',
+                employeename: '',
+                username: '',
+                positionname: '',
+                mobile: '',
+                isactive: 1,
+                positioncode: '',
+                groupid: '',
+                groupname: '',
+                deptid: '',
+                deptname: '',
+                gender: '',
+                region: '',
+                address: '',
+                wechatid: '',
+                qq: '',
+                regionAll: '',
+            },
+            editFormId: {
+                employeetype: '',
+                employeetypename: '',
+                positioncode: '',
+                userid: '',
+                corpid: '',
+                corpname: '',
+                groupid: '',
+                groupname: '',
+                positionname: '',
+                deptname: '',
+                deptid: '',
+            },
+            //新增界面数据
+            addForm: {},
+            checkedCities: [],
+            addFormVisible: false, //新增界面是否显示
+            addLoading: false,
+            addFormRules: {
+                employeename: [{
+                    required: true,
+                    message: "请输入员工姓名",
+                    trigger: 'blur'
+                },
+                    {
+                        validator: checkName,
+                        trigger: 'blur'
+                    }
+                ],
+                mobile: [{
+                    required: true,
+                    message: "请输入员工手机号码",
+                    trigger: 'blur'
+                },
+                    {
+                        validator: checkMobile,
+                        trigger: 'blur'
+                    }
+                ],
+                regionAll: [{
+                    required: true,
+                    message: "请选择所属区域",
+                    trigger: 'blur'
+                }], //区域验证
+                employeetype: [{
+                    required: true,
+                    message: "请选择员工类型",
+                    trigger: 'change'
+                }],
+                deptname: [{
+                    required: true,
+                    message: "请选择部门",
+                    trigger: 'change'
+                }],
+                positionname: [{
+                    required: true,
+                    message: "请选择岗位",
+                    trigger: 'change'
+                }],
+                username: [{
+                    validator: checkOaNumber,
+                    trigger: 'blur'
+                }],
+            },
+            token: getToken(),
+            mobileErrMessage: '',
+            usernameErrMessage: ''
+        };
+
+    },
+    methods: {
+        // 员工入职跳转
+        // empIn () {
+        //     this.$router.push('/employeeInduction');
+        // },
+        // 员工离职跳转
+        // empLeave () {
+        //     this.$router.push('/employeeLeave');
+        // },
+        //查询清空
+        clearAll () {
+            this.filters.domSearch = [{
+                select: [],
+                content: ''
+            }] //清空查询框;
+        },
+        // 角色编辑
+        roleEditClose () {
+            this.checkedCities = [];
+        },
+        handleCheckAllChange (event) {
+            let arry = [];
+            this.cities.forEach(function (obj) {
+                arry.push(obj.roleId);
+            });
+            this.checkedCities = event ? arry : [];
+            this.isIndeterminate = false;
+        },
+        handleCheckedCitiesChange (value) {
+            let checkedCount = value.length;
+            this.checkAll = checkedCount === this.cities.length;
+            this.isIndeterminate = checkedCount > 0 && checkedCount < this.cities.length;
+        },
+        //角色编辑
+        roleEdit (index, row) {
+            this.editRoleInfoVisible = true;
+            this.curUserId = row.userid;
+
+            //初始化角色
+            let para = {
+                page: 1,
+                limit: 1000,
+                delFlag: 0
+            };
+            getSysRoleInfoList(para).then(({data}) => {
+                this.cities = data.data.records;
+                let para = {
+                    userid: this.curUserId,
+                };
+                getUserRole(para).then(({data}) => {
+                    let carry = [];
+                    data.data.forEach(function (obj) {
+                        carry.push(obj.roleId);
+                    });
+                    this.checkedCities = carry;
+                    this.checkAll = carry.length === this.cities.length;
+                    this.isIndeterminate = carry.length > 0 && carry.length < this.cities.length;
+                });
+            });
+        },
+        handleNodeClick () {
+            this.nodeLoading = true;
+            let checkedNode = this.checkedCities,
+                para = {
+                    id: this.curUserId,
+                    role: []
+                }
+            checkedNode.forEach(function (val) {
+                para.role.push(val);
+            });
+            editUserRole(para).then((res) => {
+                this.$message({
+                    message: '编辑角色权限成功！',
+                    type: 'success'
+                });
+                this.nodeLoading = false;
+                this.editRoleInfoVisible = false;
+            }, () => {
+                this.nodeLoading = false;
+            });
+        },
+        //详情查看
+        formDetailHandle (data) {
+            this.formDialogTableVisible = true;
+            this.otherinfoData = data
+        },
+        // 有效无效开关
+        showData (i) {
+            this.filters.isactive = i;
+            this.handleQuerySelect();
+        },
+        //所属 部门——搜索下拉
+        deptChange (r) {
+            if (!r || this.deptlist.length > 0) return;
+            this.deptLoading = true;
+            let param = {
+                page: 1,
+                limit: 10000,
+                cropid: 1,
+                isactive: 1
+            }
+            getDepartmentInfoList(param).then(({data}) => {
+                this.deptlist = data.data.records;//未选择公司时不获取部门信息
+                this.deptLoading = false;
+            }, () => {
+                this.deptLoading = false;
+            });
+        },
+        //所属 分组——搜索下拉
+        groupChange (r) {
+            if (!r || this.grouplist.length > 0) return;
+            this.groupLoading = true;
+            let param = {
+                page: 1,
+                limit: 10000,
+                isactive: 1
+            }
+            getGroupInfoList(param).then(({data}) => {
+                this.grouplist = data.data.records;//未选择公司时不获取部门信息
+                this.groupLoading = false;
+            }, () => {
+                this.groupLoading = false;
+            });
+        },
+        // 员工岗位——搜索下拉
+        posChange (r) {
+            if (!r || this.poslist.length > 0) return;
+            this.posLoading = true;
+            let param = {
+                dictvalue: 'POSITIONCODE_EMP',
+                limit: 1000,
+                page: 1
+            }
+            getSysDictionaryDataList(param).then(({data}) => {
+                this.poslist = data.data.records;
+                this.posLoading = false;
+            }, () => {
+                this.posLoading = false;
+            });
+        },
+        //有效无效转换
+        isenableFomat (row, col) {
+            return row.isactive == 1 ? '是' : row.isactive != undefined ? '否' : '未知';
+        },
+        // 有效无效颜色切换
+        tableRowClassName (row, index) {
+            if (row.isactive == 0) {
+                return 'warning-row';
+            }
+            return '';
+        },
+        // 有效按钮切换状态
+        handleChange: function (index, row) {
+            this.$confirm('确认设置该条记录的状态吗？', '提示', {
+                type: 'warning'
+            }).then(() => {
+                let para = {
+                    id: row.ID,
+                    userid: row.userid,
+                    isactive: row.isactive == 1 ? 0 : 1
+                }
+                modifyEmployeeInfo(para).then((res) => {
+                    if (res.data.code === 0) {
+                        this.$message({
+                            message: '设置成功',
+                            type: 'success'
+                        });
+                        row.isactive = para.isactive;
+                    }
+                    this.handleQuerySelect();
+
+                });
+            });
+        },
+        // 有效 鼠标移入
+        mouseoverChange (e) {
+            if ($(e.target).hasClass('icon-duigou')) {
+                $(e.target).addClass('operate-cha icon-cha').removeClass('operate-duigou icon-duigou');
+            } else {
+                $(e.target).addClass('operate-duigou icon-duigou').removeClass('operate-cha icon-cha');
+            }
+        },
+        // 有效 鼠标移除
+        mouseoutChange (e) {
+            if ($(e.target).hasClass('icon-cha')) {
+                $(e.target).addClass('operate-duigou icon-duigou').removeClass('operate-cha icon-cha');
+            } else {
+                $(e.target).addClass('operate-cha icon-cha').removeClass('operate-duigou icon-duigou');
+            }
+        },
+        // 上传图片成功后
+        headImgSuccess (res, file) {
+            this.imageUrl = URL.createObjectURL(file.raw);
+            this.editForm.headiconpath = res.data;
+            this.addForm.headiconpath = res.data;
+        },
+        // 员工类型
+        empChange (r) {
+            if (!r || this.emptype.length > 0) return;
+            this.etLoading = true;
+            let param = {
+                dictvalue: 'EmployeeType',
+                limit: 1000,
+                page: 1
+            }
+            getSysDictionaryDataList(param).then((res) => {
+                this.emptype = res.data.data.records;
+                this.etLoading = false;
+            });
+        },
+
+        //切换当前页
+        handleCurrentChange (val) {
+            this.currentPage = val;
+            // this.handleQuery();
+            this.handleQuerySelect(); //查询分页
+        },
+        //切换每页显示数量
+        handleSizeChange (val) {
+            this.pageSize = val;
+            this.handleQuerySelect();
+        },
+        // 添加查询条件
+        addSelect () {
+            this.filters.domSearch.push({
+                select: [],
+                content: ''
+            });
+        },
+        // 移除查询条件
+        removeSelect (index) {
+            this.filters.domSearch.splice(index, 1); //从当前index位置开始，删除一项
+        },
+        //搜索按钮——模糊查询
+        handleQuerySelect () {
+            let para = {
+                page: this.currentPage,
+                limit: this.pageSize,
+                isactive: this.filters.isactive,
+                domSearch: this.filters.domSearch,
+            };
+            this.listLoading = true;
+            getEmployeeInfoList(para).then((res) => {
+                this.total = res.data.data.total;
+                this.listData = res.data.data.records;
+                this.listLoading = false;
+            }).catch((error) => {
+                this.listLoading = false;
+            });
+        },
+        handleQuerySelectFn () {
+            this.currentPage = 1;
+            this.handleQuerySelect()
+        },
+        //显示编辑界面
+        handleEdit (index, row) {
+            this.mobileErrMessage = ''
+            this.usernameErrMessage = ''
+            // 查询公司部门分组
+            // this.sendCorpIdData(row.corpid);
+
+            $(".is-error").removeClass('is-error'); //清空验证时的红框
+            this.editFormVisible = true;
+            // 地址
+            let addrVal = row.region;
+            let addrArr;
+            if (addrVal != null) {
+                addrArr = addrVal.split(",");
+            } else {
+                addrArr = ["四川", "成都", "高新区"];
+            }
+
+            this.editForm = {
+                id: row.ID,
+                headiconpath: row.headiconpath,
+                employeetype: row.employeetype,
+                employeetypename: row.employeetypename,
+                employeecode: row.employeecode,
+                employeename: row.employeename,
+                username: row.username,
+                userid: row.userid,
+                positionname: row.positionname,
+                corpname: row.corpname,
+                groupname: row.groupname,
+                deptname: row.deptname,
+                mobile: row.mobile,
+                isactive: parseInt(row.isactive),
+                gender: row.gender,
+                regionAll: addrArr,
+                address: row.address,
+                wechatid: row.wechatid,
+                qq: row.qq,
+            }
+
+            this.editFormId = {
+                employeetype: row.employeetype,
+                employeetypename: row.employeetypename,
+                positioncode: row.positioncode,
+                positionname: row.positionname,
+                deptid: row.deptid,
+                deptname: row.deptname,
+                corpid: row.corpid,
+                corpname: row.corpname,
+                groupid: row.groupid,
+                groupname: row.groupname,
+                mobile: row.mobile,
+                username: row.username
+            }
+            this.thisInput = this.editForm.mobile; //将当前验证的字段 已获得的值存入
+            // 设置编辑时获取头像方式
+            if (this.editForm.headiconpath == undefined) {
+                this.imageUrl = '';
+            } else {
+                this.imageUrl = this.$store.state.IMG_URL + row.headiconpath;
+            }
+        },
+        changeEmployeetype (employeetype) {
+            this.editForm.employeetype = employeetype
+        },
+        //显示新增界面
+        handleAdd () {
+            $(".is-error").removeClass('is-error'); //清空验证时的红框
+            this.mobileErrMessage = ''
+            this.usernameErrMessage = ''
+            this.addFormVisible = true;
+            this.addForm = {
+                headiconpath: '',
+                employeetype: '',
+                username: '',
+                employeecode: '',
+                employeename: '',
+                positionname: '',
+                deptname: '',
+                corpname: '万网公司',
+                groupname: '',
+                mobile: '',
+                stogisneed: '',
+                isactive: 1,
+                gender: 'M',
+                regionAll: ["四川", "成都", "高新区"],
+                region: '',
+                address: '',
+                wechatid: '',
+                qq: '',
+                deptid: '',
+                groupid: '',
+                positioncode: '',
+            };
+        },
+        //编辑
+        editSubmit () {
+            if (this.mobileErrMessage || this.usernameErrMessage)
+                return
+            this.$refs.editForm.validate((valid) => {
+                if (valid) {
+                    this.editLoading = true;
+                    let para = {
+                        id: this.editForm.id,
+                        employeecode: this.editForm.employeecode,
+                        employeename: this.editForm.employeename,
+                        username: this.editForm.username,
+                        userid: this.editForm.userid,
+                        deptid: this.editForm.deptname,
+                        positioncode: this.editForm.positionname,
+                        // corpid: this.editForm.corpname,
+                        groupid: this.editForm.groupname,
+                        mobile: this.editForm.mobile,
+                        isactive: this.editForm.isactive,
+                        headiconpath: this.editForm.headiconpath,
+                        gender: this.editForm.gender,
+                        region: this.editForm.regionAll.toString(),
+                        address: this.editForm.address,
+                        wechatid: this.editForm.wechatid,
+                        qq: this.editForm.qq,
+                    }
+                    if (this.editFormId.employeetypename == this.editForm.employeetypename) {
+                        para.employeetype = this.editFormId.employeetype;
+                    } else {
+                        para.employeetype = this.editForm.employeetypename;
+                    }
+                    // if(this.editFormId.deptname == this.editForm.deptname) {
+                    //     para.deptid = this.editFormId.deptid;
+                    // }else{
+                    //     para.deptid = this.editForm.deptid;
+                    // }
+                    if (this.editFormId.deptname == this.editForm.deptname) {
+                        para.deptid = this.editFormId.deptid;
+                    } else {
+                        para.deptid = this.editForm.deptname;
+                    }
+                    if (this.editFormId.groupname == this.editForm.groupname) {
+                        para.groupid = this.editFormId.groupid;
+                    } else {
+                        para.groupid = this.editForm.groupname;
+                    }
+                    if (this.editFormId.positionname == this.editForm.positionname) {
+                        para.positioncode = this.editFormId.positioncode;
+                    } else {
+                        para.positioncode = this.editForm.positionname;
+                    }
+                    if (this.editFormId.corpname == this.editForm.corpname) {
+                        para.corpid = this.editFormId.corpid;
+                    } else {
+                        para.corpid = this.editForm.corpname;
+                    }
+                    if (para.deptid == '') { //当选择了公司,未选择部门时
+                        this.$message({
+                            message: '请选择部门！',
+                            type: 'warning'
+                        });
+                        this.editLoading = false;
+                        return;
+                    } else {
+                        modifyEmployeeInfo(para).then(({data}) => {
+                            this.editLoading = false;
+                            if (data.code === 0) {
+                                this.$message({
+                                    message: '编辑成功！',
+                                    type: 'success'
+                                });
+                            }
+                            // this.$refs['editForm'].resetFields(); //表单清空
+                            this.editFormVisible = false;
+                            this.handleQuerySelect();
+                        }).catch((error) => {
+                            this.editLoading = false;
+                        });
+                    }
+
+                }
+            });
+        },
+        //新增
+        addSubmit () {
+            if (this.mobileErrMessage || this.usernameErrMessage)
+                return
+            this.$refs.addForm.validate((valid) => {
+                if (valid) {
+                    this.addLoading = true;
+                    let para = Object.assign({}, this.addForm)
+                    para.deptid = para.deptname
+                    // para.corpid = para.corpname
+                    para.groupid = para.groupname
+                    para.region = para.regionAll.toString()
+                    if (para.deptid == '') { //当选择了公司,未选择部门时
+                        this.$message({
+                            message: '请选择部门！',
+                            type: 'warning'
+                        });
+                        this.addLoading = false;
+                        return;
+                    } else {
+                        addEmployeeInfo(para).then(({data}) => {
+                            this.addLoading = false;
+                            if (data.code === 0) {
+                                this.$message({
+                                    message: '新增成功！',
+                                    type: 'success'
+                                });
+                                // this.$refs['addForm'].resetFields();
+                                this.addFormVisible = false;
+                                this.handleQuerySelect();
+                            }
+                        }).catch((error) => {
+                            this.addLoading = false;
+                        });
+                    }
+                }
+            });
+        },
+        selsChange (sels) {
+            this.sels = sels;
+        },
+        changePosition (dictdataname) {
+            this.addForm.positionname = dictdataname
+        },
+        checkEditMobile (value) {
+            if (this.editFormId.mobile === value)
+                return
+            this.checkMobile(value)
+        },
+        checkEditUsername (value) {
+            if (this.editFormId.username === value)
+                return
+            this.checkMobile(value)
+        },
+        async checkMobile (value) {
+            this.mobileErrMessage = ''
+            if (value) {
+                try {
+                    const {data} = await checkRepeat({content: value})
+                    if (data.data) {
+                        this.mobileErrMessage = '手机号已经存在'
+                    }
+                } catch (e) {
+
+                }
+            }
+        },
+        async checkUsername (value) {
+            this.usernameErrMessage = ''
+            if (value) {
+                try {
+                    const {data} = await checkRepeat({content: value})
+                    if (data.data) {
+                        this.usernameErrMessage = '用户名已存在'
+                    }
+                } catch (e) {
+
+                }
+            }
+        }
+    },
+    mounted () {
+        this.handleQuerySelectFn();
+    }
+}

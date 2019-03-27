@@ -1,0 +1,258 @@
+import { mapState } from 'vuex'
+import { addWarehouseProd, facilityFormRules, getDeliveryCorps } from './service'
+import { getStorageInfoSelect } from '../basicSetting/storeHouseList/service'
+import { getSIMModelList } from "../basicSetting/simList/service";
+import { getProdModelList } from "../basicSetting/equipmentList/service";
+import { getEmployeeInfoList } from "@/views/basicManage/employeeManage/service";
+import { getSupplierList } from '../basicSetting/supplierList/service'
+
+export default {
+    name: "invoice-detail",
+    data () {
+        return {
+            facilityForm: null, // 返厂表单
+            facilityFormRules: facilityFormRules, // 返厂表单规则
+            storageList: [],
+            simTypeList: [],
+            equipmentModelList: [],
+            selectLoading: false,
+            employeeInfoLis: [],
+            deliveryCorps: [],
+            submitLoading: false,
+            supplierList: []
+        }
+    },
+    props: {
+        itemInvoice: {
+            default: function () {
+                return {}
+            },
+            type: Object
+        },
+        storageInvoice: {
+            default: function () {
+                return {}
+            },
+            type: Object
+        }
+    },
+    computed: {
+        ...mapState({
+            user: state => {
+                return state.user
+            }
+        }),
+        isProcurement () {
+            return this.storageInvoice.intype === 'IN_PURCHASE'
+        },
+        isExcel () {
+            return this.storageInvoice.isExcel
+        },
+        isView () {
+            return this.storageInvoice.isView
+        }
+    },
+    methods: {
+        // ...mapActions(['setPutInData']),
+        init () {
+            if (!this.itemInvoice.stoStorageDto) {
+                this.itemInvoice.stoStorageDto = {}
+            }
+
+            if (!this.itemInvoice.listUpload) {
+                this.itemInvoice.listUpload = []
+            }
+
+            this.facilityForm = Object.assign(_.cloneDeep(this.itemInvoice), {
+                username: this.itemInvoice.operator || this.user.name,
+                userid: this.itemInvoice.operator || this.user.id,
+                actiontype: this.storageInvoice.intype,
+                receiptno: this.storageInvoice.batchno,
+                purchaseDate: new Date().format('yyyy-MM-dd'),
+                createDate: new Date().format('yyyy-MM-dd'),
+                storageid: '',
+                purchaseid: '',
+                batchno: '55456df',
+                attachurl: this.storageInvoice.attachurl || '',
+                contractno: '', //采购合同
+                suppliername: '', //供应商
+                supplierid: '', //供应商Id
+                stoDelivery: this.itemInvoice.stoDelivery || {
+                    deliverytype: '1'
+                }
+            })
+
+            if (this.itemInvoice.stoDelivery) {
+                this.facilityForm.stoDelivery.deliverycorp = this.itemInvoice.stoDelivery.deliverycorpname
+            }
+
+            JsBarcode(this.$refs['invoice-bar-code'], this.itemInvoice.receiptno, {
+                height: 30,
+                fontSize: 12,
+            });
+        },
+        changeUser (item) {
+            if (!item.userid) {
+                this.$message.warning('该用户userid为空!请重新选择')
+                this.facilityForm.username = ''
+                this.facilityForm.userid = ''
+                return
+            }
+            this.facilityForm.username = item.employeename
+            this.facilityForm.userid = item.userid
+        },
+        remove (index) {
+            this.facilityForm.listUpload.splice(index, 1)
+        },
+        // 行点击事件
+        rowClick (row) {
+            if (!this.isView) {
+                _.forEach(this.facilityForm.listUpload, item => {
+                    item.isEdit = false
+                })
+                row.isEdit = true
+            }
+        },
+        handleSizeChange () {
+
+        },
+        handleCurrentChange () {
+
+        },
+        // 提交数据
+        submit () {
+            this.$refs.facilityForm.validate(async valid => {
+                if (valid) {
+                    this.submitLoading = true
+                    try {
+                        await addWarehouseProd(this.facilityForm)
+                        this.submitLoading = false
+                        this.$emit('submit')
+                        this.$message.success('提交成功')
+                    } catch (e) {
+                        this.submitLoading = false
+                    }
+                    return
+                }
+                this.$message.warning('请检查表单完善信息')
+            })
+        },
+        // 获取库房
+        async getStorage () {
+            try {
+                const params = {
+                    limit: 1000,
+                    page: 1
+                }
+                const {data} = await getStorageInfoSelect(params)
+                this.storageList = data.data.records
+            } catch (e) {
+
+            }
+        },
+        // 选择仓库获取电话地址
+        changeStorage (storageId) {
+            const storage = _.find(this.storageList, {id: storageId})
+            this.facilityForm.storageid = storageId
+            this.facilityForm.stoStorageDto.managermobile = storage.managermobile
+            this.facilityForm.stoStorageDto.storageaddress = storage.storageaddress
+            this.facilityForm.stoStorageDto.managername = storage.managername
+        },
+        // 获取sim类型列表
+        async getSIMModelList () {
+            try {
+                const params = {
+                    limit: 1000,
+                    page: 1,
+                    isactive: 1
+                }
+                const {data} = await getSIMModelList(params)
+                this.simTypeList = data.data.records
+            } catch (e) {
+
+            }
+        },
+        // 获取设备型号列表
+        async getEquipmentModelList () {
+            try {
+                const params = {
+                    limit: 1000,
+                    page: 1,
+                    isactive: 1
+                }
+                const {data} = await getProdModelList(params)
+                this.equipmentModelList = data.data.records
+            } catch (e) {
+
+            }
+        },
+        // 搜索员工
+        remoteMethod (query) {
+            let para = {
+                page: this.currentPage,
+                limit: this.pageSize,
+                isactive: '1',
+                domSearch: [{
+                    select: ['employeename'],
+                    content: query
+                }],
+            };
+            this.selectLoading = true;
+            getEmployeeInfoList(para).then(({data}) => {
+                this.selectLoading = false
+                this.employeeInfoLis = data.data.records
+            })
+        },
+        // 经办人下拉
+        userChange (r) {
+            this.selectLoading = true;
+            getEmployeeInfoList({limit: 1000, isactive: 1}).then((res) => {
+                this.employeeInfoLis = res.data.data.records;
+                this.selectLoading = false;
+            });
+        },
+        async getDeliveryCorps () {
+            try {
+                const params = {
+                    dictvalue: 'ExpressCompany',
+                    limit: 1000,
+                    page: 1
+                }
+                const {data} = await getDeliveryCorps(params)
+                this.deliveryCorps = data.data.records
+            } catch (e) {
+
+            }
+        },
+        changeEquipmentModel (value, index) {
+            const equipmentModel = _.find(this.equipmentModelList, {modelitem: value})
+            if (equipmentModel) {
+                this.facilityForm.listUpload[index].modelname = equipmentModel.modelname
+                return
+            }
+            this.facilityForm.listUpload[index].modelname = ''
+        },
+        changeSimMode (value, index) {
+            const cardModel = _.find(this.simTypeList, {modelitem: value})
+            if (cardModel) {
+                this.facilityForm.listUpload[index].cardmodelname = cardModel.modelname
+                return
+            }
+            this.facilityForm.listUpload[index].cardmodelname = ''
+        },
+        async getSupplierList () {
+            try {
+                const params = {}
+                const {data} = await getSupplierList(params)
+                this.supplierList = data.data.records
+            } catch (e) {
+                console.log(e)
+            }
+        }
+    },
+    mounted () {
+        // this.getEquipmentModelList()
+        // this.getSIMModelList()
+        this.init()
+    }
+}

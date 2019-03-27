@@ -1,0 +1,61 @@
+import axios from 'axios';
+import Qs from 'qs';
+
+let base = '/vasms-web';
+let api = '/api';
+
+
+const getVehTypeList = params => {
+	return axios.post(`admin/carModel/getById`, {
+		params: params
+	})
+};
+const addVehType = params => {
+	return axios.post(`${base}/api/v1/car/VehicleconfigInfo`, params)
+};
+const modifyVehType = params => {
+	return axios.put(`${base}/api/v1/car/VehicleconfigInfo/` + params.id, params)
+};
+const removeVehType = params => {
+	return axios.post(`${base}/api/v1/car/VehicleconfigInfo/batch`, Qs.stringify(params))
+};
+const getSelectListVehType = params => {
+	return axios.get(`${base}/api/v1/car/VehicleconfigInfo/query/like`, {
+		params: params
+	});
+};
+// 获取品牌、车系、车型接口
+const getAllInfoList = params => {
+	return axios.get(`${base}/api/v1/car/easystolencarsInfo/query/vw/vehicleClass/` + params.value, {
+		params: params
+	});
+};
+// 获取车型颜色接口
+const getAllColorList = params => {
+	return axios.get(`${base}/api/v1/car/VehicleconfigInfo/query/color`, {
+		params: params
+	});
+};
+// 获取首字母接口到当前日止安装设备上线总数
+const getFirstcategoryList = params => {
+	return axios.get(`${base}/api/v1/car/VehicleconfigInfo/query/class/firstcategory`, {
+		params: params
+	});
+};
+//车型查询
+const getModelListInfo1 = params => {
+	return axios.get(`${base}/api/v1/unify/unify/like`, {
+		params: params
+	})
+};
+export{
+    getVehTypeList, 
+    addVehType, 
+    modifyVehType, 
+    removeVehType, 
+    getSelectListVehType, 
+    getAllInfoList, 
+    getAllColorList, 
+    getFirstcategoryList, 
+    getModelListInfo1 
+}

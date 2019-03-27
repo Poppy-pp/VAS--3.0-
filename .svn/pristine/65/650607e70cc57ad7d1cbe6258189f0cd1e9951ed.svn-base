@@ -1,0 +1,305 @@
+// import {,  ,  ,  ,   } from './service';
+import TemplateDetails from './abc.vue'
+
+export default {
+  props: ['windowOutHeight'],
+  components: {
+    TemplateDetails
+  },
+  data() {
+    return {
+      listData: [
+        {
+          templateState: 0,
+          TemplateName: '模板1',
+          InsuCorpName: '中国人寿',
+          policyTemplates: '1',
+          CreateDate: '2018-10-16 10:00:00',
+          Remark: '你好'
+        },
+        {
+          templateState: 1,
+          TemplateName: '模板2',
+          InsuCorpName: '中国人保',
+          policyTemplates: '2',
+          CreateDate: '2018-10-17 10:00:00',
+          Remark: 'hello'
+        }
+      ],
+      dialogVisible: false,
+
+      total: 0,
+      currentPage: 0,
+      pageSize: 15,
+      listLoading: false,
+      sels: [], //列表选中列
+      editFormVisible: false, //修改界面是否显示
+      editLoading: false,
+      //修改界面规则
+      editFormRules: {
+        TemplateName: [
+          {
+            required: true,
+            message: '保单模板名称必填',
+            trigger: 'blur'
+          }
+        ]
+      },
+      //修改界面数据
+      editForm: {
+        templateState: 0,
+        TemplateName: '',
+        InsuCorpName: '',
+        policyTemplates: '',
+        CreateDate: '',
+        Remark: '',
+      },
+
+      addFormVisible: false, //新增界面是否显示
+      addLoading: false,
+      addFormRules: {
+        TemplateName: [
+          {
+            required: true,
+            message: '保单模板名称必填',
+            trigger: 'blur'
+          }
+        ],
+        InsuCorpName: [
+          {
+            required: true,
+            message: '保险公司名称必选',
+            trigger: 'blur'
+          }
+        ],
+        policyTemplates: [
+          {
+            required: true,
+            message: '保单模板必选',
+            trigger: 'blur'
+          }
+        ]
+      },
+      radio: '是', //默认启用模板
+      //新增界面数据
+      addForm: {
+        templateState: 0,
+        TemplateName: '',
+        InsuCorpName: '',
+        policyTemplates: '',
+        CreateDate: '',
+        Remark: '',
+      },
+    }
+  },
+  methods: {
+    // 模板详情
+    templateDetails() {
+      this.dialogVisible = true
+    },
+    handleClose() {
+      this.dialogVisible = false
+    },
+    // 有效按钮切换状态
+    handleChange: function(index, row) {
+      console.log(row, row)
+      this.$confirm('确认设置该条记录的状态吗？', '提示', {
+        type: 'warning'
+      }).then(() => {
+        // let para = Object.assign({}, row)
+        // para.isactive = row.isactive == 1 ? 0 : 1
+        // SetStateGroupInfo(para).then((res) => {
+        //     this.$message({
+        //         message: '设置成功',
+        //         type: 'success'
+        //     });
+        //     row.isactive = para.isactive;
+        // }).catch(() => {
+        //     this.listLoading = false;
+        // });
+      })
+    },
+    // 有效 鼠标移入
+    mouseoverChange(e) {
+      if ($(e.target).hasClass('icon-duigou')) {
+        $(e.target)
+          .addClass('operate-cha icon-cha')
+          .removeClass('operate-duigou icon-duigou')
+      } else {
+        $(e.target)
+          .addClass('operate-duigou icon-duigou')
+          .removeClass('operate-cha icon-cha')
+      }
+    },
+    // 有效 鼠标移除
+    mouseoutChange(e) {
+      if ($(e.target).hasClass('icon-cha')) {
+        $(e.target)
+          .addClass('operate-duigou icon-duigou')
+          .removeClass('operate-cha icon-cha')
+      } else {
+        $(e.target)
+          .addClass('operate-cha icon-cha')
+          .removeClass('operate-duigou icon-duigou')
+      }
+    },
+    //显示编辑界面
+    handleEdit(index, row) {
+      $('.is-error').removeClass('is-error') //清空验证时的红框
+      this.editFormVisible = true
+      this.editForm = {
+        CreateDate: row.CreateDate,
+        InsuCorpName: row.InsuCorpName,
+        Remark: row.Remark,
+        TemplateName: row.TemplateName,
+        policyTemplates: row.policyTemplates,
+        templateState: row.templateState
+      }
+    },
+    //有效转换器
+    formatIsactive(row, column) {
+      return row.isactive == 1 ? '有效' : row.isactive == 0 ? '无效' : '未知'
+    },
+    //切换每页显示数量
+    handleSizeChange(val) {
+      this.pageSize = val
+    },
+    handleCurrentChange(val) {
+      this.currentPage = val
+    },
+
+    //删除
+    handleDel(index, row) {
+      if (row.templateState == 1) {
+        this.$alert('模板为启用状态不允许删除，请修改模板状态为未启用后重试！', '提示', {
+          confirmButtonText: '确定',
+          callback: action => {
+           console.log("点击了确定！")
+          }
+        })
+      } else {
+        this.$confirm('确认删除该记录吗?', '提示', {
+          type: 'warning'
+        }).then(() => {
+            // this.listLoading = true;
+            let para = {
+            }
+            // let para = new FormData();
+            // para.append('ids', row.id);
+            // para.append('method','delete');
+
+            // removeSysDictionaryData(para).then(
+            //   res => {
+                // this.listLoading = false;
+                //NProgress.done();
+                // this.$message({
+                //   message: '删除成功',
+                //   type: 'success'
+                // })
+                //this.handleQuery();
+            //   },
+            //   () => {
+                // this.listLoading = false;
+            //   }
+            // )
+          })
+        //   .catch(() => {})
+      }
+    },
+    //显示新增界面
+    handleAdd() {
+      this.addFormVisible = true;
+      this.addForm = {
+        templateState: 0,
+        TemplateName: '',
+        InsuCorpName: '',
+        policyTemplates: '',
+        CreateDate: '',
+        Remark: ''
+      }
+    },
+    checkRemarkLen(){
+        if(this.editForm.Remark.length>=100){
+            this.$message({
+                message: '超过字数限制',
+                type: 'error'
+            })
+        }
+        if(this.addForm.Remark.length>=100){
+            this.$message({
+                message: '超过字数限制',
+                type: 'error'
+            })
+        }
+        if(this.editForm.TemplateName.length>=30){
+            this.$message({
+                message: '保单模板名称不得超过30字',
+                type: 'error'
+            })
+        }
+        if(this.addForm.TemplateName.length>=30){
+            this.$message({
+                message: '保单模板名称不得超过30字',
+                type: 'error'
+            })
+        }
+    },
+    //确认修改
+    editSubmit() {
+      this.$refs.editForm.validate(valid => {
+        if (valid) {
+          this.editLoading = true
+          let para = Object.assign({}, this.editForm)
+        //   modifySysDictionaryData(para).then(
+        //     res => {
+        //       this.editLoading = false
+        //       //NProgress.done();
+        //       this.$message({
+        //         message: '修改成功',
+        //         type: 'success'
+        //       })
+        //       this.$refs['editForm'].resetFields()
+        //       this.editFormVisible = false
+        //       // //this.handleQuery();
+        //     },
+        //     () => {
+        //       this.editLoading = false
+        //     }
+        //   )
+        }
+      })
+    },
+    //新增
+    addSubmit() {
+      this.$refs.addForm.validate(valid => {
+        if (valid) {
+          let para = Object.assign({}, this.addForm)
+        //   addSysDictionaryData(para).then(
+        //     res => {
+        //        this.addLoading = false;
+        //       this.$message({
+        //         message: '提交成功',
+        //         type: 'success'
+        //       })
+        //       this.$refs['addForm'].resetFields()
+        //       this.addFormVisible = false
+        //     },
+        //     () => {
+        //        this.addLoading = false;
+        //     }
+        //   )
+        }
+      })
+    },
+    selsChange(sels) {
+      console.log(sels, 'sels')
+      this.sels = sels
+    }
+  },
+  created() {
+    
+  },
+  mounted() {
+    
+  }
+}

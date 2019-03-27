@@ -1,0 +1,953 @@
+<template>
+	<section class="tab_content-wrapper">
+		<!--工具条-->
+		<el-col :span="24" class="toolbar" style="padding-bottom: 0px;">
+			<el-form :inline="true" :model="filters">
+				<template v-for="(item,index) in filters.domSearch">
+					<template v-if="index == 0">
+						<div style="display:inline-block;margin:0 10px 10px 0;">
+							<el-input class="noborder color icon nofocus" @keyup.native.ctrl.8="clearAll()" @keyup.native.13="handleQuerySelect" placeholder="请输入查询内容" v-model="filters.domSearch[index].content">
+								<el-select class="wp_select" multiple clearable filterable v-model="filters.domSearch[index].select" slot="prepend" placeholder="选择条件">
+									<el-option label="车主" value="name"></el-option>
+									<el-option label="性别" value="gender"></el-option>
+									<el-option label="身份证" value="idcard"></el-option>
+									<el-option label="电话" value="mobile"></el-option>
+									<el-option label="车架号" value="vin"></el-option>
+									<el-option label="车牌" value="licenseplatenum"></el-option>
+									<el-option label="所属客户" value="corpname"></el-option>
+									<el-option label="婚姻状况" value="maritalstatus"></el-option>
+									<el-option label="地址" value="addresshome"></el-option>
+									<el-option label="邮箱" value="email"></el-option>
+								</el-select>
+								<template v-if="index == filters.domSearch.length-1">
+									<el-button slot="append" @click="addSelect" icon="el-icon-plus" title="添加查询条件"></el-button>
+								</template>
+								<template v-else>
+									<el-button slot="append" @click="removeSelect(index)" icon="el-icon-minus" title="移除查询条件"></el-button>
+								</template>
+							</el-input>
+						</div>
+					</template>
+					<template v-else>
+						<el-col :span="24">
+							<div style="display:inline-block;margin:0 10px 10px 0;">
+								<el-input class="noborder color icon nofocus" @keyup.native.ctrl.8="clearAll()" @keyup.native.13="handleQuerySelect" placeholder="请输入查询内容" v-model="filters.domSearch[index].content">
+									<el-select class="wp_select" multiple clearable filterable v-model="filters.domSearch[index].select" slot="prepend" placeholder="选择条件">
+										<el-option label="车主" value="name"></el-option>
+										<el-option label="性别" value="gender"></el-option>
+										<el-option label="身份证" value="idcard"></el-option>
+										<el-option label="电话" value="mobile"></el-option>
+										<el-option label="车架号" value="vin"></el-option>
+										<el-option label="车牌" value="licenseplatenum"></el-option>
+										<el-option label="所属客户" value="corpname"></el-option>
+										<el-option label="婚姻状况" value="maritalstatus"></el-option>
+										<el-option label="地址" value="addresshome"></el-option>
+										<el-option label="邮箱" value="email"></el-option>
+									</el-select>
+									<template v-if="index == filters.domSearch.length-1">
+										<el-button slot="append" @click="addSelect" icon="el-icon-plus" title="添加查询条件"></el-button>
+									</template>
+									<template v-else>
+										<el-button slot="append" @click="removeSelect(index)" icon="el-icon-minus" title="移除查询条件"></el-button>
+									</template>
+								</el-input>
+							</div>
+						</el-col>
+					</template>
+
+					<template v-if="index == 0">
+						<el-form-item>
+							<el-button type="primary" @click="handleQuerySelect" icon="el-icon-search">查询</el-button>
+						</el-form-item>
+						<el-form-item>
+							<el-button type="primary" @click="handleAdd" icon="el-icon-plus">新增</el-button>
+						</el-form-item>
+						<el-form-item>
+							<el-switch v-model="filters.isactive" active-color="#41B883" inactive-color="#ff4949" active-value="1" active-text="有效" inactive-value="0" inactive-text="无效" @change="showData">
+							</el-switch>
+						</el-form-item>
+					</template>
+				</template>
+			</el-form>
+		</el-col>
+		<!--列表-->
+		<el-table :max-height="windowOutHeight-215" border :data="owners" :row-class-name="tableRowClassName" v-loading="listLoading" style="width: 100%;"
+		row-key="id"
+            		:expand-row-keys="expands">
+			<el-table-column type="expand">
+			      <template slot-scope="props">
+			        	<el-table :data="props.row.vehicleinfos" >
+			        		<el-table-column type="index" width="35" align="center" label="序号"></el-table-column>
+				        	<el-table-column prop="licenseplatenum" label="车牌号" align="center" width="100" >
+				        		<template slot-scope="scope"><span v-html="showHighlight(scope.row.licenseplatenum)"></span></template>
+				        	</el-table-column>
+					<el-table-column prop="licenseplatecolor" label="车牌颜色" align="center" width="80">
+						<template slot-scope="scope"><span v-html="showHighlight(scope.row.licenseplatecolor)"></span></template>
+					</el-table-column>
+					<el-table-column prop="vin" label="车架号" align="center">
+						<template slot-scope="scope"><span v-html="showHighlight(scope.row.vin)"></span></template>
+					</el-table-column>
+					<el-table-column prop="model" label="车型" align="center">
+					</el-table-column>
+					<el-table-column prop="corpname" label="所属客户" align="center">
+						<template slot-scope="scope"><span v-html="showHighlight(scope.row.corpname)"></span></template></el-table-column>
+					<el-table-column prop="vehiclecategory" label="分类" width="80" align="center" :formatter="vehcategoryFormat"></el-table-column>
+					<el-table-column prop="productsNum" label="设备数量" align="center" width="80">
+						<template scope="scope">
+							<el-popover ref="popover4" width="800" @show="productsData(scope.row.ID)" trigger="click">
+								<el-table border :data="productsdatas">
+									<el-table-column type="index" width="20" align="center" label="#"></el-table-column>
+									<el-table-column prop="prodnum" label="设备编号" align="center"></el-table-column>
+									<el-table-column prop="prodmodel" label="设备型号" align="center"></el-table-column>
+									<el-table-column prop="prodspec" label="设备类别" align="center"></el-table-column>
+									<el-table-column prop="simnum" label="通讯号" align="center"></el-table-column>
+									<el-table-column prop="storagename" label="库房" width="80" align="center"></el-table-column>
+									<el-table-column prop="status" label="状态" :formatter="statusFormats" width="60" align="center"></el-table-column>
+								</el-table>
+							</el-popover>
+							<a href="javascript:void(0);" v-popover:popover4>
+								<span class="comnum">{{scope.row.productsNum}}</span>
+							</a>
+						</template>
+					</el-table-column>
+					<el-table-column fixed="right" label="操作" width="80" align="center">
+						<template scope="scope">
+							<el-button id="button" @click="handleEditVeh(scope.$index, scope.row)" :disabled="scope.row.isactive == '0' ? true : false" title="编辑车辆信息">
+								<i :class="scope.row.isactive == '0' ? 'iconfont icon-bianji1 operate' : 'iconfont icon-bianji1 operate operate-bianji'"></i>
+							</el-button>
+							<el-button id="button"  @click="handleDelVeh(scope.$index, scope.row, props.row.vehicleinfos)"  title="删除车辆" :disabled="scope.row.isactive == '0' ? true : false">
+						                        <i :class="scope.row.isactive == '0' ? 'iconfont icon-p-delet operate operate-gray' : 'iconfont icon-p-delet operate operate-p-delet'"></i>
+						            </el-button>
+						</template>
+					</el-table-column>
+			        	</el-table>
+			      </template>
+			</el-table-column>
+			<el-table-column type="index" width="40" align="center" label="#"></el-table-column>
+			<el-table-column prop="name" label="车主" align="center" width="90" >
+				<template slot-scope="scope"><span v-html="showHighlight(scope.row.name)"></span></template>
+			</el-table-column>
+			<el-table-column prop="gender" label="性别" align="center" width="70" >
+				<template slot-scope="scope">
+			                    <el-tag :type="scope.row.gender ==='M' ? 'success' : scope.row.gender ==='F' ? 'danger' :'info'">
+			                        {{scope.row.gender =='M' ? '男' : scope.row.gender == 'F' ? '女' : '未知' }}
+			                    </el-tag>
+		                	</template>
+			</el-table-column>
+			<el-table-column prop="idcard" label="身份证" align="center" width="170" >
+				<template slot-scope="scope"><span v-html="showHighlight(scope.row.idcard)"></span></template>
+			</el-table-column>
+			<el-table-column prop="mobile" label="电话" align="center" width="110" >
+				<template slot-scope="scope"><span v-html="showHighlight(scope.row.mobile)"></span></template>
+			</el-table-column>
+			<el-table-column prop="maritalstatus" label="婚姻状况" :formatter="maritalstatusFormat" align="center" width="80" >
+			</el-table-column>
+			<el-table-column prop="addresshome" label="地址" align="center" >
+			</el-table-column>
+			<el-table-column prop="email" label="邮箱" align="center" width="180" >
+			</el-table-column>
+			<el-table-column fixed="right" label="操作" width="130" align="center">
+				<template scope="scope">
+					<el-button id="button" @click="formDetailHandle(scope.row.id)" title="详情" :disabled="scope.row.isactive == '0' ? true : false">
+						<i :class="scope.row.isactive == '0' ? 'iconfont icon-xiangqing operate' : 'iconfont icon-xiangqing operate operate-xiangqing'"></i>
+					</el-button>
+					<el-button id="button" @click="handleEdit(scope.$index, scope.row)" :disabled="scope.row.isactive == '0' ? true : false" title="编辑">
+						<i :class="scope.row.isactive == '0' ? 'iconfont icon-bianji1 operate' : 'iconfont icon-bianji1 operate operate-bianji'"></i>
+					</el-button>
+					<el-button id="button" @click="handleChange(scope.$index, scope.row)" :title='scope.row.isactive == "0" ? "设置车主为有效" : "设置车主为无效"'>
+						<i :class='scope.row.isactive == "0" ? "iconfont icon-cha operate operate-cha" : "iconfont icon-duigou operate operate-duigou"' @mouseover="mouseoverChange" @mouseout="mouseoutChange"></i>
+					</el-button>
+				</template>
+			</el-table-column>
+		</el-table>
+
+		<!--工具条-->
+		<el-col :span="24" class="toolbar">
+			<el-pagination class="fr" @size-change="handleSizeChange" background @current-change="handleCurrentChange" :current-page="currentPage" :page-sizes="[15, 50, 80, 99]" :page-size="pageSize" layout="total, sizes, prev, pager, next" :total="total">
+			</el-pagination>
+		</el-col>
+		<!-- 详情 弹窗 start-->
+		<el-dialog title="车主车辆详情" :modal-append-to-body="false" :visible.sync="formDialogTableVisible" class="details">
+			<el-tabs>
+				<el-row>
+					<el-col :span="24">
+						<span class="formTile">车主信息</span>
+					</el-col>
+					<el-col :span="9">
+						<dl class="dllist" style="margin-bottom:10px;">
+							<dt>车主:</dt>
+							<dd>{{ ownerList.name }}</dd>
+						</dl>
+						<dl class="dllist" style="margin-bottom:10px;">
+							<dt>性别:</dt>
+							<dd>{{ ownerList.gender == 'M' ? '男' : ownerList.gender == 'F' ? '女' : '--' }}</dd>
+						</dl>
+						<dl class="dllist" style="margin-bottom:10px;">
+							<dt>证件号:</dt>
+							<dd>{{ ownerList.idcard == undefined ? '--' : ownerList.idcard }}</dd>
+						</dl>
+					</el-col>
+					<el-col :span="9">
+						<dl class="dllist" style="margin-bottom:10px;">
+							<dt>手机:</dt>
+							<dd>{{ ownerList.mobile }}</dd>
+						</dl>
+						<dl class="dllist" style="margin-bottom:10px;">
+							<dt>婚姻状况:</dt>
+							<dd>{{ ownerList.maritalstatus == 'M' ? '已婚' : ownerList.maritalstatus == 'S' ? '未婚' : '--' }}</dd>
+						</dl>
+						<dl class="dllist" style="margin-bottom:10px;">
+							<dt>地址:</dt>
+							<dd>{{ ownerList.addresshome == undefined ? '--' : ownerList.addresshome }}</dd>
+						</dl>
+					</el-col>
+					<el-col :span="6">
+						<dl class="dllist" style="margin-bottom:10px;">
+							<dt>邮箱:</dt>
+							<dd>{{ ownerList.email == undefined ? '--' : ownerList.email }}</dd>
+						</dl>
+						<dl class="dllist" style="margin-bottom:10px;">
+							<dt>邮编:</dt>
+							<dd>{{ ownerList.postcodeoffice == undefined ? '--' : ownerList.postcodeoffice }}</dd>
+						</dl>
+						<dl class="dllist" style="margin-bottom:10px;">
+							<dt>关联人:</dt>
+							<dd>{{ ownerList.postcodeoffice == undefined ? '--' : ownerList.postcodeoffice }}</dd>
+						</dl>
+					</el-col>
+				</el-row>
+
+				<el-row>
+					<el-col :span="24">
+						<span class="formTile">创建信息</span>
+					</el-col>
+					<el-col :span="6">
+						<dl class="dllist" style="margin-bottom:10px;">
+							<dt>创建人:</dt>
+							<dd>{{ownerList.createby == null ? '--' : ownerList.createby}}</dd>
+						</dl>
+					</el-col>
+					<el-col :span="6">
+						<dl class="dllist" style="margin-bottom:10px;">
+							<dt>创建日期:</dt>
+							<dd>{{ownerList.createdate == null ? "--" : Dayjs(new Date(ownerList.createdate)).format('YYYY-MM-DD') }}</dd>
+						</dl>
+					</el-col>
+					<el-col :span="6">
+						<dl class="dllist" style="margin-bottom:10px;">
+							<dt>修改人:</dt>
+							<dd>{{ownerList.updateby == null ? '--' : ownerList.updateby}}</dd>
+						</dl>
+					</el-col>
+					<el-col :span="6">
+						<dl class="dllist" style="margin-bottom:10px;">
+							<dt>修改日期:</dt>
+							<dd>{{ownerList.updatedate == null ? "--" : Dayjs(new Date(ownerList.updatedate)).format('YYYY-MM-DD') }}</dd>
+						</dl>
+					</el-col>
+				</el-row>
+
+				<el-row v-show="ownerList.vehicleinfos != ''">
+					<el-col :span="24">
+						<span class="formTile">车辆信息</span>
+					</el-col>
+					<template v-for="(item,index) in ownerList.vehicleinfos">
+						<el-row class="line">
+							<el-col :span="7">
+								<dl class="dllist" style="margin-bottom:10px;">
+									<dt>车辆&nbsp; </dt>
+									<dd><el-badge class="mark" :value="index+1" style="top:0.2em;" /></dd>
+								</dl>
+								<dl class="dllist" style="margin-bottom:10px;">
+									<dt>车牌号:</dt>
+									<dd>{{ item.licenseplatenum == undefined ? '--' : item.licenseplatenum }}</dd>
+								</dl>
+								<dl class="dllist" style="margin-bottom:10px;">
+									<dt>车架号:</dt>
+									<dd>{{ item.vin }}</dd>
+								</dl>
+								<dl class="dllist" style="margin-bottom:10px;">
+									<dt>所属客户:</dt>
+									<dd>{{ item.corpname == undefined ? '--' : item.corpname }}</dd>
+								</dl>
+								<dl class="dllist" style="margin-bottom:10px;">
+									<dt>车价(元):</dt>
+									<dd>{{ item.price }}</dd>
+								</dl>
+								<dl class="dllist" style="margin-bottom:10px;">
+									<dt>车颜色:</dt>
+									<dd>{{ item.colorname == undefined ? '--' : item.colorname }}</dd>
+								</dl>
+							</el-col>
+							<el-col :span="12">
+								<dl class="dllist" style="margin-bottom:10px;">
+									<dt>分类:</dt>
+									<dd>{{ item.vehiclecategory == 1 ? '新车' : item.vehiclecategory == 2 ? '二手车' : item.vehiclecategory == 3 ? '资管追回' : item.vehiclecategory == undefined ? '--' : '' }}</dd>
+								</dl>
+								<dl class="dllist" style="margin-bottom:10px;">
+									<dt>车型:</dt>
+									<dd>{{ item.model }}</dd>
+								</dl>
+								<dl class="dllist" style="margin-bottom:10px;">
+									<dt>车类型:</dt>
+									<dd>{{ item.typedesc == undefined ? '--' : item.typedesc }}</dd>
+								</dl>
+								<dl class="dllist" style="margin-bottom:10px;">
+									<dt>车牌颜色:</dt>
+									<dd>{{ item.licenseplatecolor == undefined ? '--' : item.licenseplatecolor }}</dd>
+								</dl>
+								<dl class="dllist" style="margin-bottom:10px;">
+									<dt>受理银行:</dt>
+									<dd>{{ item.bankname == undefined ? '--' : item.bankname }}</dd>
+								</dl>
+								<dl class="dllist" style="margin-bottom:10px;">
+									<dt>发动机号:</dt>
+									<dd>{{ item.enginenum == undefined ? '--' : item.enginenum }}</dd>
+								</dl>
+							</el-col>
+							<el-col :span="5">
+								<dl class="dllist" style="margin-bottom:10px;">
+									<dt>初登日期:</dt>
+									<dd>{{ item.firstregisterdate == null ? "--" : Dayjs(new Date(item.firstregisterdate)).format('YYYY-MM-DD') }}</dd>
+								</dl>
+								<dl class="dllist" style="margin-bottom:10px;">
+									<dt>贷款到期日:</dt>
+									<dd>{{ item.loanenddate == null ? "--" : Dayjs(new Date(item.loanenddate)).format('YYYY-MM-DD') }}</dd>
+								</dl>
+								<dl class="dllist" style="margin-bottom:10px;">
+									<dt>服务期限(年):</dt>
+									<dd>{{ item.yearsofservice == undefined ? '--' : item.yearsofservice }}</dd>
+								</dl>
+								<dl class="dllist" style="margin-bottom:10px;">
+									<dt>是否有盗抢险:</dt>
+									<dd>{{ item.hastheftinsurance == 1 ? '是' : item.hastheftinsurance == 0 ? '否' : '' }}</dd>
+								</dl>
+								<dl class="dllist" style="margin-bottom:10px;">
+									<dt>用途:</dt>
+									<dd>{{ item.vehicleuse == 1 ? '乘用车' : item.vehicleuse == 2 ? '商用车' : item.vehicleuse == undefined ? '--' : '' }}</dd>
+								</dl>
+								<dl class="dllist" style="margin-bottom:10px;">
+									<dt>设备数量：</dt>
+									<dd><el-tag type="success">{{ item.productsNum }}</el-tag></dd>
+								</dl>
+							</el-col>
+						</el-row>
+					</template>
+				</el-row>
+				<el-row v-show="prodData.length != 0">
+					<el-col :span="24">
+						<span class="formTile">设备信息</span>
+					</el-col>
+					<template v-for="(item,index) in prodData">
+						<el-col :span="10" style="margin-top:10px;">
+							<dl class="dllist" style="margin-bottom:10px;">
+								<dt>设备</dt>
+								<dd>{{index+1}}</dd>
+							</dl>
+							<dl class="dllist" style="margin-bottom:10px;">
+								<dt>编号:</dt>
+								<dd>{{item.prodnum}}</dd>
+							</dl>
+							<dl class="dllist" style="margin-bottom:10px;">
+								<dt>类别:</dt>
+								<dd>{{item.prodspec}}</dd>
+							</dl>
+						</el-col>
+						<el-col :span="9" style="margin-top:10px;">
+							<dl class="dllist" style="margin-bottom:10px;">
+								<dt>型号:</dt>
+								<dd>{{item.prodmodel}}</dd>
+							</dl>
+							<dl class="dllist" style="margin-bottom:10px;">
+								<dt>通讯号:</dt>
+								<dd>{{item.simnum}}</dd>
+							</dl>
+							<dl class="dllist" style="margin-bottom:10px;">
+								<dt>库房:</dt>
+								<dd>{{item.storagename}}</dd>
+							</dl>
+						</el-col>
+						<el-col :span="5" style="margin-top:10px;">
+							<dl class="dllist" style="margin-bottom:10px;">
+								<dt>状态:</dt>
+								<dd>{{item.status == 'INSTO' ? '在库' : item.status == 'INSTALL' ? '已安装' : item.status == 'LOST' ? '报失' : item.status == 'REPAIR' ? '维修' : item.status == 'DAMAGE' ? '报废' : item.status == 'ONWAY' ? '在途' : '--' }}</dd>
+							</dl>
+						</el-col>
+					</template>
+				</el-row>
+				<el-row v-show="insData.policyno != undefined">
+					<el-col :span="24">
+						<span class="formTile">保单信息</span>
+					</el-col>
+					<el-col :span="12">
+						<dl class="dllist" style="margin-bottom:10px;">
+							<dt>保单号:</dt>
+							<dd>{{insData.policyno == undefined ? '--' : insData.policyno}}</dd>
+						</dl>
+						<dl class="dllist" style="margin-bottom:10px;">
+							<dt>金额(元):</dt>
+							<dd>{{insData.price == undefined ? '--' : insData.price}}</dd>
+						</dl>
+						<dl class="dllist" style="margin-bottom:10px;">
+							<dt>赔偿限额(元):</dt>
+							<dd>{{insData.indemnitylimit == undefined ? '--' : insData.indemnitylimit}}</dd>
+						</dl>
+						<dl class="dllist" style="margin-bottom:10px;">
+							<dt>受益人:</dt>
+							<dd>{{insData.bankname == undefined ? '--' : insData.bankname}}</dd>
+						</dl>
+					</el-col>
+					<el-col :span="12">
+						<dl class="dllist" style="margin-bottom:10px;">
+							<dt>报单公司:</dt>
+							<dd>{{insData.declarationcorp == undefined ? '--' : insData.declarationcorp}}</dd>
+						</dl>
+						<dl class="dllist" style="margin-bottom:10px;">
+							<dt>出单单位:</dt>
+							<dd>{{insData.insurancecorp == undefined ? '--' : insData.insurancecorp}}</dd>
+						</dl>
+						<dl class="dllist" style="margin-bottom:10px;">
+							<dt>保险项目:</dt>
+							<dd>{{insData.insurancetype == undefined ? '--' : insData.insurancetype}}</dd>
+						</dl>
+					</el-col>
+				</el-row>
+			</el-tabs>
+		</el-dialog>
+		<!-- 订单详情 弹窗  end-->
+
+		<!--编辑车主界面-->
+		<el-dialog title="编辑" :modal-append-to-body="false" :visible.sync="editFormVisible" :close-on-click-modal="false">
+			<el-form :model="editForm" label-width="100px" :rules="editFormRules" ref="editForm">
+				<el-collapse v-model="activeNamesVeh" class="mt20">
+					<el-collapse-item title="车主信息" name="0">
+						<el-row :gutter="20" class="collapse">
+							<el-col :span="12">
+								<el-form-item label="姓名" prop="name">
+									<el-input v-model="editForm.name" auto-complete="off" placeholder="请输入车主姓名"></el-input>
+								</el-form-item>
+								<el-form-item label="电话号码" prop="mobile" ref="mobile">
+									<el-input v-model="editForm.mobile" placeholder="请输入电话号码"></el-input>
+								</el-form-item>
+								<el-form-item label="身份证号码" prop="idcard" style="margin-bottom:20px;" ref="idcard">
+									<el-input v-model="editForm.idcard" placeholder="请输入有效身份证号" ></el-input>
+								</el-form-item>
+								<el-form-item label="性别" prop="gender">
+									<el-radio-group v-model="editForm.gender">
+										<el-radio class="radio" label="M">男</el-radio>
+										<el-radio class="radio" label="F">女</el-radio>
+									</el-radio-group>
+								</el-form-item>
+								<el-form-item label="邮编" prop="postcodeoffice">
+									<el-input v-model="editForm.postcodeoffice" placeholder="请输入邮编"></el-input>
+								</el-form-item>
+							</el-col>
+							<el-col :span="12">
+								<el-form-item label="婚姻状况" prop="maritalstatus">
+									<el-radio-group v-model="editForm.maritalstatus">
+										<el-radio class="radio" label="M">已婚</el-radio>
+										<el-radio class="radio" label="S">未婚</el-radio>
+									</el-radio-group>
+								</el-form-item>
+								<el-form-item label="地址" prop="addressHome">
+									<el-cascader placeholder="请选择省/市/区" v-model="editForm.addressHome" :options="prOptions" filterable clearable change-on-select></el-cascader>
+								</el-form-item>
+								<el-form-item label="详细地址" prop="installaddress">
+									<el-input v-model="editForm.installaddress" auto-complete="off" placeholder="请输入详细地址"></el-input>
+								</el-form-item>
+								<el-form-item label="邮箱" prop="email">
+									<el-input v-model="editForm.email" auto-complete="off" placeholder="请输入常用邮箱"></el-input>
+								</el-form-item>
+							</el-col>
+						</el-row>
+					</el-collapse-item>
+
+					<!-- 绑定车辆信息页面 -->
+					<el-collapse-item title="绑定车辆" name="1">
+						<el-row :gutter="20">
+							<el-col :span="24">
+								<el-form-item id="nomargin">
+									<el-table :data="vehDataInfo" empty-text="暂未绑定车辆" show-summary :summary-method="getSummaries" border style="width: 100%" max-height="400">
+										<el-table-column prop="licenseplatenum" label="车牌号" align="center" width="90">
+										</el-table-column>
+										<el-table-column prop="vin" label="车架号" align="center" >
+										</el-table-column>
+										<el-table-column prop="price" label="车价(元)" width="90" align="center">
+										</el-table-column>
+										<el-table-column prop="model" label="车型" align="center">
+										</el-table-column>
+										<el-table-column prop="colorname" label="颜色" width="70" align="center">
+										</el-table-column>
+										<el-table-column label="操作" width="80" align="center">
+											<template scope="scope">
+												<el-button type="danger" size="small" @click.native="changeOwner(scope.$index,vehDataInfo)">解 绑</el-button>
+											</template>
+										</el-table-column>
+									</el-table>
+									<el-button type="primary" @click.native="addDeviceList" icon="el-icon-plus" style="margin-top:10px;">添加绑定车辆</el-button>
+								</el-form-item>
+							</el-col>
+						</el-row>
+					</el-collapse-item>
+				</el-collapse>
+			</el-form>
+			<div slot="footer" class="dialog-footer">
+				<el-button @click.native="editFormVisible = false">取消</el-button>
+				<el-button type="primary" @click.native="editSubmit" :loading="editLoading">提交</el-button>
+			</div>
+		</el-dialog>
+
+		<!--新增界面-->
+		<el-dialog title="新增" :modal-append-to-body="false" :visible.sync="addFormVisible" :close-on-click-modal="false">
+			<el-form :model="addForm" label-width="100px" :rules="addFormRules" ref="addForm">
+				<el-collapse v-model="activeNamesVeh">
+					<el-collapse-item title="车主信息" name="0" >
+						<el-row :gutter="20" class="collapse">
+							<el-col :span="12">
+								<el-form-item label="名字" prop="name" ref="name">
+									<el-input v-model="addForm.name" auto-complete="off" placeholder="请输入车主姓名" :disabled="readonlyOwner"></el-input>
+								</el-form-item>
+								<el-form-item label="电话号码" prop="mobile" ref="mobile">
+									<el-input v-model="addForm.mobile" placeholder="请输入车主电话号码" @blur='checkOwner()' :disabled="readonlyOwner"></el-input>
+								</el-form-item>
+								<el-form-item label="身份证号码" prop="idcard" ref="idcard">
+									<el-input v-model="addForm.idcard" placeholder="请输入车主有效身份证号" @blur='checkOwner()' :disabled="readonlyOwner"></el-input>
+								</el-form-item>
+								<el-form-item label="性别" prop="gender">
+									<el-radio-group v-model="addForm.gender" :disabled="readonlyOwner">
+										<el-radio class="radio" label="M">男</el-radio>
+										<el-radio class="radio" label="F">女</el-radio>
+									</el-radio-group>
+								</el-form-item>
+								<el-form-item label="邮编" prop="postcodeoffice">
+									<el-input v-model="addForm.postcodeoffice" placeholder="请输入邮编" :disabled="readonlyOwner"></el-input>
+								</el-form-item>
+							</el-col>
+							<el-col :span="12">
+								<el-form-item label="婚姻状况" prop="maritalstatus">
+									<el-radio-group v-model="addForm.maritalstatus" :disabled="readonlyOwner">
+										<el-radio class="radio" label="M">已婚</el-radio>
+										<el-radio class="radio" label="S">未婚</el-radio>
+									</el-radio-group>
+								</el-form-item>
+								<el-form-item label="地址" prop="addressHome">
+									<el-cascader placeholder="请选择省/市/区" v-model="addForm.addressHome" :options="prOptions" filterable clearable change-on-select :disabled="readonlyOwner"></el-cascader>
+								</el-form-item>
+								<el-form-item label="详细地址" prop="installaddress">
+									<el-input v-model="addForm.installaddress" auto-complete="off" placeholder="请输入详细地址" :disabled="readonlyOwner"></el-input>
+								</el-form-item>
+								<el-form-item label="邮箱" prop="email">
+									<el-input v-model="addForm.email" auto-complete="off" placeholder="请输入车主邮箱" :disabled="readonlyOwner"></el-input>
+								</el-form-item>
+							</el-col>
+						</el-row>
+					</el-collapse-item>
+
+					<!-- 绑定车辆信息页面 -->
+					<el-collapse-item title="绑定车辆" name="1">
+						<el-row :gutter="20" class="collapse">
+							<el-col :span="12">
+								<el-form-item label="车架号" prop="vin" ref="vin">
+									<el-input v-model="addForm.vin" auto-complete="off" @blur='checkCarVin()' :disabled="readonlyVeh"></el-input>
+								</el-form-item>
+								<el-form-item label="车牌号" prop="licenseplatenum" ref="licenseplatenum">
+									<el-input v-model="addForm.licenseplatenum" auto-complete="off" :disabled="readonlyVeh"></el-input>
+								</el-form-item>
+								<el-form-item label="车价(元)" prop="price" ref="price"> 
+									<el-input v-model="addForm.price" auto-complete="off" :disabled="readonlyVeh"></el-input>
+								</el-form-item>
+								<el-form-item label="车型" prop="model">
+									<el-autocomplete class="inline-input searchInput" popper-class="my-autocomplete" v-model="addForm.model" :fetch-suggestions="handleItemChange" custom-item="my-item-zh-model" placeholder="请选择车型信息" @select="handleSelectColor" :disabled="readonlyVeh"></el-autocomplete>
+								</el-form-item>
+								<el-form-item label="颜色" prop="colorname">
+									<div style="display:flex;">
+										<el-autocomplete class="inline-input searchInput" popper-class="my-autocomplete" v-model="addForm.colorname" :fetch-suggestions="handleColorChange" custom-item="my-item-zh-model" placeholder="请选择车辆颜色" @select="changeCarColor" :disabled="readonlyVeh">
+										</el-autocomplete>
+										<el-color-picker v-model="addForm.color" :disabled="readonlyVeh"></el-color-picker>
+									</div>
+								</el-form-item>
+								<el-form-item label="用途" prop="vehicleuse">
+									<el-radio-group size="small" v-model="addForm.vehicleuse" :disabled="readonlyVeh">
+										<el-radio-button label="1">乘用车</el-radio-button>
+										<el-radio-button label="2">商用车</el-radio-button>
+									</el-radio-group>
+								</el-form-item>
+							</el-col>
+							<el-col :span="12">
+								<el-form-item label="车类型" prop="vehicletype">
+									<el-select v-model="addForm.vehicletype" @visible-change="vehChange" :loading="vehLoading" filterable placeholder="请选择车类型" clearable value-key="typedesc" :disabled="readonlyVeh">
+										<el-option v-for="item in vehlist" :key="item.typedesc" :label="item.typedesc" :value="item">
+										</el-option>
+									</el-select>
+								</el-form-item>
+								<el-form-item label="所属客户" prop="corpname" ref="corpname">
+									<el-select v-model="addForm.corpname" @visible-change="corpChange" remote :remote-method="corpChangeSelect" :loading="corpLoading" filterable placeholder="请选择所属客户" clearable :disabled="readonlyVeh">
+										<el-option v-for="item in corplist" :key="item.id" :label="item.corpname" :value="item.id">
+										</el-option>
+									</el-select>
+								</el-form-item>
+								<el-form-item label="受理银行" prop="bankname" ref="bankname">
+									<i style="color:red;position: absolute;left:-80px;" v-if="addForm.hastheftinsurance == '1'">*</i>
+									<el-autocomplete class="inline-input searchInput" popper-class="my-autocomplete" v-model="addForm.bankname" :fetch-suggestions="corpChangeTwo" custom-item="my-item-zh-model" placeholder="请选择受理银行" @select="handleSelectCorp"></el-autocomplete>
+								</el-form-item>
+								<el-form-item label="分类" prop="vehiclecategory" ref="vehiclecategory">
+									<el-radio-group size="small" v-model="addForm.vehiclecategory" :disabled="readonlyVeh">
+										<el-radio-button label="1">新车</el-radio-button>
+										<el-radio-button label="2">二手车</el-radio-button>
+										<el-radio-button label="3">资管追回</el-radio-button>
+									</el-radio-group>
+								</el-form-item>
+								<el-form-item label="发动机号" prop="enginenum">
+									<el-input v-model="addForm.enginenum" auto-complete="off" :disabled="readonlyVeh"></el-input>
+								</el-form-item>
+								<el-form-item label="是否有盗抢险" prop="hastheftinsurance">
+									<el-switch v-model="addForm.hastheftinsurance" active-color="#41B883" inactive-color="#ff4949" active-value="1" active-text="有" inactive-value="0" inactive-text="无" :disabled="readonlyVeh">
+									</el-switch>
+								</el-form-item>
+								<div v-show="addForm.hastheftinsurance == '1'">
+									<i style="color:red;position: absolute;margin-top: 8px;">*</i>
+									<el-form-item label="服务期限(年)" prop="yearsofservice" ref="yearsofservice">
+										<el-input v-model="addForm.yearsofservice" auto-complete="off" :disabled="readonlyVeh"></el-input>
+									</el-form-item>
+									<el-form-item label="初始登记日期" prop="firstregisterdate">
+										<el-date-picker v-model="addForm.firstregisterdate" type="date" placeholder="选择日期" :picker-options="pickerOptions" :disabled="readonlyVeh">
+										</el-date-picker>
+									</el-form-item>
+									<el-form-item label="贷款到期日" prop="loanenddate">
+										<el-date-picker v-model="addForm.loanenddate" type="date" placeholder="选择日期" :picker-options="pickerOptions0" :disabled="readonlyVeh">
+										</el-date-picker>
+									</el-form-item>
+								</div>
+							</el-col>
+						</el-row>
+					</el-collapse-item>
+				</el-collapse>
+			</el-form>
+			<div slot="footer" class="dialog-footer">
+				<el-button @click.native="addFormVisible = false">取消</el-button>
+				<el-button type="primary" @click.native="addSubmit" :loading="addLoading">提交</el-button>
+			</div>
+		</el-dialog>
+
+		<!--编辑车主界面——车辆列表选择界面-->
+		<el-dialog title="车辆信息" :modal-append-to-body="false" :visible.sync="deviceFormVisible" top="3%" :close-on-click-modal="false" @close="clearAllThis()">
+			<el-col :span="24" class="toolbar" style="padding-bottom: 0px;">
+				<el-form :inline="true" :model="filtersVeh">
+					<template v-for="(item,index) in filtersVeh.domSearch">
+						<template v-if="index == 0">
+							<div style="display:inline-block;margin:0 10px 10px 0;">
+								<el-input class="noborder color icon nofocus" @keyup.native.ctrl.8="clearAll()" @keyup.native.enter="getDeciceListInfo" placeholder="请输入查询内容" v-model="filtersVeh.domSearch[index].content">
+									<el-select class="wp_select" multiple clearable filterable v-model="filtersVeh.domSearch[index].select" slot="prepend" placeholder="选择条件">
+										<el-option label="车牌号" value="licenseplatenum"></el-option>
+										<el-option label="车架号" value="vin"></el-option>
+										<el-option label="车价(元)" value="price"></el-option>
+										<el-option label="车型" value="model"></el-option>
+										<el-option label="颜色" value="colorname"></el-option>
+									</el-select>
+									<template v-if="index == filtersVeh.domSearch.length-1">
+										<el-button slot="append" @click="addSelect" icon="el-icon-plus" title="添加查询条件"></el-button>
+									</template>
+									<template v-else>
+										<el-button slot="append" @click="removeSelect(index)" icon="el-icon-minus" title="移除查询条件"></el-button>
+									</template>
+								</el-input>
+							</div>
+						</template>
+						<template v-else>
+							<el-col :span="24">
+								<div style="display:inline-block;margin:0 10px 10px 0;">
+									<el-input class="noborder color icon nofocus" @keyup.native.ctrl.8="clearAll()" @keyup.native.enter="getDeciceListInfo" placeholder="请输入查询内容" v-model="filtersVeh.domSearch[index].content">
+										<el-select class="wp_select" multiple clearable filterable v-model="filtersVeh.domSearch[index].select" slot="prepend" placeholder="选择条件">
+											<el-option label="车牌号" value="licenseplatenum"></el-option>
+											<el-option label="车架号" value="vin"></el-option>
+											<el-option label="车价(元)" value="price"></el-option>
+											<el-option label="车型" value="model"></el-option>
+											<el-option label="颜色" value="colorname"></el-option>
+										</el-select>
+										<template v-if="index == filtersVeh.domSearch.length-1">
+											<el-button slot="append" @click="addSelect" icon="el-icon-plus" title="添加查询条件"></el-button>
+										</template>
+										<template v-else>
+											<el-button slot="append" @click="removeSelect(index)" icon="el-icon-minus" title="移除查询条件"></el-button>
+										</template>
+									</el-input>
+								</div>
+							</el-col>
+						</template>
+
+						<template v-if="index == 0">
+							<el-form-item>
+								<el-button type="primary" @click="getDeciceListInfo" icon="el-icon-search">查询</el-button>
+							</el-form-item>
+						</template>
+					</template>
+				</el-form>
+			</el-col>
+			<!--选择车辆列表-->
+			<el-table border :data="deviceListData" :row-class-name="tableRowClassName" max-height="500" ref="deviceListData" highlight-current-row v-loading="devicelistLoading" @select="selsChange" style="width: 100%;">
+				<el-table-column type="selection" fixed="left" width="50" align="center">
+				</el-table-column>
+				<el-table-column prop="licenseplatenum" label="车牌号" align="center" width="90">
+				</el-table-column>
+				<el-table-column prop="vin" label="车架号" align="center">
+				</el-table-column>
+				<el-table-column prop="price" label="车价(元)" align="center" width="90">
+				</el-table-column>
+				<el-table-column prop="model" label="车型" align="center">
+				</el-table-column>
+				<el-table-column prop="colorname" label="颜色" width="70" align="center">
+				</el-table-column>
+			</el-table>
+
+			<!--工具条-->
+			<el-col :span="24" class="toolbar">
+				<el-button type="primary" class="comlist" @click="comlist" :disabled="this.sels.length===0">确认绑定</el-button>
+				<el-pagination @size-change="dhandleSizeChange" background @current-change="dhandleCurrentChange" :page-sizes="[15, 50, 80, 100]" :page-size="dpageSize" layout="total, sizes, prev, pager, next" :total="dtotal">
+				</el-pagination>
+			</el-col>
+		</el-dialog>
+
+		<!-- 编辑车主界面——车辆更换车主 -->
+		<el-dialog title="解绑并更换车主" :modal-append-to-body="false" :visible.sync="ownerChangeVisible" top="30%" :close-on-click-modal="false" width="40%">
+			<el-form :model="ownerChangeForm" label-width="100px">
+				<el-form-item label="车主姓名" prop="name">
+					<el-select v-model="ownerChangeForm.name" @visible-change="ownerChange" :loading="ownerChangeLoading" filterable placeholder="请选择车主名称" clearable remote :remote-method="ownerChangeSelect">
+						<el-option v-for="item in ownerChangeList" :key="item.id" :label="item.name +' (' + item.mobile + ')'" :value="item.id">
+						</el-option>
+					</el-select>
+				</el-form-item>
+			</el-form>
+			<span slot="footer" class="dialog-footer">
+			    <el-button @click="ownerChangeVisible = false">取 消</el-button>
+			    <el-button type="primary" @click="confirmOwner">确 定</el-button>
+			</span>
+		</el-dialog>
+
+		<!-- 编辑车辆界面 -->
+		<el-dialog title="编辑车辆信息" :modal-append-to-body="false" :visible.sync="editFormVisibleVeh" :close-on-click-modal="false">
+			<el-form :model="editFormVeh" label-width="130px" :rules="editFormRulesVeh" ref="editFormVeh">
+				<el-collapse v-model="activeNamesVeh" class="mt20">
+					<el-collapse-item title="车辆信息" name="0">
+						<el-row :gutter="20" class="collapse">
+							<el-col :span="12">
+								<el-form-item label="车牌号" prop="licenseplatenum" ref="licenseplatenum">
+									<el-input v-model="editFormVeh.licenseplatenum" auto-complete="off"></el-input>
+								</el-form-item>
+								<el-form-item label="车架号" prop="vin" ref="vin">
+									<el-input v-model="editFormVeh.vin" auto-complete="off" ></el-input>
+								</el-form-item>
+								<el-form-item label="车价(元)" prop="price">
+									<el-input v-model="editFormVeh.price" auto-complete="off"></el-input>
+								</el-form-item>
+								<el-form-item label="车型" prop="model">
+									<el-autocomplete class="inline-input searchInput" popper-class="my-autocomplete" v-model="editFormVeh.model" :fetch-suggestions="handleItemChange" custom-item="my-item-zh-model" placeholder="请选择车型信息" @select="handleSelectColor"></el-autocomplete>
+								</el-form-item>
+								<el-form-item label="颜色" prop="colorname">
+									<div style="display:flex;">
+										<el-autocomplete class="inline-input searchInput" popper-class="my-autocomplete" v-model="editFormVeh.colorname" :fetch-suggestions="handleColorChange" custom-item="my-item-zh-model" placeholder="请选择车辆颜色" @select="changeCarColor" :disabled="readonlyVeh">
+										</el-autocomplete>
+										<el-color-picker v-model="editFormVeh.color" :disabled="readonlyVeh"></el-color-picker>
+									</div>
+								</el-form-item>
+								<el-form-item label="用途" prop="vehicleuse">
+									<el-radio-group size="small" v-model="editFormVeh.vehicleuse">
+										<el-radio-button label="1">乘用车</el-radio-button>
+										<el-radio-button label="2">商用车</el-radio-button>
+									</el-radio-group>
+								</el-form-item>
+							</el-col>
+							<el-col :span="12">
+								<el-form-item label="车类型" prop="vehicletype">
+									<el-select v-model="editFormVeh.vehicletype" @visible-change="vehChange" :loading="vehLoading" filterable placeholder="请选择车类型" clearable value-key="typedesc">
+										<el-option v-for="item in vehlist" :key="item.typedesc" :label="item.typedesc" :value="item">
+										</el-option>
+									</el-select>
+								</el-form-item>
+								<el-form-item label="所属客户" prop="corpname">
+									<el-select v-model="editFormVeh.corpname" @visible-change="corpChange" value-key="corpname" remote :remote-method="corpChangeSelect" :loading="corpLoading" filterable placeholder="请选择所属客户" clearable>
+										<el-option v-for="item in corplist" :key="item.id" :label="item.corpname" :value="item.id">
+										</el-option>
+									</el-select>
+								</el-form-item>
+								<el-form-item label="受理银行" prop="bankname" ref="bankname">
+									<i style="color:red;position: absolute;left:-80px;" v-if="editFormVeh.hastheftinsurance == '1'">*</i>
+									<el-autocomplete class="inline-input searchInput" popper-class="my-autocomplete" v-model="editFormVeh.bankname" :fetch-suggestions="corpChangeTwo" custom-item="my-item-zh-model" placeholder="请选择受理银行" @select="handleSelectCorp"></el-autocomplete>
+								</el-form-item>
+								<el-form-item label="分类" prop="vehiclecategory">
+									<el-radio-group size="small" v-model="editFormVeh.vehiclecategory">
+										<el-radio-button label="1">新车</el-radio-button>
+										<el-radio-button label="2">二手车</el-radio-button>
+										<el-radio-button label="3">资管追回</el-radio-button>
+									</el-radio-group>
+								</el-form-item>
+								<el-form-item label="发动机号" prop="enginenum">
+									<el-input v-model="editFormVeh.enginenum" auto-complete="off"></el-input>
+								</el-form-item>
+								<el-form-item label="是否有盗抢险" prop="hastheftinsurance">
+									<el-switch v-model="editFormVeh.hastheftinsurance" active-color="#41B883" inactive-color="#ff4949" active-value="1" active-text="有" inactive-value="0" inactive-text="无">
+									</el-switch>
+								</el-form-item>
+								<div v-show="editFormVeh.hastheftinsurance == '1'">
+									<i style="color:red;position: absolute;margin: 8px 0 0 30px;">*</i>
+									<el-form-item label="服务期限(年)" prop="yearsofservice" ref="yearsofservice">
+										<el-input v-model="editFormVeh.yearsofservice" auto-complete="off"></el-input>
+									</el-form-item>
+									<el-form-item label="初始登记日期" prop="firstregisterdate">
+										<el-date-picker v-model="editFormVeh.firstregisterdate" type="date" placeholder="选择日期" :picker-options="pickerOptions">
+										</el-date-picker>
+									</el-form-item>
+									<el-form-item label="贷款到期日" prop="loanenddate">
+										<el-date-picker v-model="editFormVeh.loanenddate" type="date" placeholder="选择日期" :picker-options="pickerOptions0">
+										</el-date-picker>
+									</el-form-item>
+								</div>
+							</el-col>
+						</el-row>
+					</el-collapse-item>
+					<!-- 车辆绑定设备信息 -->
+					<el-collapse-item title="绑定设备信息" name="1">
+						<el-row :gutter="20" >
+							<el-col :span="24">
+								<el-form-item id="nomargin">
+									<el-table :data="productsdatas" empty-text="暂未绑定设备" show-summary :summary-method="getSummariesVeh" border style="width: 100%" max-height="400">
+										<el-table-column prop="prodnum" label="设备编号" align="center" width="150">
+										</el-table-column>
+										<el-table-column prop="prodmodel" label="设备型号" align="center" width="80">
+										</el-table-column>
+										<el-table-column prop="prodspec" label="设备类别" align="center" width="80">
+										</el-table-column>
+										<el-table-column prop="simnum" label="通讯号" align="center">
+										</el-table-column>
+										<el-table-column prop="storagename" label="库房" width="70" align="center">
+										</el-table-column>
+										<el-table-column prop="status" label="状态" :formatter="statusFormats" width="70" align="center">
+										</el-table-column>
+										<el-table-column label="操作" width="90" align="center">
+											<template scope="scope">
+												<el-button type="danger" size="small" class="mt5" @click.native.stop="cancelVeh(scope.$index,productsdatas)" icon="el-icon-share">解绑</el-button>
+											</template>
+										</el-table-column>
+									</el-table>
+									<el-button type="primary" @click.native="addDeviceListVeh" icon="el-icon-plus" style="margin-top:10px;">绑定设备</el-button>
+								</el-form-item>
+							</el-col>
+						</el-row>
+					</el-collapse-item>
+				</el-collapse>
+			</el-form>
+			<div slot="footer" class="dialog-footer">
+				<el-button @click.native="editFormVisibleVeh = false">取消</el-button>
+				<el-button type="primary" @click.native="editSubmitVeh" :loading="editLoading">提交</el-button>
+			</div>
+		</el-dialog>
+
+		<!--编辑车辆界面——设备列表选择界面-->
+		<el-dialog title="设备信息" :modal-append-to-body="false" :visible.sync="deviceFormVisibleVeh" top="3%" :close-on-click-modal="false" @close="clearAllThis()">
+			<el-col :span="24" class="toolbar" style="padding-bottom: 0px;">
+				<el-form :inline="true" :model="filtersProd">
+					<template v-for="(item,index) in filtersProd.domSearch">
+						<template v-if="index == 0">
+							<div style="display:inline-block;margin:0 10px 10px 0;">
+								<el-input class="noborder color icon nofocus" @keyup.native.ctrl.8="clearAll()" @keyup.native.enter="getDeciceListInfo" placeholder="请输入查询内容" v-model="filtersProd.domSearch[index].content">
+									<el-select class="wp_select" multiple clearable filterable v-model="filtersProd.domSearch[index].select" slot="prepend" placeholder="选择条件">
+										<el-option label="设备编号" value="prodnum"></el-option>
+										<el-option label="设备型号" value="prodmodel"></el-option>
+										<el-option label="设备类别" value="prodspec"></el-option>
+										<el-option label="库房" value="storagename"></el-option>
+									</el-select>
+									<template v-if="index == filtersProd.domSearch.length-1">
+										<el-button slot="append" @click="addSelect" icon="el-icon-plus" title="添加查询条件"></el-button>
+									</template>
+									<template v-else>
+										<el-button slot="append" @click="removeSelect(index)" icon="el-icon-minus" title="移除查询条件"></el-button>
+									</template>
+								</el-input>
+							</div>
+						</template>
+						<template v-else>
+							<el-col :span="24">
+								<div style="display:inline-block;margin:0 10px 10px 0;">
+									<el-input class="noborder color icon nofocus" @keyup.native.ctrl.8="clearAll()" @keyup.native.enter="getDeciceListInfo" placeholder="请输入查询内容" v-model="filtersProd.domSearch[index].content">
+										<el-select class="wp_select" multiple clearable filterable v-model="filtersProd.domSearch[index].select" slot="prepend" placeholder="选择条件">
+											<el-option label="设备编号" value="prodnum"></el-option>
+											<el-option label="设备型号" value="prodmodel"></el-option>
+											<el-option label="设备类别" value="prodspec"></el-option>
+											<el-option label="库房" value="storagename"></el-option>
+										</el-select>
+										<template v-if="index == filtersProd.domSearch.length-1">
+											<el-button slot="append" @click="addSelect" icon="el-icon-plus" title="添加查询条件"></el-button>
+										</template>
+										<template v-else>
+											<el-button slot="append" @click="removeSelect(index)" icon="el-icon-minus" title="移除查询条件"></el-button>
+										</template>
+									</el-input>
+								</div>
+							</el-col>
+						</template>
+
+						<template v-if="index == 0">
+							<el-form-item>
+								<el-button type="primary" @click="getDeciceListInfoVeh" icon="el-icon-search">查询</el-button>
+							</el-form-item>
+						</template>
+					</template>
+				</el-form>
+			</el-col>
+			<!--选择设备列表-->
+			<el-table border :data="deviceListDataVeh" :row-class-name="tableRowClassName" max-height="500" ref="deviceListDataVeh" highlight-current-row v-loading="devicelistLoadingVeh"  @select="selsChangeVeh" style="width: 100%;">
+				<el-table-column type="selection" fixed="left" width="50" align="center">
+				</el-table-column>
+				<el-table-column prop="prodnum" label="设备编号" align="center">
+				</el-table-column>
+				<el-table-column prop="prodmodel" label="设备型号" align="center">
+				</el-table-column>
+				<el-table-column prop="prodspec" label="设备类别" width="70" align="center">
+				</el-table-column>
+				<el-table-column prop="simnum" label="通讯号" align="center">
+				</el-table-column>
+				<el-table-column prop="storagename" label="库房" align="center">
+				</el-table-column>
+				<el-table-column prop="status" label="状态" :formatter="statusFormat" width="60" align="center">
+				</el-table-column>
+			</el-table>
+
+			<!--工具条-->
+			<el-col :span="24" class="toolbar">
+				<el-button type="primary" class="comlist" @click="comlistVeh" :loading="comfirLoading" :disabled="this.selsVeh.length===0">确认绑定</el-button>
+				<el-pagination @size-change="dhandleSizeChangeVeh" background @current-change="dhandleCurrentChangeVeh" :page-sizes="[15, 50, 80, 100]" :page-size="dpageSizeVeh" layout="total, sizes, prev, pager, next" :total="dtotal" style="float:right;margin-top:10px;">
+				</el-pagination>
+			</el-col>
+		</el-dialog>
+
+		<!-- 编辑车辆界面——设备解绑选择库房 -->
+		<el-dialog title="选择库房" :modal-append-to-body="false" :visible.sync="deviceFormVisibleSto" top="30%" :close-on-click-modal="false" width="40%">
+			<el-form :model="stoForm" label-width="100px">
+				<el-form-item label="库房名称" prop="storagename">
+					<el-select v-model="stoForm.storagename" @visible-change="stoNameChangeCancel" :loading="stoNameLoadingCancel" filterable placeholder="请选择库房名称" clearable remote :remote-method="stoChangeSelect">
+						<el-option v-for="item in stoNamelistCancel" :key="item.storagename" :label="item.storagename" :value="item.id">
+						</el-option>
+					</el-select>
+				</el-form-item>
+			</el-form>
+			<span slot="footer" class="dialog-footer">
+			    <el-button @click="deviceFormVisibleSto = false">取 消</el-button>
+			    <el-button type="primary" @click="confirmCancel">确 定</el-button>
+			</span>
+		</el-dialog>
+
+	</section>
+</template>
+
+<style scoped>
+	.el-table .warning-row {
+		background-color: #F3F5F8;
+		color: #BFCBD9;
+	}
+	#nomargin .el-form-item__content {
+		margin: 0 !important;
+	}
+	sup {top: -0.2em !important;}
+	.collapse{padding-top: 10px;}
+</style>
+
+<script src="./index.js"></script>

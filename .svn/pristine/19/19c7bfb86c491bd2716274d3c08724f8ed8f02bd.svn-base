@@ -1,0 +1,211 @@
+import { getStorageTree, getStockNumList } from './service'
+import { getProductInfoList } from "../../basicSetting/equipmentList/service";
+import { getSIMInfoList } from "../../basicSetting/simList/service";
+import { getPartsInfo } from "../../basicSetting/partsList/service";
+import { mapState } from 'vuex'
+
+export default {
+    name: "stock",
+    data () {
+        return {
+            stockData: {
+                tableList: [],
+                partsNum: 0,
+                cardNum: 0,
+                wiredProdcutNum: 0,
+                wifiProductNum: 0
+            },
+            loading: false,
+            storageTree: [],
+            defaultProps: {
+                children: 'children',
+                label: 'name'
+            },
+            treeLoading: false,
+            modelname: '',
+            currentStorage: {},
+            dialogVisible: false,
+            listLoading: false,
+            listData: [],
+            getFn: {
+                1: getProductInfoList,
+                2: getProductInfoList,
+                3: getPartsInfo,
+                4: getSIMInfoList
+            },
+            currentData: {},
+            pagination: {
+                limit: 15,
+                page: 1,
+                total: 0
+            },
+            defaultExpandedKeys: [],
+            earlyWarningVisible: false,
+            earlyWarningList: []
+        }
+    },
+    props: ['windowOutHeight'],
+    computed: {
+        dataList () {
+            return _.filter(this.stockData.tableList, item => item.modelname.includes(this.modelname))
+        },
+        ...mapState({
+            showPurchasePlan: state => {
+                if (!state.user.employeeinfo.storages)
+                    return false
+                const storage = _.find(state.user.employeeinfo.storages, item => item.storagelevel < 2)
+                return Boolean(storage)
+            },
+            showWantGoods: state => {
+                if (!state.user.employeeinfo.storages)
+                    return false
+                const storage = _.find(state.user.employeeinfo.storages, item => item.storagelevel < 3)
+                return Boolean(storage)
+            }
+        }),
+        GPSCount () {
+            return this.stockData.wiredProdcutNum + this.stockData.wifiProductNum
+        },
+        allCount () {
+            return this.stockData.partsNum + this.stockData.cardNum + this.stockData.wiredProdcutNum + this.stockData.wifiProductNum
+        }
+    },
+    methods: {
+        handleNodeClick (data) {
+            this.currentStorage = data
+            this.getStockNumList()
+        },
+        //获取库房树
+        async getStorageTree () {
+            this.treeLoading = true
+            try {
+                const {data} = await getStorageTree()
+                this.treeLoading = false
+                this.storageTree = data.data
+                if (data.data.length) {
+                    const key = data.data[0].id
+                    this.currentStorage = data.data[0]
+                    this.getStockNumList()
+                    this.$nextTick(() => {
+                        this.$refs.storageTree.setCurrentKey(key)
+                    })
+                }
+            } catch (e) {
+                this.treeLoading = false
+                console.log(e)
+            }
+        },
+        // 获取库存列表
+        async getStockNumList () {
+            try {
+                this.loading = true
+                const {data} = await getStockNumList({
+                    storageId: this.currentStorage.id
+                })
+                this.loading = false
+                this.stockData = data.data
+            } catch (e) {
+                this.loading = false
+                console.log(e)
+            }
+        },
+        //查看设备详情
+        async viewDetails (row) {
+            this.listData = []
+            this.dialogVisible = true
+            this.currentData = row
+            this.pagination.page = 1;
+            this.getList(row)
+        },
+        //获取设备列表
+        async getList (row) {
+            this.listLoading = true
+            try {
+                const params = {
+                    domSearch: [
+                        {
+                            select: ['modelname'],
+                            content: row.modelname
+                        },
+                        {
+                            select: ["storageid"],
+                            content: this.currentStorage.id + ''
+                        },
+                        {
+                            select: ["isactive"],
+                            content: '启用'
+                        }
+                    ],
+                    limit: this.pagination.limit,
+                    page: this.pagination.page
+                }
+
+                if (row.order === 1 || row.order === 2) {
+                    params.domSearch.push({
+                        select: ['modelspec'],
+                        content: row.modelspec
+                    })
+                }
+
+                const get = this.getFn[row.order] ? this.getFn[row.order] : this.getFn[1]
+                const {data} = await get(params)
+                this.pagination.total = data.data.total
+                this.listData = data.data.records
+                this.listLoading = false
+            } catch (e) {
+                this.listLoading = false
+            }
+        },
+        repairFormat: function (row, col) {
+            return row.isrepairing == '0' ? '正常' : row.isrepairing == '1' ? '维修中' : row.isrepairing == '2' ? '未修好' : '--';
+        },
+        handleSizeChange (size) {
+            this.pagination.limit = size
+            this.getList(this.currentData)
+        },
+        handleCurrentChange (page) {
+            this.pagination.page = page
+            this.getList(this.currentData)
+        },
+        // 设置预警值
+        setEarlyWarning () {
+            this.earlyWarningVisible = true
+            this.earlyWarningList = _.map(_.cloneDeep(this.stockData.tableList), item => {
+                return Object.assign({
+                    isEdit: false,
+                    minEarlyWarning: 10,
+                    maxEarlyWarning: 100
+                }, item)
+            })
+        },
+        rowClick (row) {
+            _.forEach(this.earlyWarningList, item => {
+                item.isEdit = false
+            })
+            row.isEdit = true
+        },
+        verifyMinNum (row) {
+            if (row.minEarlyWarning < 0) {
+                row.minEarlyWarning = 0
+            }
+            if (row.minEarlyWarning > row.maxEarlyWarning) {
+                row.minEarlyWarning = row.maxEarlyWarning
+            }
+        },
+        verifyMaxNum (row) {
+            if (row.maxEarlyWarning < 0) {
+                row.maxEarlyWarning = 0
+            }
+            if (row.minEarlyWarning > row.maxEarlyWarning) {
+                row.maxEarlyWarning = row.minEarlyWarning
+            }
+        },
+        submit () {
+            console.log(this.earlyWarningList)
+        }
+    },
+    mounted () {
+        this.getStorageTree()
+    }
+
+}

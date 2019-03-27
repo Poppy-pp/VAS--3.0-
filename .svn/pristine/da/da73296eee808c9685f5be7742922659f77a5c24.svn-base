@@ -1,0 +1,34 @@
+import axios from 'axios';
+
+let base = '/vasms-web';
+
+//供应商管理
+export const getSupplierList = params => {
+    return axios.get(`${base}/api/v1/org/supplierInfo`, {
+        params: params
+    })
+};
+
+export const addSupplier = params => {
+    return axios.post(`${base}/api/v1/org/supplierInfo`, params)
+};
+
+export const modifySupplier = params => {
+    return axios.put(`${base}/api/v1/org/supplierInfo/` + params.id, params)
+};
+
+export const removeSupplier = params => {
+    return axios.post(`${base}/api/v1/org/supplierInfo/batch`, Qs.stringify(params))
+};
+/*设备类型搜索模糊查询接口*/
+export const getSelectListSupplier = params => {
+    return axios.get(`${base}/api/v1/org/supplierInfo/query/like`, {
+        params: params
+    });
+};
+//根据员工userid获取员工姓名
+export const getNamebyUserid = params => {
+    return axios.get(`${base}/api/v1/org/employeeInfo/getNameByUserid`, {
+        params: params
+    });
+};

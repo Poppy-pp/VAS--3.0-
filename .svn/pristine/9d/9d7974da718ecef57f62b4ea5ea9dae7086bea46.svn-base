@@ -1,0 +1,266 @@
+<template>
+    <section class="tab_content-wrapper">
+        <!--工具条-->
+        <el-col :span="24" class="toolbar">
+            <el-form :inline="true" :model="filters" class="demo-form-inline">
+                <el-col :span="24">
+                    <el-form-item>
+                        <el-input v-model="filters.name" placeholder="请输入用户名"></el-input>
+                    </el-form-item>
+                    <el-form-item>
+                        <el-button type="primary" icon="el-icon-search" @click="handleQuery">查询</el-button>
+                    </el-form-item>
+                </el-col>
+            </el-form>
+        </el-col>
+        <!--列表-->
+        <el-table :max-height="windowOutHeight-215" border :data="listData" highlight-current-row v-loading="listLoading" @selection-change="selsChange"
+                  style="width: 100%;">
+            <el-table-column type="index" label="#" width="35" align="center">
+            </el-table-column>
+            <el-table-column prop="name" label="用户名" align="center">
+            </el-table-column>
+            <el-table-column prop="password" label="密码" align="center">
+            </el-table-column>
+            <el-table-column prop="usertype" label="用户类型" align="center" :formatter="typeFormatter">
+            </el-table-column>
+            <el-table-column prop="firstlogintime" label="首次登录" :formatter="dateFormatter" align="center">
+            </el-table-column>
+            <el-table-column prop="lastlogintime" label="最近登录" :formatter="dateFormatterSecond" align="center">
+            </el-table-column>
+            <el-table-column prop="logincount" label="登录次数(次)" align="center">
+            </el-table-column>
+            <el-table-column prop="isenable" label="是否有效" align="center">
+                <template slot-scope="scope">
+                    <el-tag :type="scope.row.isenable==='1' ? 'success' : scope.row.isenable==='0' ? 'danger' :'info'">
+                        {{scope.row.isenable=='1' ? '有效' : scope.row.isenable == '0' ? '无效' : '未知'}}
+                    </el-tag>
+                </template>
+            </el-table-column>
+            <el-table-column label="操作" align="center" width="200">
+                <template scope="scope">
+                    <el-button id="button" @click="handleEdit(scope.$index, scope.row)" :disabled="scope.row.isenable == '0' ? true : false" title="编辑用户">
+                        <i :class="scope.row.isenable == '0' ? 'iconfont icon-bianji1 operate disabled' : 'iconfont icon-bianji1 operate operate-bianji'"></i>
+                    </el-button>
+                    <el-button id="button" @click="roleEdit(scope.$index, scope.row)" title="分配角色" :disabled="scope.row.isenable == '0' ? true : false">
+                        <i :class="scope.row.isenable == '0' ? 'iconfont icon-jiaoseshezhi operate operate-bianji-coc disabled' : 'iconfont icon-jiaoseshezhi operate operate-bianji-coc'"></i>
+                    </el-button>
+                    <el-button id="button" @click="corpEdit(scope.$index, scope.row)" title="分配组织权限" :disabled="scope.row.isenable == '0' ? true : false">
+                        <i :class="scope.row.isenable == '0' ? 'iconfont icon-gongsi operate operate-bianji-coc disabled' : 'iconfont icon-gongsi operate operate-bianji-coc'"></i>
+                    </el-button>
+                    <el-button id="button" @click="groupEdit(scope.$index, scope.row)" title="分配分组权限" :disabled="scope.row.isenable == '0' ? true : false">
+                        <i :class="scope.row.isenable == '0' ? 'iconfont icon-fenzu operate operate-bianji-coc disabled' : 'iconfont icon-fenzu operate operate-bianji-coc'"></i>
+                    </el-button>
+                    <el-button id="button" @click="handleDel(scope.$index, scope.row)" title="删除" :disabled="scope.row.isenable == '0' ? true : false">
+                        <i :class="scope.row.isenable == '0' ? 'iconfont icon-p-delet operate operate-gray' : 'iconfont icon-p-delet operate operate-p-delet'"></i>
+                    </el-button>
+                </template>
+            </el-table-column>
+        </el-table>
+
+        <!--工具条-->
+        <el-col :span="24" class="toolbar">
+            <el-pagination layout="prev, pager, next" background @current-change="handleCurrentChange" :page-size="20" :total="total">
+            </el-pagination>
+        </el-col>
+
+        <!--编辑界面-->
+        <el-dialog title="编辑" :modal-append-to-body="false" :visible.sync="editFormVisible" :close-on-click-modal="false">
+            <el-form :model="editForm" label-width="80px" :rules="editFormRules" ref="editForm">
+                <el-form-item label="用户名" prop="name" ref="name">
+                    <el-input v-model="editForm.name" auto-complete="off" @blur="checkout('name',editForm.name,0)" placeholder="请输入用户名"></el-input>
+                </el-form-item>
+                <el-form-item label="密码" prop="password">
+                    <el-input v-model="editForm.password" auto-complete="off" placeholder="请输入密码"></el-input>
+                </el-form-item>
+                <el-form-item label="用户类型" prop="usertype">
+                    <el-radio-group v-model="editForm.usertype">
+                        <el-radio-button label="E">员工</el-radio-button>
+                        <el-radio-button label="C">客户</el-radio-button>
+                    </el-radio-group>
+                </el-form-item>
+            </el-form>
+            <div slot="footer" class="dialog-footer">
+                <el-button @click.native="editFormVisible = false">取消</el-button>
+                <el-button type="primary" @click.native="editSubmit" :loading="editLoading">提交</el-button>
+            </div>
+        </el-dialog>
+
+        <!--角色编辑界面-->
+        <el-dialog title="编辑角色" :modal-append-to-body="false" :visible.sync="editRoleInfoVisible" :close-on-click-modal="false" @close="roleEditClose">
+            <el-checkbox :indeterminate="isIndeterminate" v-model="checkAll" @change="handleCheckAllChange">全选</el-checkbox>
+            <div style="margin: 15px 0;"></div>
+            <el-checkbox-group v-model="checkedCities" class="userchedaa" @change="handleCheckedCitiesChange">
+                <el-checkbox v-for="city in cities" :label="city.id">{{ city.rolename }}</el-checkbox>
+            </el-checkbox-group>
+            <div slot="footer" class="dialog-footer">
+                <el-button @click.native="editRoleInfoVisible = false">取消</el-button>
+                <el-button type="primary" @click.native="handleNodeClick" :loading="nodeLoading">提交</el-button>
+            </div>
+        </el-dialog>
+
+        <!--组织权限编辑界面-->
+        <el-dialog title="编辑当前用户可操作的分组" :modal-append-to-body="false" :visible.sync="editGroupInfoVisible" :close-on-click-modal="false"
+                   @close="groupEditClose">
+            <el-input style="margin-bottom:10px" placeholder="输入关键字查找分组" v-model="filterTextGroup"></el-input>
+            <el-tree v-loading="treeRouseGroupLoading" element-loading-text="分组树列表加载中..." element-loading-spinner="el-icon-loading"
+                     element-loading-background="rgba(0, 0, 0, 0.7)" :data="groupRoleList" show-checkbox highlight-current node-key="id" check-strictly
+                     :default-expanded-keys="defaultExpandedKeysGroup" :default-checked-keys="defaultCheckedKeysGroup" ref="treeRouseGroup"
+                     :render-content="renderContentGroup" @check-change="handleCheckChangeGroup" :props="defaultPropsGroup"
+                     :filter-node-method="filterNodeGroup">
+            </el-tree>
+            <div slot="footer" class="dialog-footer">
+                <el-button @click.native="editGroupInfoVisible = false">取消</el-button>
+                <el-button type="primary" @click.native="handleGroupClick" :loading="groupLoading">提交</el-button>
+            </div>
+        </el-dialog>
+
+        <!--系统权限编辑界面-->
+        <el-dialog title="编辑当前用户可操作的组织" :modal-append-to-body="false" :visible.sync="editCorpInfoVisible" :close-on-click-modal="false" @close="corpEditClose">
+            <el-tabs v-model="activeName" type="card" @tab-click="tabClick">
+                <el-tab-pane label="VAS-平台管理系统" name="first">
+                    <el-input style="margin-bottom:10px" placeholder="输入关键字查找组织" v-model="filterTextVas"></el-input>
+                    <el-tree v-loading="treeRouseVasLoading" element-loading-text="VAS树列表加载中..." element-loading-spinner="el-icon-loading"
+                             element-loading-background="rgba(0, 0, 0, 0.7)" :data="corpRoleList" show-checkbox highlight-current node-key="id" check-strictly
+                             :default-expanded-keys="defaultExpandedKeys" :default-checked-keys="defaultCheckedKeys" ref="treeRouseVas"
+                             :render-content="renderContentVas" @check-change="handleCheckChangeVas" :props="defaultProps" :filter-node-method="filterNodeCorp">
+                    </el-tree>
+                </el-tab-pane>
+                <el-tab-pane label="GIS-车辆位置服务系统" name="second" :disabled="treeRouseVasLoading">
+                    <el-input style="margin-bottom:10px" placeholder="输入关键字查找组织" v-model="filterTextGis"></el-input>
+                    <el-tree v-loading="treeRouseLoading" element-loading-text="GIS树列表加载中..." element-loading-spinner="el-icon-loading"
+                             element-loading-background="rgba(0, 0, 0, 0.7)" :data="gisCorpRoleList" show-checkbox highlight-current node-key="id"
+                             check-strictly :default-expanded-keys="gisDefaultExpandedKeys" :default-checked-keys="gisDefaultCheckedKeys" ref="treeRouse"
+                             :render-content="renderContent" @check-change="handleCheckChange" :props="defaultProps" :filter-node-method="filterNodeCorp">
+                    </el-tree>
+                </el-tab-pane>
+            </el-tabs>
+            <div slot="footer" class="dialog-footer">
+                <el-button @click.native="editCorpInfoVisible = false">取消</el-button>
+                <el-button type="primary" @click.native="handleCorpClick" :loading="corpLoading">提交</el-button>
+            </div>
+        </el-dialog>
+
+        <!--车辆权限编辑界面-->
+        <el-dialog title="编辑当前用户可操作的车辆" :modal-append-to-body="false" :visible.sync="editVehInfoVisible" :close-on-click-modal="false" @close="vehEditClose">
+            <el-input style="margin-bottom:10px" placeholder="输入关键字查找车辆" @change="search" v-model="filters.searchKey"></el-input>
+            <el-col :span="24"><!--勾选车辆提交-->
+                <el-tree
+                        v-loading="labelTreeRouseLoading"
+                        element-loading-text="拼命加载中..."
+                        element-loading-spinner="el-icon-loading"
+                        :load="loadLabelChild"
+                        lazy
+                        show-checkbox
+                        element-loading-background="rgba(0, 0, 0, 0.7)"
+                        class="filter-tree"
+                        :data="vasRegions"
+                        :props="labelDefaultProps"
+                        :default-checked-keys="defaultCheckedKeysVehLabel"
+                        highlight-current
+                        empty-text=""
+                        node-key="id"
+                        :render-content="labelRenderContent"
+                        ref="treeRouseVehFzLabel">
+                </el-tree>
+            </el-col>
+            <el-col :span="24"><!--勾选车辆-->
+                <el-tree
+                        v-loading="treeRouseVehLoading"
+                        element-loading-text="车辆树列表加载中..."
+                        element-loading-spinner="el-icon-loading"
+                        element-loading-background="rgba(0, 0, 0, 0.7)"
+                        class="vehSpan"
+                        :data="vehRoleList"
+                        show-checkbox
+                        highlight-current
+                        node-key="id"
+                        :default-checked-keys="defaultCheckedKeysVeh"
+                        ref="treeRouseVeh"
+                        @check-change="handleCheckChangeVeh"
+                        :render-content="renderContentVeh"
+                        :props="defaultPropsVeh">
+                </el-tree>
+            </el-col>
+            <div slot="footer" class="dialog-footer">
+                <el-checkbox v-model="checkAllTwoCarLabel" @change="handleCheckAllChangeThisPage" style="float:left;" :disabled="checkAllTwo">全选</el-checkbox>
+                <!-- <el-checkbox v-model="checkAllTwo" @change="handleCheckAllChangeTwo" style="float:left;" :disabled="checkAllTwoCarLabel">全选车辆</el-checkbox> -->
+                <el-button @click.native="editVehInfoVisible = false">取消</el-button>
+                <el-button type="primary" @click.native="handleVehClick" :loading="vehLoading">提交</el-button>
+            </div>
+        </el-dialog>
+
+        <!---->
+        <el-dialog title="编辑当前用户可操作的车辆" :modal-append-to-body="false" :visible.sync="editLabelVehInfoVisible" :close-on-click-modal="false"
+                   @close="vehEditLabelClose">
+            <el-input style="margin-bottom:10px" placeholder="输入关键字查找车辆" @change="labelSearch" v-model="filters.searchKey"></el-input>
+            <el-col :span="24">
+                <el-tree
+                        v-loading="treeRouseVehLabelLoading"
+                        element-loading-text="车辆树列表加载中..."
+                        element-loading-spinner="el-icon-loading"
+                        element-loading-background="rgba(0, 0, 0, 0.7)"
+                        class="vehSpan"
+                        :data="vehRoleLabelList"
+                        show-checkbox
+                        highlight-current
+                        node-key="ID"
+                        check-strictly
+                        :default-checked-keys="defaultCheckedKeysVehLabels"
+                        ref="treeRouseVehLabel"
+                        @check-change="handleCheckChangeVehLable"
+                        :render-content="renderContentVehLabel"
+                        :props="defaultPropsVehLabel">
+                </el-tree>
+            </el-col>
+            <div slot="footer" class="dialog-footer">
+                <el-checkbox v-model="checkAllTwoLable" @change="handleCheckAllChangeTwoLabel" style="float:left;" :disabled="checkAllThisPageLabel">全选
+                </el-checkbox>
+                <el-checkbox id="checkThisPage" v-model="checkAllThisPageLabel" @change="handleCheckAllChangeThisPageLabel" style="float:left;"
+                             :disabled="checkAllTwoLable">选择当页
+                </el-checkbox>
+                <el-button @click.native="editLabelVehInfoVisible = false">取消</el-button>
+                <el-button type="primary" @click.native="handleVehLabelClick" :loading="vehLabelLoading">提交</el-button>
+            </div>
+        </el-dialog>
+    </section>
+</template>
+<style type="text/css" scope>
+    .disabled {
+        color: #D7D9E2;
+    }
+
+    .userchedaa .el-checkbox {
+        margin-right: 15px;
+        margin-bottom: 15px;
+        margin-left: 0;
+    }
+
+    .vehSpan {
+        height: 400px;
+        overflow-y: scroll;
+        overflow-x: hidden;
+    }
+
+    .vehSpan::-webkit-scrollbar {
+        width: 5px;
+        background-color: #F5F5F5;
+    }
+
+    .vehSpan::-webkit-scrollbar-thumb {
+        background-color: rgb(255, 255, 255);
+        background-image: -webkit-gradient(linear, 40% 0%, 75% 84%, from(rgb(188, 222, 215)), color-stop(0.9, rgb(229, 242, 239)), to(rgb(188, 222, 215)));
+        border-radius: 10px;
+    }
+
+    .vehSpan::-webkit-scrollbar-track {
+        -webkit-box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.3);
+        border-radius: 10px;
+        background-color: #F5F5F5;
+    }
+
+    .vehSpan .el-tree-node__content {
+        height: 80px;
+    }
+</style>
+<script src="./index.js"></script>

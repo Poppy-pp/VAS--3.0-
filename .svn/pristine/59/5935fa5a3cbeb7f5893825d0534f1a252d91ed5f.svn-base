@@ -1,0 +1,301 @@
+import { getCorporateInfo, getDepartmentInfoList, getGroupInfoList, getPositionInfoList } from './service'
+import organization from './org-form'
+// import department from './department-form'
+import department from '../department/index.vue'
+// import group from './group-form'
+// import position from './position-form'
+
+export default {
+    name: 'organizationManage',
+    props: ['windowOutHeight'],
+    components: {
+        organization,
+        department,
+        // group,
+        // position
+    },
+    data () {
+        let options = [];
+        for (let i = 0; i < 26; i++) {
+            options.push(String.fromCharCode(65 + i))
+        }
+        return {
+            aExpandedKeys: [],
+            defaultProps: {
+                label: 'name',
+                children: 'zones',
+                isLeaf: 'leaf'
+            },
+            formEdit: true,
+            formStatus: '',
+            currentData: null,
+            loading: false,
+            show: true,
+            filters: '',
+            options,
+            // currentTabComponent: 'organization', // organization department group position
+            showTooltip: false,
+            currentFilter: 'A'
+        }
+    },
+    methods: {
+        handlerAdd () {
+            this.formEdit = false;
+            this.formStatus = 'create';
+            if (!this.currentData) {
+                this.$refs.tree.setCurrentKey(0)
+                return
+            }
+            const node = this.$refs.tree.getNode(this.currentData.id);
+            // this.addSetComponent(node);
+        },
+        handlerEdit () {
+            this.formEdit = false;
+            this.formStatus = 'update'
+        },
+        handleDelete () {
+
+        },
+        getNodeData (data, node) {
+            if (!this.formEdit) {
+                this.formStatus = 'update'
+            }
+            this.currentData = data;
+            // switch (node.level) {
+            //     case 1:
+            //         this.currentTabComponent = 'organization';
+            //         break;
+            //     case 2:
+            //         this.currentTabComponent = 'organization';
+            //         break;
+            //     case 3:
+            //         this.currentTabComponent = 'department';
+            //         break;
+            //     case 4:
+            //         this.currentTabComponent = 'group';
+            //         break;
+            //     case 5:
+            //         this.currentTabComponent = 'position';
+            //         break;
+            // }
+        },
+        // addSetComponent (node) {
+        //     switch (node.level) {
+        //         case 1:
+        //             this.currentTabComponent = 'organization';
+        //             break;
+        //         case 2:
+        //             this.currentTabComponent = 'department';
+        //             break;
+        //         case 3:
+        //             this.currentTabComponent = 'group';
+        //             break;
+        //         case 4:
+        //             this.currentTabComponent = 'position';
+        //             break;
+        //     }
+        // },
+        // cleanSetComponent (node) {
+        //     switch (node.level) {
+        //         case 3:
+        //             this.currentTabComponent = 'department';
+        //             break;
+        //         case 4:
+        //             this.currentTabComponent = 'group';
+        //             break;
+        //         default:
+        //             this.currentTabComponent = 'organization';
+        //     }
+        // },
+        /**
+         * 更新tree
+         * @param form
+         */
+        update (form) {
+            // let data = this.$refs.tree.getCurrentNode();
+            let {data} = this.$refs.tree.getNode(form.id);
+            for (let key in form) {
+                data[key] = form[key];
+            }
+            if (data.corpname) data.name = data.corpname;
+            if (data.deptname) data.name = data.deptname;
+            if (data.groupname) data.name = data.groupname;
+            if (data.positionname) data.name = data.positionname;
+            this.$message({
+                message: '编辑成功',
+                type: 'success'
+            });
+            this.onCancel();
+        },
+        create (form) {
+            let data = this.$refs.tree.getCurrentNode();
+            // let {data} = this.$refs.tree.getNode(form.id);
+            // const node = this.$refs.tree.getNode(this.currentData.id);
+            if (form.corpname) form.name = form.corpname;
+            if (form.deptname) form.name = form.deptname;
+            if (form.groupname) form.name = form.groupname;
+            if (form.positionname) form.name = form.positionname;
+            if (form.hasOwnProperty('positionname')) form.leaf = true;
+            this.$refs.tree.append(form, data);
+            this.$message({
+                message: '新增成功',
+                type: 'success'
+            });
+            this.onCancel();
+        },
+        onCancel () {
+            if (this.formStatus = 'create') {
+                // const node = this.$refs.tree.getNode(this.currentData.id);
+                const node = this.$refs.tree.getCurrentNode();
+                // this.cleanSetComponent(node);
+            }
+            this.formEdit = true;
+            this.formStatus = ''
+        },
+        /**
+         * 重新加载tree
+         */
+        reload (item) {
+            // this.currentTabComponent = 'organization';
+            this.currentData = null;
+            this.show = false;
+            this.currentFilter = item
+            this.showTooltip = true;
+            setTimeout(() => {
+                this.showTooltip = false;
+            }, 700)
+            this.$nextTick(() => {
+                this.show = true;
+            });
+        },
+        /**
+         * 查询组织
+         * @param node
+         * @param resolve
+         * @returns {Promise<void>}
+         */
+        async getCorporateInfo (node, resolve) {
+            const params = {
+                currentPage: 0,
+                showCount: 10000
+            };
+            this.loading = true;
+            try {
+                const {data} = await getCorporateInfo(params);
+                this.loading = false;
+                data.data.records.forEach((item) => {
+                    item.name = item.corpname
+                    item.id = item.ID
+                    item.leaf = true;
+                });
+                resolve(data.data.records);
+            } catch (e) {
+                this.loading = false;
+                resolve([])
+            }
+        },
+        /**
+         * 查询部门
+         * @param node
+         * @param resolve
+         * @returns {Promise<void>}
+         */
+        async getDepartmentInfoList (node, resolve) {
+            const params = {
+                corpId: node.data.id
+            };
+            try {
+                const {data} = await getDepartmentInfoList(params);
+                data.records.forEach((item) => {
+                    item.name = item.deptname
+                });
+                resolve(data.records);
+            } catch (e) {
+                resolve([])
+            }
+        },
+        /**
+         * 查询组
+         * @param node
+         * @param resolve
+         * @returns {Promise<void>}
+         */
+        async getGroupInfoList (node, resolve) {
+            const params = {
+                groupId: node.data.id
+            };
+            try {
+                const {data} = await getGroupInfoList(params);
+                data.records.forEach((item) => {
+                    item.name = item.groupname
+                    item.id = item.ID
+                });
+                resolve(data.records);
+            } catch (e) {
+                resolve([])
+            }
+        },
+        /**
+         * 查询岗位
+         * @param node
+         * @param resolve
+         * @returns {Promise<void>}
+         */
+        async getPositionInfoList (node, resolve) {
+            const params = {
+                positionId: node.data.id
+            };
+            try {
+                const {data} = await getPositionInfoList(params);
+                data.records.forEach((item) => {
+                    item.name = item.positionname;
+                    item.id = item.ID
+                    item.leaf = true;
+                });
+                resolve(data.records);
+            } catch (e) {
+                resolve([])
+            }
+        },
+        /**
+         * 加载节点
+         * @param node
+         * @param resolve
+         */
+        loadNode (node, resolve) {
+            switch (node.level) {
+                case 0 :
+                    resolve([
+                        {
+                            name: '众汇金控集团',
+                            corpname: '众汇金控集团',
+                            id: 0
+                        },
+                        {
+                            name: '体系外公司',
+                            corpname: '体系外公司',
+                            id: 1001
+                        }
+                    ]);
+                    break;
+                case 1 :
+                    this.getCorporateInfo(node, resolve);
+                    break;
+                // case 2:
+                //     this.getDepartmentInfoList(node, resolve);
+                //     break;
+                // case 3:
+                //     this.getGroupInfoList(node, resolve);
+                //     break;
+                // case 4:
+                //     this.getPositionInfoList(node, resolve);
+                //     break;
+                default:
+                    resolve([]);
+            }
+        }
+    },
+    mounted () {
+
+    }
+}

@@ -1,0 +1,75 @@
+import axios from 'axios';
+import { checkMobile, checkVehicleNumber } from '@/utils/formValidation'
+import Qs from 'qs';
+
+// 报损列表
+export const getEquipmentLoss = params => {
+    return axios.get(`/sto/damage/page`, {params: params})
+};
+// 新增
+export const addLoss = params => {
+    return axios.post(`/sto/damage/add`, Qs.stringify(params))
+};
+// 生成单号
+export const getLossBatchno = params => {
+    return axios.get(`/sto/qrcode/serialnumber/BS`, {params: params});
+};
+// 新增-设备选择列表
+export const getProductInfoList = params => {
+    return axios.get(`/sto/damage/prod/page`, {params: params});
+};
+// 确认添加设备
+export const addProductLoss = params => {
+    return axios.post(`/sto/damage/add/tmp/batch`, params);
+};
+// 删除添加设备
+export const removeProductLoss = params => {
+    return axios.delete(`/sto/damage/tmp/delete/` + params.batchno + `/` + params.prodid + `/` + params.modelcategory);
+};
+// 查询已添加设备
+export const getChooseProduct = params => {
+    return axios.get(`/sto/damage/tmp/count/` + params.batchno);
+};
+// 查看详情——数量详情
+export const getChooseProductDetails = params => {
+    return axios.get(`/sto/damage/detail/prod`, {params: params});
+};
+// 新增——数量详情
+export const getChooseProductDetailsAdd = params => {
+    return axios.get(`/sto/damage/tmp/details`, {params: params});
+};
+// 查询配件
+export const getPurchaseCascader = params => {
+    return axios.get(`/sto/stoModel/purchase/cascader/parts`, {params: params})
+};
+// 确认添加配件
+export const addPartsLoss = params => {
+    return axios.post(`/sto/damage/add/tmp/parts`, params)
+};
+// 查看详情
+export const getLossDetails = params => {
+    return axios.get(`/sto/damage/detail/` + params.id)
+};
+// 新增——查询所有已选设备
+export const getChooseAll = params => {
+    return axios.get(`/sto/damage/tmp/` + params.batchno );
+};
+// 重新入库-设备选择列表
+export const getProductList = params => {
+    return axios.get(`/sto/damage/prod/loststroage/page`, {params: params});
+};
+// 重新入库-查询库房
+export const getStoList = params => {
+    return axios.get(`/sto/stoStorage/query/like`, {params: params});
+};
+// 重新入库-提交
+export const addRestock = params => {
+    return axios.post(`/sto/damage/re/in/storage `, params)
+};
+
+
+// 表单验证
+export const setFacilityFormRules = {
+    'damageDate': [{required: true, message: '请选择报损日期', trigger: 'blur'}],
+    'username': [{required: true, message: '请选择经办人', trigger: 'blur'}],
+}

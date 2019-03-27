@@ -1,0 +1,146 @@
+<template>
+    <el-form label-position="right" label-width="110px" :model="form" ref="form">
+        <el-form-item label="岗位名称" prop="positionname" ref="positionname">
+            <el-input v-model="form.positionname" @blur="checkout('positionname', form.positionname, 0)"></el-input>
+        </el-form-item>
+        <el-form-item label="岗位描述" prop="positiondesc">
+            <el-input v-model="form.positiondesc"></el-input>
+        </el-form-item>
+        <el-form-item label="所属公司" prop="corpname">
+            <el-select v-model="form.corpname" @visible-change="corpChange" :loading="corpLoading" filterable placeholder="请选择所属公司" clearable>
+                <el-option v-for="item in corplist" :key="item.id" :label="item.corpname" :value="item.id+''">
+                </el-option>
+            </el-select>
+        </el-form-item>
+        <el-form-item v-if="formStatus === 'update'">
+            <el-button type="primary" @click="update">更新</el-button>
+            <el-button @click="$emit('onCancel')">取消</el-button>
+        </el-form-item>
+        <el-form-item v-if="formStatus === 'create'">
+            <el-button type="primary" @click="create">保存</el-button>
+            <el-button @click="$emit('onCancel')">取消</el-button>
+        </el-form-item>
+    </el-form>
+</template>
+
+<script>
+    // import { getCorpList, getCheckoutOfPosInfo } from './service'
+
+    export default {
+        name: "position-form",
+        props: ['formEdit', 'formStatus', 'data'],
+        data () {
+            return {
+                //新增界面数据
+                form: {
+                    id: '',
+                    positioncode: '',
+                    pocoid: '',
+                    positionname: '',
+                    positiondesc: '',
+                    createdate: '',
+                    createby: '',
+                    updatedate: '',
+                    updateby: '',
+                    isenable: '',
+                    isdelete: '',
+                    corpname: '',
+                },
+                thisInput: '', //编辑时存入row验证的值,
+                corplist: [],
+                corpLoading: false,
+                checkoutDataF: [], //数据验证组
+            }
+        },
+        watch: {
+            data (newData) {
+                this.initForm()
+            },
+            formStatus () {
+                this.initForm();
+            }
+        },
+        mounted () {
+            this.initForm()
+        },
+        methods: {
+            initForm () {
+                if (this.data) {
+                    if (this.formStatus === 'create') {
+                        this.init();
+                    } else {
+                        this.form = _.cloneDeep(this.data);
+                        this.thisInput = this.form.positionname; //将当前验证的字段 已获得的值存入
+                    }
+                }
+            },
+            init () {
+                this.form = {
+                    id: '',
+                    positioncode: '',
+                    pocoid: '',
+                    positionname: '',
+                    positiondesc: '',
+                    createdate: '',
+                    createby: '',
+                    updatedate: '',
+                    updateby: '',
+                    isenable: '',
+                    isdelete: '',
+                    corpname: this.data.corpname,
+                }
+                this.thisInput = ""
+            },
+            // 数据重复验证
+            checkout (p, v, index) {
+                if (v === "") {
+                    this.$refs[p].$el.className = "el-form-item is-error"; //输入框标红
+                    return;
+                }
+                if (this.thisInput === v) return; //编辑时 没改输入框值
+                this.checkoutDataT = true; //初始化
+                let paras = {
+                    para: p,
+                    value: v,
+                }
+                getCheckoutOfPosInfo(paras).then((res) => {
+                    let errorInput = res.data.data.param; //保存验证失败的字段
+                    if (!res.data.data.result) {
+                        this.$message({
+                            message: '信息输入重复！',
+                            type: 'warning'
+                        });
+                        this.$refs[errorInput].$el.className = "el-form-item is-error"; //输入框标红
+                        this.checkoutDataF[index] = false
+                    } else {
+                        this.$refs[errorInput].$el.className = "el-form-item"; //输入框恢复
+                        this.checkoutDataF[index] = true
+                    }
+                });
+            },
+            /*所属公司——下拉*/
+            corpChange (r) {
+                if (!r || this.corplist.length > 0) return;
+                this.corpLoading = true;
+
+                let para = {
+                    flag: ''
+                }
+                getCorpList(para).then((res) => {
+                    this.corplist = res.data.data.records;
+                    this.corpLoading = false;
+                });
+            },
+            update () {
+                this.$emit('update', this.form)
+            },
+            create () {
+                this.$emit('create', this.form)
+            }
+        }
+    }
+</script>
+
+<style scoped>
+
+</style>

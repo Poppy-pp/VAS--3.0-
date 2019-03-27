@@ -1,0 +1,239 @@
+import { fetchTree, update, create, remove } from './service'
+
+export default {
+    name: 'panels',
+    data () {
+        return {
+            treeData: [],
+            aExpandedKeys: [-1],
+            defaultProps: {
+                children: 'children',
+                label: 'name'
+            },
+            listQuery: {
+                name: undefined
+            },
+            labelPosition: 'right',
+            form: {
+                permission: "",
+                name: "",
+                parentId: "",
+                url: "",
+                icon: "",
+                sort: "",
+                component: "",
+                type: "",
+                method: "",
+                path: "",
+                id: "",
+                system: "A"
+            },
+            formEdit: true,
+            methodOptions: ['GET', 'POST', 'PUT', 'DELETE'],
+            typeOptions: ['0', '1'],
+            formStatus: '',
+            currentId: -1,
+            currentData: null,
+            systemoptions: [{
+                value: 'A',
+                label: 'VAS-平台管理系统'
+            }, {
+                value: 'B',
+                label: 'ECT-E车宝'
+            }, {
+                value: 'C',
+                label: 'UCHE-万网优车企业版'
+            }, {
+                value: 'D',
+                label: 'UCHE-万网优车个人版'
+            }, {
+                value: 'E',
+                label: 'GIS-车辆位置服务系统'
+            }],
+            rules: {
+                name: [
+                    {required: true, message: '标题必填', trigger: 'blur'}
+                ],
+                type: [
+                    {required: true, message: '类型必填', trigger: 'blur'}
+                ]
+            }
+        }
+    },
+    mounted () {
+        this.getList();
+    },
+    filters: {
+        typeFilter (type) {
+            const typeMap = {
+                0: '菜单',
+                1: '按钮'
+            };
+            return typeMap[type]
+        }
+    },
+    methods: {
+        /**
+         * 获取列表
+         */
+        getList () {
+            fetchTree(this.listQuery).then(response => {
+                this.treeData = [{
+                    "id": -1,
+                    "parentId": "",
+                    "children": response.data,
+                    "icon": "",
+                    "name": "根菜单",
+                    "url": null,
+                    "spread": false,
+                    "path": "/admin",
+                    "component": "Layout",
+                    "authority": null,
+                    "redirect": null,
+                    "code": null,
+                    "type": '0',
+                    "label": "根菜单",
+                    "sort": null
+                }]
+            })
+        },
+        filterNode (value, data) {
+            if (!value) return true
+            return data.label.indexOf(value) !== -1
+        },
+        /**
+         * 获取单个信息
+         * @param data
+         * @param node
+         * @param event
+         */
+        getNodeData (data, node, event) {
+            this.resetForm();
+            if (!this.formEdit) {
+                this.formStatus = 'update'
+            }
+            this.currentId = data.id
+            this.currentData = data
+            for (let key in data) {
+                if (this.form.hasOwnProperty(key)) this.form[key] = data[key];
+            }
+        },
+        handlerAdd () {
+            if (this.currentData.type !== '0') {
+                this.$message({
+                    message: '必须在菜单类型下添加!',
+                    type: 'warning'
+                });
+                return
+            }
+            if (!this.currentData) this.$refs.tree.setCurrentKey(-1)
+            this.resetForm()
+            this.formEdit = false
+            this.formStatus = 'create'
+        },
+        handlerEdit () {
+            if (this.currentData) {
+                this.form = this.currentData;
+                this.form.system = 'A'
+            }
+            if (this.form.id) {
+                this.formEdit = false
+                this.formStatus = 'update'
+            }
+        },
+        /**
+         * 删除
+         */
+        handleDelete () {
+            this.$confirm('此操作将永久删除, 是否继续?', '提示', {
+                confirmButtonText: '确定',
+                cancelButtonText: '取消',
+                type: 'warning'
+            }).then(async () => {
+                try {
+                    await remove(this.currentData.id)
+                    this.$refs.tree.remove(this.currentData);
+                    this.currentId = -1;
+                    this.resetForm();
+                    this.$notify({
+                        title: '成功',
+                        message: '删除成功',
+                        type: 'success',
+                        duration: 2000
+                    })
+                } catch (e) {
+
+                }
+            })
+        },
+        onCancel () {
+            this.formEdit = true
+            this.formStatus = ''
+            this.$refs['form'].clearValidate()
+        },
+        update () {
+            this.$refs['form'].validate(async (valid) => {
+                if (valid) {
+                    let node = this.$refs.tree.getNode(this.currentData);
+                    try {
+                        this.form.menuId = this.form.id;
+                        await update(this.form)
+                        for (let key in this.form) {
+                            if (node.data.hasOwnProperty(key)) node.data[key] = this.form[key];
+                        }
+                        this.$notify({
+                            title: '成功',
+                            message: '更新成功',
+                            type: 'success',
+                            duration: 2000
+                        });
+                        this.onCancel();
+                    } catch (e) {
+
+                    }
+                }
+            })
+        },
+        create () {
+            this.$refs['form'].validate(async (valid) => {
+                if (valid) {
+                    try {
+                        const {data} = await create(this.form)
+                        this.form.id = data.data
+                        if (!this.currentData) {
+                            this.treeData.push(this.form)
+                        } else {
+                            this.$refs.tree.append(this.form, this.currentData);
+                        }
+                        this.$notify({
+                            title: '成功',
+                            message: '创建成功',
+                            type: 'success',
+                            duration: 2000
+                        })
+                        this.onCancel();
+                    } catch (e) {
+
+                    }
+                }
+            });
+
+        },
+        resetForm () {
+            this.form = {
+                permission: "",
+                name: "",
+                parentId: this.currentId,
+                url: "",
+                icon: "",
+                sort: "",
+                component: "",
+                type: "0",
+                method: "",
+                path: "",
+                id: "",
+                system: "A"
+            }
+        }
+    }
+}

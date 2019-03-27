@@ -1,0 +1,50 @@
+import axios from 'axios';
+import Qs from 'qs';
+
+let base = '/vasms-web';
+let api = '/api';
+
+export const getStorageInfoList = params => {
+	return axios.get(`${base}/api/v1/sto/storageInfo/query/vw`, {
+		params: params
+	})
+};
+
+export const addStorageInfo = params => {
+	return axios.post(`${base}/api/v1/sto/storageInfo`, params)
+};
+
+export const modifyStorageInfo = params => {
+	return axios.put(`${base}/api/v1/sto/storageInfo/` + params.id, params)
+};
+
+export const removeStorageInfo = params => {
+	return axios.post(`${base}/api/v1/sto/storageInfo/batch`, Qs.stringify(params))
+};
+// 上级库房下拉
+export const getStorageInfoListSelect = params => {
+	return axios.get(`${base}/api/v1/sto/storageInfo/query/vw`, {
+		params: params
+	})
+};
+/*库房搜索模糊查询接口*/
+export const getSelectListSto = params => {
+	return axios.get(`${base}/api/v1/sto/storageInfo/query/like`, {
+		params: params
+	});
+};
+//员工姓名接口
+export const getDeptManagerInfoList = params => {
+	return axios.get(`${base}/api/v1/org/employeeInfo/?showCount=10000`, {
+		params: params
+	});
+};
+//根据员工userid获取员工姓名
+export const getNamebyUserid = params => {
+	return axios.get(`${base}/api/v1/org/employeeInfo/getNameByUserid`, {
+		params: params
+	});
+};
+export const getCheckoutOfStoInfo = params => {
+	return axios.get(`${base}/api/v1/sto/storageInfo/checkout/` + params.para + '/' + params.value);
+};

@@ -1,0 +1,67 @@
+import axios from 'axios';
+import Qs from 'qs';
+
+let base = '/vasms-web';
+let api = '/api';
+
+
+
+
+
+
+const getRuleResourceInfo = params => {
+    return axios.get(`${base}/api/v1/sys/sysResourceRole`, {
+        params: params
+    })
+}
+
+
+
+//角色信息管理接口
+const getSysRoleInfoList = params => {
+    return axios.get(`admin/role/rolePage`, {
+        params: params
+    });
+};
+
+//添加角色
+const addSysRoleInfo = params => {
+    return axios.post(`admin/role/`, params);
+};
+
+//编辑角色
+const modifySysRoleInfo = params => {
+    return axios.put(`admin/role/`, params);
+};
+
+// 获取资源信息列表
+const fetchTree = query => {
+    return axios.get(`admin/menu/allTree`)
+};
+
+//获得当前角色的资源 
+const getRoleResource = params => {
+    return axios.get(`admin/menu/roleMenu/` + params.roleId)
+};
+
+// 编辑角色资源后提交
+const editRuleResourceInfo = params => {    
+    return axios.put(`admin/role/roleMenuUpd`, params)
+}
+
+//删除
+const removeSysRoleInfo = roleId => {
+    return axios.delete(`admin/role/${roleId}`);
+};
+
+
+export {
+    getSysRoleInfoList,
+    addSysRoleInfo,
+    modifySysRoleInfo,
+    removeSysRoleInfo,
+    fetchTree,
+    editRuleResourceInfo,
+    getRuleResourceInfo,
+    getRoleResource
+}

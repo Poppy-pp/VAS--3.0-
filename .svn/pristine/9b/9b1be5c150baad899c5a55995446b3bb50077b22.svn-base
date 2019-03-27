@@ -1,0 +1,178 @@
+<!-- 下拉 -->
+<template>
+  <div class="info-area">
+    <el-dropdown trigger="click" @command="dropdownComm" class="info-area__dropdown">
+      <el-tag type="success">
+        <span class="el-dropdown-link">
+          {{username}}<i class="el-icon-arrow-down el-icon--right"></i>
+        </span>
+      </el-tag>
+      <el-dropdown-menu slot="dropdown">
+        <el-dropdown-item command="profile">{{$t('sidebarDropDown.profile')}}</el-dropdown-item>
+        <el-dropdown-item command="editpwd">{{$t('sidebarDropDown.editpwd')}}</el-dropdown-item>
+        <el-dropdown-item command="lock">{{$t('sidebarDropDown.lock')}}</el-dropdown-item>
+        <el-dropdown-item divided command="logout">{{$t('sidebarDropDown.logout')}}</el-dropdown-item>
+      </el-dropdown-menu>
+    </el-dropdown>
+    <div @click="jumpToProfile" class="info-area__avatar">
+      <img :src="avatarUrl" />
+    </div>
+
+      <!-- 修改用户密码 start-->
+      <el-dialog title="修改密码" :visible.sync="editPswDialogVisible" class="setThemeDialogs" width="30%">
+          <el-form label-position="left" label-width="80px" :model="pswForm" ref="pswForm" :rules="rules">
+              <el-form-item label="原密码" prop="oldPassword">
+                  <el-input v-model="pswForm.oldPassword" placeholder="请输入原密码"></el-input>
+              </el-form-item>
+              <el-form-item label="新密码" prop="newPassword">
+                  <el-input v-model="pswForm.newPassword" placeholder="请输入新密码"></el-input>
+              </el-form-item>
+              <el-form-item label="确认密码" prop="comfirPassword">
+                  <el-input v-model="pswForm.comfirPassword" placeholder="请输入确认密码"></el-input>
+              </el-form-item>
+          </el-form>
+          <div slot="footer" class="dialog-footer">
+              <el-button @click.native="editPswDialogVisible = false">取消</el-button>
+              <el-button type="primary" @click.native="editPswSubmit('pswForm')" :loading="editPswLoading">提交</el-button>
+          </div>
+      </el-dialog>
+  </div>
+</template>
+
+<script>
+import { editPassword } from '../../api/main.js';
+import storage from '@/utils/storage'
+import { removeToken } from '@/utils/auth'
+export default {
+  name: 'demo',
+  data() {
+    return {
+      username: this.$store.state.user.name,
+      avatarUrl: this.$store.state.ORIGINAL_URL + this.$store.state.user.avatar,
+      editPswLoading:false,
+      editPswDialogVisible:false,
+      pswForm:{
+          oldPassword:'',
+          newPassword:'',
+          comfirPassword:''
+      },
+      rules:{
+          oldPassword:[{required:true,message:"请输入原密码",trigger: 'blur'}],
+          newPassword:[{required:true,message:"请输入新密码",trigger: 'blur'}],
+          comfirPassword:[{required:true,message:"请输入确认密码",trigger: 'blur'}]
+      },
+    }
+  },
+  methods: {
+    dropdownComm(command) {
+      switch (command) {
+        case 'logout':
+          this.logouthandle()
+          break
+        case 'lock':
+          this.lockhandle()
+          break
+        case 'profile':
+          this.jumpToProfile()
+          break
+        case 'editpwd':
+          this.editPsw()
+          break
+      }
+    },
+    // 退出登录
+    async logouthandle() {
+      await this.$store.dispatch('logout')
+      window.location.reload()
+    },
+    // 锁定系统
+    lockhandle() {
+      this.$store.dispatch('setLockState', 'lock')
+      this.$router.push({
+        path: '/lock'
+      })
+      this.$message.success(this.$t('lock.locked'))
+    },
+    // 个人中心
+    jumpToProfile() {
+      this.$router.push({
+        path: '/profile/index'
+      })
+    },
+    // 修改密码弹窗
+    editPsw(){
+      this.editPswDialogVisible = true;
+    },
+    // 修改密码确定按钮
+    editPswSubmit(formName){
+        if(this.pswForm.newPassword != this.pswForm.comfirPassword){
+            this.$message({
+                message: '两次密码输入不一致！',
+                type: 'warning'
+            });
+            return;
+        }
+        this.$refs[formName].validate((valid) => {
+            if (valid) {
+                let para = {
+                    id:this.$store.state.user.userid,
+                    password:this.pswForm.oldPassword,
+                    newpassword1:this.pswForm.newPassword
+                }
+                this.editPswLoading = true;
+                editPassword(para).then((res) => {
+                    this.editPswLoading = false;
+                    if(!res.data.data){
+                        this.$message({
+                            message: res.data.msg,
+                            type: 'error'
+                        });
+                        return;
+                    }
+                    this.$message({
+                        message: '修改密码成功！',
+                        type: 'success'
+                    });
+                    this.editPswDialogVisible = false;
+                    this.$refs[formName].resetFields();
+
+                    // 到登陆页
+                    this.$store.dispatch('logout')
+                    storage.clear();//清除本地存储
+                    removeToken();//清除cookie的token
+                    window.location.reload()
+                });
+            } 
+            else 
+            {
+                return false;
+            }
+        });
+    },
+  },
+}
+</script>
+
+<style lang="stylus" scoped>
+.inline-block-box
+  display inline-block
+  vertical-align middle
+
+.info-area
+  &__dropdown
+    @extend .inline-block-box
+    cursor pointer
+  &__avatar
+    @extend .inline-block-box
+    padding-left 10px
+    width 50px
+    height 40px
+    overflow hidden
+    cursor pointer
+    img
+      border-radius 50%
+      width 40px
+      height 40px
+  .el-tag--medium
+    font-size 14px
+</style>

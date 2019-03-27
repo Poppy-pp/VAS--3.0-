@@ -1,0 +1,250 @@
+import { getStoProdCount, getStorages,getPolicyno} from './service'
+import echarts from 'echarts';
+
+
+export default {
+    name: "insuranceCount",
+    data () {
+        return {
+            dayjsTmp: dayjs,
+            policynos: [],
+            stoProdData: {},//库存统计
+            todolist: [{task: '[待采购]四川区域的库管提交了要货量，请查看并采购！ ',date:'2018-12-13'},{task: '[待收货]库房向您调拨了一批设备，设备已入库，请注意签收！',date:'2018-12-13'},{task: '[待采购]四川区域的库管提交了要货量，请查看并采购！',date:'2018-12-13'},{task: '[待收货]库房向您调拨了一批设备，设备已入库，请注意签收！ ',date:'2018-12-13'},{task: '[待收货]你的小可爱，突然出现！ ',date:'2018-12-13'},{task: '[待收货]fighting！ ',date:'2018-12-13'}],
+            messagelist:[{task: '由您采购给蒲琳库房的设备DB20181101235已被收货人签收！  ',date:'2018-12-13'},{task: 'XX库房的XXX型号的设备发出库存过高预警，请查看！  ',date:'2018-12-13'},{task: '由您反馈的有关单号为XXXXXXXXX的设备数量有偏差....  ',date:'2018-12-13'},{task: '做不完了',date:'2018-12-13'}],
+            chartColumn: null,
+            storages: [],//当前登录人的库房
+            selectForm:{
+                storagename:[0],//级联选择器显示
+            },
+            props:{
+                value:'id',
+                label:'name',
+                children:'children'
+            }
+        }
+    },
+    components: {
+    },
+    computed: {
+    },
+    methods: {
+        async stoProdCount (storageID) {
+            try {
+                const params = {
+                    storageId: storageID == undefined ? 0 : storageID,
+                }
+                const {data} = await getStoProdCount(params)
+                this.stoProdData = data.data
+                this.chartColumnFuc();//加载图表
+            } catch (e) {
+            }
+        },
+        async getPolicyno () {
+            try {
+                const params = {
+                    insurancecorpid: this.corporateinfo.id
+                }
+                const {data} = await getPolicyno(params)
+                this.policynos = data.data
+            } catch (e) {
+
+            }
+        },
+        // 页面跳转
+        jump(name) {
+            this.$router.push({
+                name,
+                params: {
+                    policyno: this.policyno
+                }
+            })
+        },
+        // 初始化
+        init () {
+            // 库房级联
+            getStorages().then((res) => {
+                this.storages=this.getTreeData(res.data.data);// 调用递归方法，去除级联数据后将数据赋值给级联选择器
+            });
+
+            // 自适应
+            const _this = this;//因为箭头函数会改变this指向，指向windows。所以先把this保存
+            window.onresize = function() {
+                _this.chartColumnOne.resize();  
+                _this.chartColumnTwo.resize();  
+                _this.chartColumnThree.resize();
+                _this.chartColumnFour.resize();
+            }
+        },
+        // 递归方法，处理级联选择器最后一级为空数组的bug
+        getTreeData(data){
+            for(var i=0;i<data.length;i++){
+                if(data[i].children.length<1){
+                    data[i].children=undefined;// children若为空数组，则将children设为undefined
+                }else {
+                    this.getTreeData(data[i].children);// children若不为空数组，则继续 递归调用 本方法
+                }
+            }
+            return data;
+        },
+        // 级联选择器选择库房
+        handleChange(value) {
+            this.stoProdCount(value[value.length-1]);
+        },
+
+        /*初始化首页图表*/
+        chartColumnFuc() {
+            /*出入库趋势图 start*/
+            this.chartColumnOne = echarts.init(document.getElementById('chartColumnOne'));
+            let yearData = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'],
+                    barData =[820, 932, 901, 934, 1290, 1330, 1320],
+                    lineData = [131, 142, 1344, 145, 445, 546, 647];
+            this.chartColumnOne.setOption({
+                tooltip: {
+                    trigger: 'axis'
+                },
+                legend: {
+                    data:['新报订单','完成订单']
+                },
+                dataZoom: {
+                    show: true,
+                    realtime: false,
+                    startValue:dayjs(new Date()).subtract(7, 'day').format('YYYY-MM-DD'),
+                    // endValue:dayjs(new Date()).subtract(1, 'day').format('YYYY-MM-DD')
+                },
+                xAxis: {
+                    type: 'category',
+                    boundaryGap: true,
+                    data: yearData
+                },
+                yAxis: {
+                    type: 'value'
+                },
+                series: [{
+                        name: '新报订单',
+                        type: 'line',
+                        data: lineData
+                    },
+                    {
+                        name: '完成订单',
+                        type: 'line',
+                        data: barData
+                    }
+               ]
+            });
+
+            /*预警统计 start*/
+            this.chartColumnTwo = echarts.init(document.getElementById('chartColumnTwo'));
+            let xData = [1, 2, 3, 4, 5, 6, 7],
+                    yData = [120, 200, 150, 80, 70, 110, 130];
+            this.chartColumnTwo.setOption({
+                xAxis: {
+                    type: 'category',
+                    data: xData
+                },
+                yAxis: {
+                    type: 'value'
+                },
+                series: [{
+                    data: yData,
+                    type: 'bar'
+                }]
+            });
+
+            /*出库统计 start*/
+            this.chartColumnThree = echarts.init(document.getElementById('chartColumnThree'));
+            let xstoData = ['在库','在途','维修中','已遗失','已安装','返厂中','已返厂','已报损'],
+                    ystoData = [1230, 2100, 1330, 840, 720, 1140, 1430, 1130];
+            this.chartColumnThree.setOption({
+                xAxis: {
+                    type: 'category',
+                    data: xstoData
+                },
+                yAxis: {
+                    type: 'value'
+                },
+                series: [
+                { // For shadow
+                    type: 'bar',
+                    itemStyle: {
+                        normal: {color: 'rgba(0,0,0,0.05)'}
+                    },
+                    barGap:'-100%',
+                    barCategoryGap:'40%',
+                    data: ystoData,
+                    animation: false
+                },
+                {
+                    type: 'bar',
+                    itemStyle: {
+                        normal: {
+                            color: new echarts.graphic.LinearGradient(
+                                0, 0, 0, 1,
+                                [
+                                    {offset: 0, color: '#83bff6'},
+                                    {offset: 0.5, color: '#188df0'},
+                                    {offset: 1, color: '#188df0'}
+                                ]
+                            )
+                        },
+                        emphasis: {
+                            color: new echarts.graphic.LinearGradient(
+                                0, 0, 0, 1,
+                                [
+                                    {offset: 0, color: '#2378f7'},
+                                    {offset: 0.7, color: '#2378f7'},
+                                    {offset: 1, color: '#83bff6'}
+                                ]
+                            )
+                        }
+                    },
+                    data: ystoData
+                }]
+            });
+
+            /*库存统计 start*/
+            this.chartColumnFour = echarts.init(document.getElementById('chartColumnFour'));
+            let value1 = this.stoProdData.wiredProdcutNum,
+                value2 = this.stoProdData.wifiProductNum,
+                value3 = this.stoProdData.cardNum,
+                value4 = this.stoProdData.partsNum;
+                console.log(this.stoProdData)
+            this.chartColumnFour.setOption({
+                    tooltip : {
+                        trigger: 'item',
+                        formatter: "{a} <br/>{b} : {c} ({d}%)"
+                    },
+                    legend: {
+                        orient: 'horizontal',
+                        data: ['有线','无线','卡','配件']
+                    },
+                    series : [
+                        {
+                            name: '在库状态',
+                            type: 'pie',
+                            radius : '55%',
+                            center: ['50%', '60%'],
+                            data:[
+                                {value:value1, name:'有线'},
+                                {value:value2, name:'无线'},
+                                {value:value3, name:'卡'},
+                                {value:value4, name:'配件'},
+                            ],
+                            itemStyle: {
+                                emphasis: {
+                                    shadowBlur: 10,
+                                    shadowOffsetX: 0,
+                                    shadowColor: 'rgba(0, 0, 0, 0.5)'
+                                }
+                            }
+                        }
+                    ]
+            });
+        },
+    },
+    mounted () {
+        this.init();
+        this.stoProdCount();//获取库存统计数据
+
+        // this.chartColumnFuc();//加载图表
+    }
+}

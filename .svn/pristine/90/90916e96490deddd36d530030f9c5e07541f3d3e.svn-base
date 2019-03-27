@@ -1,0 +1,16 @@
+<template>
+    <div>
+        <el-collapse v-model="activeNames">
+            <el-collapse-item v-if="storageInvoice" :title="item.receiptno" :name="index" style="margin-bottom: 10px;" :key="index"
+                              v-for="(item, index) in storageInvoice.listReceipt">
+                <invoice-detail :itemInvoice="item" :storageInvoice="storageInvoice"></invoice-detail>
+            </el-collapse-item>
+        </el-collapse>
+    </div>
+</template>
+
+<script src="./index.js"></script>
+
+<style scoped>
+
+</style>

@@ -1,0 +1,396 @@
+import axios from 'axios'
+import { checkAllMobile, checkVin, checkPolicyName, checkVehicleNumber, checkMobile, checkFloatNum } from '@/utils/formValidation'
+
+/**
+ * 初始化安装报单
+ * @returns {{corpname: string, corpid: string, declaretype: string, contactname: string, contactmobile: string, vehiclestatus: number, servicestartdate: string, serviceenddate: string, hastheftinsurance: number, packageid: string, impapplydate: string, impaddresscode: string, impaddress: string, impaddresslng: string, impaddresslat: string, impgroupid: string, impby: string, declareremark: string, busiVehicleinfo: {vehicletype: string, vehicleuse: string, vehiclecategory: string, vehiclepower: string, model: string, color: string, colorname: string, firstregisterdate: string, licenseplatenum: string, licenseplatecolor: string, vin: string, enginenum: string, price: string, corpid: string, receivingbankid: string, hastheftinsurance: string, generalproductcount: string, yearsofservice: string, ownername: string, idcard: string, gender: string, mobile: string, addresshome: string, indemnitylimit: string, beneficiary: string, priceInsucorp: string}, picinvoice: string, picvehiclelicense: string, picidcard: string, picregistration: string, piccertificate: string, picimport: string, busiPictures: Array}}
+ */
+export const initForm = () => {
+    return {
+        corpname: '',//报单公司
+        corpid: '', //客户ID
+        userid: '', //用户id
+        ordertype: 'INSTALL', //订单类型
+        declaretype: 'SELF', //保单类型（SELF, CUST）
+        contactname: '', //现场联系人姓名
+        contactmobile: '', //现场联系人手机号码
+        vehiclestatus: 1, //车辆状态（1=已到，0=未到）
+        servicestartdate: '', //服务开始时间
+        serviceenddate: '', //服务结束时间
+        hastheftinsurance: 0, //是否有盗抢险（1=有，0=无）
+        packageid: '', //申请安装套餐ID
+        impapplydate: '', //申请施工时间
+        impaddresscode: '', //施工地址编码
+        impaddress: '', //施工地址
+        impaddresslng: '', //施工地址经度
+        impaddresslat: '', //施工地址纬度
+        impgroupid: '', //施工组ID
+        impby: '', //施工组员ID(userid)
+        declareremark: '', //报单备注
+        busiVehicleinfo: {
+            vehicletype: '', //车类型（见字典表VehicleType）
+            vehicleuse: '', //车辆用途（1=乘用车，2=商用车，3=网约车）
+            vehiclecategory: '', //车辆分类（1=新车，2=二手车，3=资管追回）
+            vehiclepower: '', //能源类型(1=汽油，2=柴油，3=纯电，4=混动）
+            model: '', //车型
+            color: '', //车辆颜色
+            colorname: '', //车辆颜色名称
+            firstregisterdate: '', //车辆初始登记日期
+            licenseplatenum: '', //车牌号
+            licenseplatecolor: '', //车牌颜色名称（蓝、黄、黑、白、其他）
+            vin: '', //车架号
+            enginenum: '', //发动机号
+            price: '', //车价(元)
+            corpid: '', //所属客户ID
+            receivingbankid: '', //受理银行ID
+            hastheftinsurance: '', //是否有盗抢险（1有0无）
+            generalproductcount: '', //常规产品数量
+            yearsofservice: '', //服务期限（年）
+            ownername: '', //姓名
+            idcard: '', //证件号码
+            gender: '', //性别（F=女，M=男）
+            mobile: '', //手机号码
+            addresshome: '', //联系地址
+            indemnitylimit: '', //保单赔偿限额
+            beneficiary: '', //保险受益人
+            priceInsucorp: '' //保险公司保费
+        },
+        // busiPictures: [],
+        declarefrom: 'VAS', //报单来源(VAS,ECT,YCH,FIN=集团车贷系统)
+        busiPictures: [
+            {
+                piclink: '',//图片地址
+                piccode: '22',//图片代码
+                pictype: 'INSU',//图片类型
+                picdesc: '购车发票',//图片描述
+            }, {
+                piclink: '',//图片地址
+                piccode: '11',//图片代码
+                pictype: 'INSU',//图片类型
+                picdesc: '行驶证',//图片描述
+            }, {
+                piclink: '',//图片地址
+                piccode: '21',//图片代码
+                pictype: 'INSU',//图片类型
+                picdesc: '身份证',//图片描述
+            }, {
+                piclink: '',//图片地址
+                piccode: '10',//图片代码
+                pictype: 'INSU',//图片类型
+                picdesc: '登记证',//图片描述
+            }, {
+                piclink: '',//图片地址
+                piccode: '23',//图片代码
+                pictype: 'INSU',//图片类型
+                picdesc: '合格证',//图片描述
+            }, {
+                piclink: '',//图片地址
+                piccode: '24',//图片代码
+                pictype: 'INSU',//图片类型
+                picdesc: '货物进口证',//图片描述
+            }
+        ]
+    }
+}
+
+/**
+ * 安装报单表单验证
+ * @param self
+ * @returns {{"busiVehicleinfo.ownername": *[], "busiVehicleinfo.mobile": *[], "busiVehicleinfo.idcard": {required: boolean, message: string, trigger: string}[], "busiVehicleinfo.vin": {required: boolean, message: string, trigger: string}[], "busiVehicleinfo.model": {required: boolean, message: string, trigger: string}[], "busiVehicleinfo.price": *[], "busiVehicleinfo.vehiclecategory": {required: boolean, message: string, trigger: string}[], "busiVehicleinfo.vehicletype": {required: boolean, message: string, trigger: string}[], "busiVehicleinfo.enginenum": {required: boolean, message: string, trigger: string}[], "busiVehicleinfo.beneficiary": {required: boolean, message: string, trigger: string}[], "busiVehicleinfo.priceInsucorp": *[], "busiVehicleinfo.indemnitylimit": *[], contactname: {required: boolean, message: string, trigger: string}[], contactmobile: *[], impapplydate: {required: boolean, message: string, trigger: string}[], vehiclestatus: {required: boolean, message: string, trigger: string}[], impaddress: {required: boolean, message: string, trigger: string}[], impby: {required: boolean, message: string, trigger: string}[]}}
+ */
+export const installRules = (self) => {
+    return {
+        'busiVehicleinfo.ownername': [
+            {required: true, message: '请输入车主姓名', trigger: 'blur'},
+            {validator: checkPolicyName, trigger: 'blur'}
+        ],
+        'busiVehicleinfo.mobile': [
+            {required: true, message: '请输入车主电话', trigger: 'blur'},
+            {validator: checkMobile, trigger: 'blur'}
+        ],
+        'busiVehicleinfo.idcard': [
+            {required: true, message: '请输入车主证件号码', trigger: 'blur'}
+        ],
+        'busiVehicleinfo.vin': [
+            {required: true, message: '请输入车架号', trigger: 'blur'},
+            // {validator: checkVin, trigger: 'blur'},
+            // {min: 17, trigger: 'blur', message: '车架号位数不能小于17位'}
+        ],
+        'busiVehicleinfo.model': [
+            {required: true, message: '请输入厂牌型号', trigger: 'change'}
+        ],
+        'busiVehicleinfo.price': [
+            {required: true, message: '请输入车辆购置价', trigger: 'blur'},
+            {validator: checkFloatNum, trigger: 'blur'}
+        ],
+        'busiVehicleinfo.vehiclecategory': [
+            {required: true, message: '请选择车辆分类', trigger: 'change'}
+        ],
+        'busiVehicleinfo.vehicletype': [
+            {required: true, message: '请选择车辆类型', trigger: 'change'}
+        ],
+        'busiVehicleinfo.enginenum': [
+            {required: true, message: '请输入发动机号', trigger: 'blur'}
+        ],
+        'busiVehicleinfo.beneficiary': [
+            {required: true, message: '请选择第一受益人', trigger: 'change'}
+        ],
+        'busiVehicleinfo.priceInsucorp': [
+            {required: true, message: '万网盗抢险服务费', trigger: 'blur'},
+            {validator: checkFloatNum, trigger: 'blur'}
+        ],
+        'busiVehicleinfo.indemnitylimit': [
+            {required: true, message: '请选择赔偿限额', trigger: 'blur'},
+            {validator: checkFloatNum, trigger: 'blur'},
+            {
+                validator: (rule, value, callback) => {
+                    if (+value > +self.form.busiVehicleinfo.price) {
+                        console.log(value)
+                        console.log(self.form.busiVehicleinfo.price)
+                        callback(new Error('赔偿限额不能超过车辆购置价'))
+                    } else {
+                        callback()
+                    }
+                },
+                trigger: 'blur'
+            }
+        ],
+        contactname: [
+            {required: true, message: '请输入安装联系人', trigger: 'blur'}
+        ],
+        contactmobile: [
+            {required: true, message: '请输入安装联系方式', trigger: 'blur'},
+            {validator: checkMobile, trigger: 'blur'}
+        ],
+        impapplydate: [
+            {required: true, message: '选择安装时间', trigger: 'change'}
+        ],
+        vehiclestatus: [
+            {required: true, message: '选择车辆到达情况', trigger: 'change'}
+        ],
+        impaddress: [
+            {required: true, message: '选择安装地址', trigger: 'change'}
+        ],
+        impby: [
+            {required: true, message: '请选择安装人员', trigger: 'change'}
+        ]
+    }
+}
+
+/**
+ * 初始化维修/拆除报单
+ * @returns {{corpname: string, corpid: string, ordertype: string, declaretype: string, vehicleid: string, rpFaultremark: string, rpFaultcode: Array, busiImpdetails: Array, impapplydate: string, impaddresscode: string, impaddress: string, impaddresslng: string, impaddresslat: string, impgroupid: string, impby: string, declareremark: string, contactname: string, contactmobile: string, declarefrom: string}}
+ */
+export const initMaintainOrderForm = () => {
+    return {
+        corpname: '',//报单公司
+        corpid: '', //客户ID
+        ordertype: '', //订单类型(INSTALL=安装单，REMOVE=拆除单，REPAIR=维修单)")
+        declaretype: 'SELF', //保单类型（SELF, CUST）
+        vehicleid: '', //目标车辆ID
+        rpFaultremark: '', //维修单故障现象描述
+        rpFaultcode: [], //维修单故障代码
+        /**
+         * prodmodelid //施工产品型号ID
+         * installpositioncode //安装位置代码（配置在code mapping表）
+         * packid //施工设备套装ID
+         * onlinestatus //是否在线（O=在线，N=离线）
+         */
+        busiImpdetails: [],//拆除|维修设备列表
+        impapplydate: '', //申请施工时间
+        impaddresscode: '', //施工地址编码
+        impaddress: '', //施工地址
+        impaddresslng: '', //施工地址经度
+        impaddresslat: '', //施工地址纬度
+        impgroupid: '', //施工组ID
+        impby: '', //施工组员ID(userid)
+        declareremark: '', //报单备注
+        contactname: '', //现场联系人姓名
+        contactmobile: '', //现场联系人手机号码
+        declarefrom: 'VAS', //报单来源(VAS,ECT,YCH,FIN=集团车贷系统)
+    }
+}
+
+/**
+ * 维修/拆除表单验证
+ * @returns {{rpFaultcode: {required: boolean, message: string, trigger: string}[], rpFaultremark: {required: boolean, message: string, trigger: string}[], contactname: {required: boolean, message: string, trigger: string}[], contactmobile: *[], impapplydate: {required: boolean, message: string, trigger: string}[], vehiclestatus: {required: boolean, message: string, trigger: string}[], impaddress: {required: boolean, message: string, trigger: string}[], impby: {required: boolean, message: string, trigger: string}[]}}
+ */
+export const initMaintainOrderRules = () => {
+    return {
+        rpFaultcode: [
+            {required: true, message: '请选择维护类型和原因', trigger: 'change'}
+        ],
+        rpFaultremark: [
+            {required: true, message: '请填写故障现象/原因说明', trigger: 'change'}
+        ],
+        contactname: [
+            {required: true, message: '请输入安装联系人', trigger: 'blur'}
+        ],
+        contactmobile: [
+            {required: true, message: '请输入安装联系方式', trigger: 'blur'},
+            {validator: checkMobile, trigger: 'blur'}
+        ],
+        impapplydate: [
+            {required: true, message: '选择安装时间', trigger: 'change'}
+        ],
+        vehiclestatus: [
+            {required: true, message: '选择车辆到达情况', trigger: 'change'}
+        ],
+        impaddress: [
+            {required: true, message: '选择安装地址', trigger: 'change'}
+        ],
+        impby: [
+            {required: true, message: '请选择安装人员', trigger: 'change'}
+        ]
+    }
+}
+
+/**
+ * 根据公司id 获取产品列表
+ * @param params
+ * @param corpid
+ * @returns {AxiosPromise<any>}
+ */
+export const getProducts = (params, corpid) => {
+    return axios.get(`/admin/cmsPackcust/page/${corpid}`, {
+        params
+    })
+}
+
+/**
+ * 提交安装报单
+ * @param params
+ * @returns {AxiosPromise<any>}
+ */
+export const submitInstall = params => {
+    return axios.post(`/business/orderNewBuild/start`, params)
+}
+
+/**
+ * 客户提交报单
+ * @param params
+ * @returns {AxiosPromise<any>}
+ */
+export const submitInstallCust = params => {
+    return axios.post(`/business/orderNewBuild/custStart`, params)
+}
+
+/**
+ * 派单
+ * @param params
+ * @returns {AxiosPromise<any>}
+ */
+export const sendOrder = params => {
+    return axios.put(`/business/orderNewBuild/send/${params.taskid}`, params)
+}
+
+/**
+ * 转派
+ * @param params
+ * @returns {AxiosPromise<any>}
+ */
+export const transformOrder = params => {
+    return axios.put(`/business/orderNewBuild/receTransfOrder/${params.taskid}`, params)
+}
+
+/**
+ * 获取车辆信息BY车架号
+ * @param params
+ * @returns {AxiosPromise<any>}
+ */
+export const getVehicleInfo = params => {
+    return axios.get(`/admin/vehicleInfo/query/getbyVin`, {
+        params
+    })
+}
+
+/**
+ * 根据id查询报单
+ * @param params
+ * @returns {AxiosPromise<any>}
+ */
+export const getOrderById = params => {
+    return axios.get(`/business/busiDeclaration/query/declarationDetail`, {
+        params
+    })
+}
+
+/**
+ * 提交拆除报单
+ * @param params
+ * @returns {AxiosPromise<any>}
+ */
+export const submitRemove = params => {
+    return axios.post(`/business/orderVindicateRemove/start`, params)
+}
+
+/**
+ * 拆除单派单
+ * @param params
+ * @returns {AxiosPromise<any>}
+ */
+export const sendRemove = params => {
+    return axios.put(`/business/orderVindicateRemove/send/${params.taskid}`, params)
+}
+
+/**
+ * 拆除单转派
+ * @param params
+ * @returns {AxiosPromise<any>}
+ */
+export const transformRemove = params => {
+    return axios.put(`/business/orderVindicateRemove/receTransfOrder/${params.taskid}`, params)
+}
+
+/**
+ * 提交维修报单
+ * @param params
+ * @returns {AxiosPromise<any>}
+ */
+export const submitRepair = params => {
+    return axios.post(`/business/orderVindicate/start`, params)
+}
+
+/**
+ * 维修单派单
+ * @param params
+ * @returns {AxiosPromise<any>}
+ */
+export const sendRepair = params => {
+    return axios.put(`/business/orderVindicate/send/${params.taskid}`, params)
+}
+
+/**
+ * 维修单转派
+ * @param params
+ * @returns {AxiosPromise<any>}
+ */
+export const transformRepair = params => {
+    return axios.put(`/business/orderVindicate/receTransfOrder/${params.taskid}`, params)
+}
+
+/**
+ * 查询历史订单信息
+ * @param params
+ * @returns {AxiosPromise<any>}
+ */
+export const getHistoryOrder = params => {
+    return axios.get(`/business/busiDeclaration/query/declByVehicle`, {
+        params
+    })
+}
+
+/**
+ * 模糊查询车架号
+ * @param params
+ * @returns {AxiosPromise<any>}
+ */
+export const getSearchVinNum = params => {
+    return axios.get(`/business/busiVehiclecomb/queryCombVehicle`, {
+        params
+    })
+}
+
+export const getVinInfo = params => {
+    return axios.get(`/business/busiVehiclecomb/queryVehicle/${params.vehicleId}`)
+}

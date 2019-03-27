@@ -1,0 +1,178 @@
+<template>
+    <div class="app-container calendar-list-container">
+        <div class="filter-container">
+            <el-button-group>
+                <el-button type="primary" icon="el-icon-plus" @click="handlerAdd">添加</el-button>
+                <!--<el-button type="primary" icon="el-icon-plus" @click="init">添加根</el-button>-->
+                <el-button type="primary" icon="el-icon-edit" @click="handlerEdit">编辑</el-button>
+                <el-button type="danger" icon="el-icon-delete" @click="handleDelete">删除</el-button>
+            </el-button-group>
+        </div>
+
+        <el-row :gutter="20">
+            <el-col :span="8" style='margin-top:15px;'>
+                <!--<el-card>-->
+                <el-tree
+                        class="filter-tree tree-highlight"
+                        node-key="id"
+                        ref="tree"
+                        highlight-current
+                        :data="treeData"
+                        :default-expanded-keys="aExpandedKeys"
+                        :filter-node-method="filterNode"
+                        :props="defaultProps"
+                        @node-click="getNodeData"
+                >
+                        <span class="custom-tree-node" slot-scope="{ node, data }">
+                            <span>{{ node.label }}</span>
+                            <span style="flex: 1;">
+                                <el-tag style="float: right; margin-top: 4px" v-if="data.type === '1'" type="danger" size="mini">按钮</el-tag>
+                                <el-tag style="float: right; margin-top: 4px" v-else-if="data.type === '-1'" type="success" size="mini">页面</el-tag>
+                                 <el-tag style="float: right; margin-top: 4px" v-else size="mini">菜单</el-tag>
+                            </span>
+                        </span>
+                </el-tree>
+                <!--</el-card>-->
+            </el-col>
+
+            <el-col :span="16" style='margin-top:15px;'>
+                <el-card>
+                    <h2 class="form-title">
+                        <span v-if="formStatus === 'create'">
+                            {{currentData?`为 ${currentData.name} 添加菜单或者按钮`:'为根菜单添加菜单'}}
+                        </span>
+                        <span v-else>
+                            {{currentData?currentData.name :'根菜单'}}
+                        </span>
+                    </h2>
+                    <el-form :label-position="labelPosition" label-width="80px" :model="form" ref="form" :rules="rules">
+                        <template v-if="formEdit">
+                            <el-form-item label="父级节点" prop="parentId">
+                                <el-input v-model="form.parentId" disabled></el-input>
+                            </el-form-item>
+                            <el-form-item label="标题" prop="name">
+                                <el-input v-model="form.name" disabled></el-input>
+                            </el-form-item>
+                            <el-form-item label="权限标识" prop="permission">
+                                <el-input v-model="form.permission" disabled></el-input>
+                            </el-form-item>
+                            <el-form-item label="图标" prop="icon">
+                                <el-input v-model="form.icon" disabled></el-input>
+                            </el-form-item>
+                            <el-form-item label="资源路径" prop="url">
+                                <el-input v-model="form.url" disabled></el-input>
+                            </el-form-item>
+                            <el-form-item label="请求方法" prop="method">
+                                <el-radio-group v-model="form.method" disabled>
+                                    <el-radio-button v-for="item in methodOptions" :key="item" :label="item"></el-radio-button>
+                                </el-radio-group>
+                            </el-form-item>
+                            <el-form-item label="类型" prop="type">
+                                <el-radio-group v-model="form.type" disabled>
+                                    <el-radio-button v-for="item in typeOptions" :key="item" :label="item">{{item | typeFilter}}</el-radio-button>
+                                </el-radio-group>
+                            </el-form-item>
+                            <el-form-item label="排序" prop="sort">
+                                <el-input v-model="form.sort" disabled></el-input>
+                            </el-form-item>
+                            <el-form-item label="前端组件" prop="component">
+                                <el-input v-model="form.component" disabled></el-input>
+                            </el-form-item>
+                            <el-form-item label="前端地址" prop="component">
+                                <el-input v-model="form.path" disabled></el-input>
+                            </el-form-item>
+                            <el-form-item label="产品" prop="system">
+                                <el-select v-model="form.system" disabled>
+                                    <el-option v-for="item in systemoptions" :key="item.value" :label="item.label" :value="item.value">
+                                    </el-option>
+                                </el-select>
+                            </el-form-item>
+                        </template>
+                        <template v-else>
+                            <el-form-item label="父级节点" prop="parentId">
+                                <el-input v-model="form.parentId" :disabled="true" placeholder="请输入父级节点"></el-input>
+                            </el-form-item>
+                            <el-form-item label="标题" prop="name">
+                                <el-input v-model="form.name" :disabled="formEdit" placeholder="请输入标题"></el-input>
+                            </el-form-item>
+                            <el-form-item label="权限标识" prop="permission">
+                                <el-input v-model="form.permission" :disabled="formEdit" placeholder="请输入权限标识"></el-input>
+                            </el-form-item>
+                            <el-form-item label="图标" prop="icon">
+                                <el-input v-model="form.icon" :disabled="formEdit" placeholder="请输入图标"></el-input>
+                            </el-form-item>
+                            <el-form-item label="资源路径" prop="url">
+                                <el-input v-model="form.url" :disabled="formEdit" placeholder="请输入资源路径"></el-input>
+                            </el-form-item>
+                            <el-form-item label="请求方法" prop="method">
+                                <el-radio-group v-model="form.method" :disabled="formEdit || form.type === '0' || form.type === '-1'">
+                                    <el-radio-button v-for="item in methodOptions" :key="item" :label="item"></el-radio-button>
+                                </el-radio-group>
+                            </el-form-item>
+                            <el-form-item label="类型" prop="type">
+                                <el-radio-group v-model="form.type" :disabled="formEdit">
+                                    <el-radio-button v-for="item in typeOptions" :key="item" :label="item" :disabled="currentId === -1&&item === '1'">{{item |
+                                        typeFilter}}
+                                    </el-radio-button>
+                                </el-radio-group>
+                            </el-form-item>
+                            <el-form-item label="排序" prop="sort">
+                                <el-input v-model="form.sort" :disabled="formEdit" placeholder="请输入排序"></el-input>
+                            </el-form-item>
+                            <el-form-item label="前端组件" prop="component">
+                                <el-input v-model="form.component" :disabled="formEdit" placeholder="请输入前端组件"></el-input>
+                            </el-form-item>
+                            <el-form-item label="前端地址" prop="component">
+                                <el-input v-model="form.path" :disabled="formEdit" placeholder="iframe嵌套地址"></el-input>
+                            </el-form-item>
+                            <el-form-item label="产品" prop="system">
+                                <el-select v-model="form.system" :disabled="formEdit || formStatus ==='create'" placeholder="请选择">
+                                    <el-option v-for="item in systemoptions" :key="item.value" :label="item.label" :value="item.value">
+                                    </el-option>
+                                </el-select>
+                            </el-form-item>
+                        </template>
+                        <el-form-item v-if="formStatus === 'update'">
+                            <el-button type="primary" @click="update">更新</el-button>
+                            <el-button @click="onCancel">取消</el-button>
+                        </el-form-item>
+                        <el-form-item v-if="formStatus === 'create'">
+                            <el-button type="primary" @click="create">保存</el-button>
+                            <el-button @click="onCancel">取消</el-button>
+                        </el-form-item>
+                    </el-form>
+                </el-card>
+            </el-col>
+        </el-row>
+    </div>
+</template>
+
+<script src="./index.js"></script>
+
+<style lang="stylus" scoped>
+
+    .app-container {
+        box-sizing: border-box;
+    }
+
+    .filter-container
+        padding-bottom: 10px;
+
+    .filter-item
+        display: inline-block;
+        vertical-align: middle;
+        margin-bottom: 10px;
+        width: 100%;
+
+    .form-title {
+        font-size 18px;
+        text-align center
+    }
+
+    .custom-tree-node {
+        display: flex;
+        flex: 1;
+        line-height: 28px;
+    }
+
+</style>

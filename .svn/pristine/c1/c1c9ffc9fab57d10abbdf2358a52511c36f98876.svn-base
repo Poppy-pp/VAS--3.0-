@@ -1,0 +1,103 @@
+<template>
+    <div>
+        <el-card class="box-card">
+            <div slot="header">
+                <h1 style="margin-bottom: 10px;">数据概况</h1>
+                <div class="general-situation">
+                    <span>{{corporateinfo.corpname}}</span>
+                    <span>当前大保单编号</span>
+                    <el-select v-model="policyno" placeholder="请选择" style="width: 200px;" size="mini" @change="getInsuranceDataCount">
+                        <el-option label="全部" value=""></el-option>
+                        <el-option
+                                v-for="item in policynos"
+                                :key="item.id"
+                                :label="item.policyno"
+                                :value="item.policyno">
+                        </el-option>
+                    </el-select>
+                </div>
+            </div>
+            <el-row :gutter="40">
+                <el-col :md="12" :lg="6">
+                    <div class="count-box bg-cyan">
+                        <div class="count-sum">{{countData.issue_num}}</div>
+                        <div class="count-content">出单总数</div>
+                    </div>
+                </el-col>
+                <el-col :md="12" :lg="6">
+                    <div class="count-box bg-yellow">
+                        <div class="count-sum">{{countData.issue_price_total}}</div>
+                        <div class="count-content">出单保费（元）</div>
+                        <div>最终保费以财务结算为准</div>
+                    </div>
+                </el-col>
+                <el-col :md="12" :lg="6">
+                    <div class="count-box bg-blue">
+                        <div class="count-sum">{{countData.total_insurance_price}}</div>
+                        <div class="count-content">总保费（元）</div>
+                    </div>
+                </el-col>
+                <el-col :md="12" :lg="6">
+                    <div class="count-box bg-red">
+                        <div class="count-sum">{{countData.remain_insurance_price}}</div>
+                        <div class="count-content">剩余保费（元）</div>
+                    </div>
+                </el-col>
+            </el-row>
+        </el-card>
+        <el-card style="margin-top: 10px;">
+            <div slot="header">
+                <h1>出单趋势</h1>
+            </div>
+            <insurance-count-chart></insurance-count-chart>
+        </el-card>
+    </div>
+</template>
+
+<script src="./index.js"></script>
+
+<style scoped lang="stylus">
+    .general-situation
+        display flex
+        align-items center
+        span
+            font-size 14px;
+            margin-right 15px;
+        /*h1*/
+            /*font-size 24px;*/
+
+    .count-box
+        padding 20px;
+        border 1px solid #ccc
+        border-radius 5px;
+        height 120px;
+        text-align center
+        color #fff
+        background #000000
+        margin 5px 0
+
+    .count-sum
+        font-size 24px;
+
+    .count-content
+        font-size 22px;
+        margin 10px 0;
+
+    .bg-cyan
+        background #36cbcb
+        border-color #36cbcb
+
+    .bg-yellow
+        background #e6a23c
+        border-color #e6a23c
+
+    .bg-blue
+        background #409eff
+        border-color #409eff
+
+    .bg-red
+        background #f56c6c
+        border-color #f56c6c
+
+
+</style>

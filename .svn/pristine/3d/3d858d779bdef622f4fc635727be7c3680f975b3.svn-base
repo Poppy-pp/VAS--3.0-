@@ -1,0 +1,529 @@
+import {
+    getProductInfoList,
+    addProductAllocation,
+    getChooseProduct,
+    getAllocationBatchno,
+    getChooseProductDetails,
+    getChooseProductDetailsAdd,
+    removeProductAllocation,
+    addPartsAllocation,
+    getPurchaseCascader,
+    addAllocation,
+    getToStorage,
+    getDeliveryCorps,
+    getActiontype,
+    getDeliveryaddress,
+    setFacilityFormRules,
+    updatePurchaseQty,
+    getChooseAll
+} from '../service'
+import { getUserInfo } from '@/api/login'
+import { getToken } from '@/utils/auth'
+import { getEmployeeInfoList } from "@/views/basicManage/employeeManage/service";
+
+
+export default {
+    name: "allocation-detail",
+    data () {
+        return {
+            Dayjs: dayjs,
+            addLoading:false,
+            filtersProd: {
+                domSearch: [{
+                    select: ['prodnum'],
+                    content: ''
+                }], //查询框
+            },
+            facilities: [],//手动添加设备——选择设备列表
+            chooseFacilityVisible: false,
+            dtotal: 0,
+            dcurrentPage: 1,
+            dpageSize: 1000000,
+            selectFacilities: [],
+            scanNumberVisible: false,//扫描添加设备——选择设备列表
+            devNum: '',
+            devNumList: [],
+            facilityLoading: false,
+            detailsLoading: false,
+            facilityForm: {
+                // 基础信息
+                batchno: '',//调拨单号
+                actiontype: '',//调拨类型
+                actiondate: dayjs(new Date()).format('YYYY-MM-DD'),//调拨日期
+                createby: this.$store.getters.userInfo.userid,//经办人id，制单人id
+                username: this.$store.getters.userInfo.name,//经办人，制单人
+                storageid: '',//调出仓库
+                storagename: '',
+                tostorageid: '',//调入仓库
+                tostoragename: '',
+                //物流信息
+                delivery: {
+                    deliverytype: '',//发货方式
+                    deliverydate: '',//发货日期
+                    deliveryno: '',//物流号
+                    deliverycorp: '',//物流公司
+                    deliverycorpname: '',
+                    vehicleplate: '',//车牌号
+                    contactno: '',//联系电话
+                    estreceivedate: '',//预计到货日期
+                    deliveryfee: '',//快递费
+                    remarks: '',
+                    fromaddressid: '',//发货地址
+                    fromaddressname: '',
+                    toaddressid: '',//收货地址
+                    toaddressname: '',
+                },
+                createdate: dayjs(new Date()),//制单日期
+            },
+            //设备信息
+            listUpload: [],
+            // 收发货信息-展示
+            receiver: '',//收货人
+            consigner: '',//发货人
+            receiverPhone: '',//收货电话
+            consignerPhone: '',//发货电话
+            esreceiver:'',//底部收货人
+            estreceivedate:'',//收货日期
+            facilityFormRules: setFacilityFormRules,
+            inTypes: [],//调拨类型
+            addressList: [],//收发货地址
+            addressLoading: false,
+            storageList: [],//库房
+            selectLoading: false,
+            employeeInfoLis: [],//经办人
+            deliveryCorps: [],//物流公司
+            chooseProdDetail: [],//设备详情列表
+            modelOptions: [],//配件列表
+            typeForm: {//添加配件
+                batchno: '',
+                storageid: '',
+                storagename: '',
+                modelcategoryname: '',
+                modelcategory: 'A',
+                modelname: '',
+                modelnameArr: [],
+                prodid: '',
+                modelnameSpan: '',
+                qty: '',
+            },
+            // storages: this.$store.getters.userInfo.employeeinfo.storages,//当前登录人的库房
+            storages: [],//当前登录人的库房
+            activeName: 'first',//当前默认库房tab页
+            editable: false,//添加配件可编辑
+            isView: false,
+            isPurchasePlan: false,
+            prodLoading:false,
+            selectProds:[],//所有已选设备
+        }
+    },
+    methods: {
+        init () {
+            // 初始化调出库房
+            getUserInfo(getToken()).then((res) => {
+                this.storages = res.data.storages;
+            })
+
+            //详情入口
+            if (this.$route.query.actiontype !== undefined) {
+                this.facilityForm = this.$route.query;//获取设备调拨页面传来数据
+                this.listUpload = this.$route.query.groupCounts;//设备信息
+                this.facilityForm.actiontype = this.$route.query.actiontypename;
+                this.facilityForm.delivery.fromaddressname = this.$route.query.delivery.fromAddress;
+                this.facilityForm.delivery.toaddressname = this.$route.query.delivery.toAddress;
+                this.consigner = this.$route.query.delivery.fromContactPerson;
+                this.receiver = this.$route.query.delivery.toContactPerson;
+                this.consignerPhone = this.$route.query.delivery.fromContactNo;
+                this.receiverPhone = this.$route.query.delivery.toContactNo;
+                this.esreceiver = this.$route.query.delivery.toContactPerson;
+                this.estreceivedate = this.$route.query.delivery.estreceivedate ? dayjs(this.$route.query.delivery.estreceivedate).format('YYYY-MM-DD') : '暂无';
+                this.facilityForm.username = this.$route.query.createbyname;
+                this.facilityForm.delivery.deliverycorp = this.$route.query.delivery.deliverycorpname;
+                this.isView = true;//禁用
+                JsBarcode(this.$refs['invoice-bar-code'], this.$route.query.batchno, {width: 1, height: 40});
+                return;
+            }
+
+            if (this.$route.query.isPurchasePlan) {
+                const query = this.$route.query
+                this.isPurchasePlan = true
+
+                this.getStorage().then(() => {
+                    const storage = _.find(this.storageList,  item => item.id === query.storageid)
+                    this.chooseStorageTo(storage)
+                })
+                const storage = _.find(this.$store.getters.userInfo.employeeinfo.storages, item => item.storagelevel < 2)
+                this.chooseStorage(storage)
+                console.log(this.$route.query)
+            }
+            // 新增——生成调拨单号
+            getAllocationBatchno().then((res) => {
+                this.facilityForm.batchno = res.data.data;
+                JsBarcode(this.$refs['invoice-bar-code'], this.facilityForm.batchno, {width: 1, height: 40});
+            });
+        },
+        // 调拨类型
+        async getActionType () {
+            try {
+                const {data} = await getActiontype()
+                this.inTypes = data.data;
+            } catch (e) {
+            }
+        },
+        // 获取仓库
+        async getStorage () {
+            try {
+                const params = {limit: 1000, page: 1}
+                const {data} = await getToStorage(params)
+                this.storageList = data.data.records
+            } catch (e) {
+            }
+        },
+        // 经办人下拉
+        userChange (r) {
+            this.employeeInfoLis = [];
+            if (!r || this.employeeInfoLis.length > 0) return;
+            this.selectLoading = true;
+            getEmployeeInfoList({limit: 1000, isactive: 1}).then((res) => {
+                this.employeeInfoLis = res.data.data.records;
+                this.selectLoading = false;
+            });
+        },
+        // 经办人搜索
+        remoteMethod (query) {
+            let para = {
+                limit: 1000,
+                isactive: '1',
+                domSearch: [{
+                    select: ['employeename'],
+                    content: query
+                }],
+            };
+            this.selectLoading = true;
+            getEmployeeInfoList(para).then(({data}) => {
+                this.selectLoading = false
+                this.employeeInfoLis = data.data.records
+            })
+        },
+        // 选择经办人时
+        chooseUser (val) {
+            this.facilityForm.createby = val.userid;
+            this.facilityForm.username = val.employeename;
+        },
+        // 选择物流公司
+        async getDeliveryCorps () {
+            try {
+                const params = {
+                    dictvalue: 'ExpressCompany',
+                    limit: 1000,
+                    page: 1
+                }
+                const {data} = await getDeliveryCorps(params)
+                this.deliveryCorps = data.data.records
+            } catch (e) {
+            }
+        },
+        // 收发货地址
+        async deliveryAddress (val) {
+            try {
+                this.addressLoading = true;
+                if (val == 0) {                 //发货地址
+                    let params = {storageid: this.facilityForm.storageid}
+                    const {data} = await getDeliveryaddress(params)
+                    this.addressList = data.data.records;
+                    this.addressLoading = false;
+                } else if (val == 1) {       //收货地址
+                    let params = {storageid: this.facilityForm.tostorageid}
+                    const {data} = await getDeliveryaddress(params)
+                    this.addressList = data.data.records;
+                    this.addressLoading = false;
+                }
+            } catch (e) {
+            }
+        },
+        // 选择调出仓库时
+        chooseStorage (val) {
+            this.facilityForm.storageid = val.id;
+            this.facilityForm.storagename = val.storagename;
+            this.facilityForm.delivery.fromaddressid = '';
+            this.facilityForm.delivery.fromaddressname = '';
+            this.consigner = '';
+            this.consignerPhone = '';
+            this.listUpload = [];
+            this.editable = false;
+        },
+        // 选择调入仓库时
+        chooseStorageTo (val) {
+            this.facilityForm.tostorageid = val.id;
+            this.facilityForm.tostoragename = val.storagename;
+            this.facilityForm.delivery.toaddressid = '';
+            this.facilityForm.delivery.toaddressname = '';
+            this.receiver = '';
+            this.receiverPhone = '';
+        },
+        // 选择发货地址时
+        chooseAddress (val) {
+            this.facilityForm.delivery.fromaddressid = val.id;
+            this.facilityForm.delivery.fromaddressname = val.addressdetail;
+            this.consigner = val.contactperson;
+            this.consignerPhone = val.mobile;
+        },
+        // 选择收货地址时
+        chooseAddressTo (val) {
+            this.facilityForm.delivery.toaddressid = val.id;
+            this.facilityForm.delivery.toaddressname = val.addressdetail;
+            this.receiver = val.contactperson;
+            this.receiverPhone = val.mobile;
+        },
+
+        // ------------------------------------------------------------手动添加设备---------------------------------------------------------------
+        // 点击添加
+        addFacility (boolean) {
+            if (boolean) {                      //手动添加
+                if (this.facilityForm.storagename == '') { //未选择调出库房时
+                    this.$message.warning('请先选择调出仓库！');
+                    return;
+                }
+                this.chooseFacilityVisible = true;
+                this.filtersProd = {
+                    domSearch: [{
+                        select: ['prodnum'],
+                        content: ''
+                    }], //查询框
+                },
+                this.getChoose();
+                this.getDeciceListInfo ();
+            } else {                                //扫描添加
+                this.devNumList = []
+                this.scanNumberVisible = true
+            }
+        },
+        //获取设备列表信息
+        getDeciceListInfo () {
+            this.prodLoading = true;
+            let para = {
+                limit: this.dpageSize,
+                page: this.dcurrentPage,
+                storageid: this.facilityForm.storageid,
+                domSearch: this.filtersProd.domSearch, //查询框
+                status: 'INSTO'
+            }
+            getProductInfoList(para).then((res) => {
+                this.prodLoading = false;
+                this.dtotal = res.data.data.total;
+                this.facilities = res.data.data.records;
+            })
+        },
+        // 查询已选设备信息，匹配勾选
+        getChoose(){
+            let para = {
+                batchno:this.facilityForm.batchno
+            }
+            getChooseAll(para).then((res) => {
+                this.selectProds = res.data.data;
+            })
+        },        
+        // 多选设备时
+        selectFacility (selection) {
+            this.selectFacilities = selection
+        },
+        //存储不同个页面勾选状态
+        defaultSelectable(row, index) {
+            // this.selectProds.forEach((item, index) => {
+            //     if(item.prodid === row.row.id) {
+            //         this.$refs.facilitiesTable.toggleRowSelection(row.row, true);
+            //         return false;
+            //     }
+            // });
+        },
+        // 确定选择设备时
+        confirmFacility () {
+            if (this.selectFacilities.length == 0) {//当未选择设备点击确定时
+                this.$message.warning('请先选择设备！');
+                return;
+            }
+            this.chooseFacilityVisible = false;
+            this.selectFacilities.forEach((item, index) => {
+                item.batchno = this.facilityForm.batchno;
+                item.prodid = item.id;
+                item.storagename = item.storagename;
+            });
+            let para = Object.assign(this.selectFacilities)
+            addProductAllocation(para).then((res) => {
+                this.facilityLoading = true;
+                this.getChooseProdList();//查询已选设备列表
+            })
+        },
+        // 查看所选设备列表
+        getChooseProdList () {
+            this.facilityLoading = true;
+            getChooseProduct({batchno: this.facilityForm.batchno}).then((res) => {//刷新查询已添加设备
+                this.facilityLoading = false;
+                this.listUpload = res.data.data;
+            })
+        },
+        // 查看当前设备数量详情
+        getDetails (row) {
+            this.chooseProdDetail = [];//初始化
+            if (row.actionid !== undefined) {               //详情时
+                let para = {
+                    actionid: row.actionid,
+                    modelcategory: row.modelcategory,
+                    modelname: row.modelname,
+                }
+                getChooseProductDetails(para).then((res) => {
+                    this.chooseProdDetail = res.data.data;
+                })
+            } else {                                                              //新增时
+                this.detailsLoading = true;
+                let para = {
+                    batchno: row.batchno,
+                    modelcategory: row.modelcategory,
+                    modelname: row.modelname || row.simmodelname,
+                }
+                getChooseProductDetailsAdd(para).then((res) => {
+                    this.detailsLoading = false;
+                    this.chooseProdDetail = res.data.data;
+                })
+            }
+        },
+        // 删除设备
+        remove (index, row) {
+            let para = {
+                batchno: row.batchno,
+                prodid: row.prodid,
+                modelcategory: row.modelcategory,
+            }
+            removeProductAllocation(para).then((res) => {
+                this.$message.success('移除成功！');
+                this.getChooseProdList();//设备已选列表更新
+                this.getDetails(row);//数量详情更新
+            })
+        },
+
+
+        // ------------------------------------------------------------添加配件---------------------------------------------------------------
+        // 点击添加配件
+        addParts () {
+            if (this.facilityForm.storagename == '') { //未选择调出库房时
+                this.$message.warning('请先选择调出仓库！');
+                return;
+            }
+            this.typeForm = {
+                batchno: this.facilityForm.batchno,
+                storageid: this.facilityForm.storageid,
+                storagename: this.facilityForm.storagename,
+                modelcategoryname: '配件',
+                modelcategory: 'A',
+                modelname: '',
+                modelnameArr: [],
+                prodid: '',
+                modelnameSpan: '',
+                qty: '',
+            }//清空输入框，初始化
+            this.listUpload.push(this.typeForm);
+            this.editable = true;
+            this.modelOptions = [];
+        },
+        // 获取配件下拉信息
+        modelCascader () {
+            getPurchaseCascader({storageid:this.facilityForm.storageid}).then((res) => {
+                this.modelOptions = res.data.data;
+            });
+        },
+        // 级联选择器-选择配件时
+        handleChange (val) {
+            this.typeForm.prodid = val[val.length - 1];
+            this.typeForm.modelname = this.$refs['cascader'].currentLabels[1];//传参-汉字
+            this.typeForm.modelnameSpan = this.$refs['cascader'].currentLabels.toString();//选择时显示
+        },
+        // 选择库房时
+        chooseStorageParts (val) {
+            this.typeForm.storageid = val.id;
+            this.typeForm.storagename = val.storagename;
+        },
+        // 确认添加配件
+        confirmParts () {
+            this.$refs.typeForm.validate((valid) => {
+                if (valid) {
+                    let para = Object.assign(this.typeForm)
+                    addPartsAllocation(para).then((res) => {
+                        this.$message.success('添加配件成功！');
+                        this.editable = false;
+                        this.getChooseProdList();//查询已选设备列表
+                    });
+                }
+            })
+
+        },
+        // 点击取消添加配件
+        cancelParts () {
+            this.editable = false;
+            this.getChooseProdList();//查询已选设备列表
+        },
+
+
+        // ------------------------------------------------------------扫码添加设备---------------------------------------------------------------
+        // 扫码添加设备
+        keyUpDevice () {
+            const arr = _.map(this.devNumList, 'equipmentnum')
+            if (this.devNum && !arr.includes(this.devNum)) {
+                this.devNumList.push({
+                    equipmentnum: this.devNum
+                })
+                this.devNum = ''
+            } else {
+                this.$message.warning('已存在编号')
+            }
+        },
+        // 删除扫码设备
+        deleteSavDeviceNum (index) {
+            this.devNumList.splice(index, 1)
+        },
+        // 扫码添加设备
+        checkScanNumber () {
+            this.scanNumberVisible = false
+            this.listUpload = this.listUpload.concat(this.devNumList);
+        },
+
+
+// ------------------------------------------------------------确认调拨，提交数据---------------------------------------------------------------
+        submit () {
+            this.$refs.facilityForm.validate(async valid => {
+                if (valid) {
+                    try {
+                        if (this.listUpload.length == 0) {
+                            this.$message.warning('请添加设备信息！');
+                            return;
+                        }
+                        this.addLoading = true;
+                        await addAllocation(this.facilityForm)
+                        if(this.isPurchasePlan) {
+                            const parchasenum = _.chain(this.listUpload)
+                                .filter(item => item.modelspec === this.$route.query.modelspec)
+                                .sumBy('qty')
+                                .value()
+                            const storageQty = {
+                                prodspec: this.$route.query.modelspec,
+                                storageid: this.$route.query.storageid,
+                                parchasenum
+                            }
+                            await updatePurchaseQty(storageQty)
+                        }
+                        this.$emit('submit')
+                        this.addLoading = false;
+                        this.$message.success('提交成功');
+                        this.$router.push('/stockManage/equipmentAllocation')
+                    } catch (e) {
+                        this.addLoading = false;
+                    }
+                    return
+                }
+                this.$message.warning('请检查表单完善信息！')
+            })
+        },
+
+    },
+    mounted () {
+        this.init()
+    }
+}

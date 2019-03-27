@@ -1,0 +1,244 @@
+<template>
+    <section>
+        <el-row>
+            <el-col :span="24" class="toolbar" style="padding-bottom: 0px;">
+                <el-form :inline="true">
+                    <el-form-item>
+                        <el-input placeholder="请输入设备类型" v-model="modelname"></el-input>
+                    </el-form-item>
+                    <el-form-item>
+                        <el-button type="primary" @click="getStockNumList" icon="el-icon-search">查询</el-button>
+                    </el-form-item>
+                    <!--<el-form-item>-->
+                    <!--<el-button type="primary">导出</el-button>-->
+                    <!--</el-form-item>-->
+                    <el-form-item>
+                        <el-button :disabled="!showWantGoods" type="primary" @click="$router.push('/stockManage/stockInquiry/wantGoods')">填写要货</el-button>
+                    </el-form-item>
+                    <el-form-item>
+                        <el-button :disabled="!showPurchasePlan" type="primary" @click="$router.push('/stockManage/stockInquiry/purchasePlan')">采购计划</el-button>
+                    </el-form-item>
+                    <el-form-item>
+                        <el-button type="primary" @click="setEarlyWarning">设置预警值</el-button>
+                    </el-form-item>
+                </el-form>
+            </el-col>
+        </el-row>
+        <el-row>
+            <el-col :span="6" style="display: flex;">
+                <div :style="{height: windowOutHeight - 200 + 'px'}" style="overflow: auto; flex: 1; margin-right: 10px;" v-loading="treeLoading">
+                    <el-tree ref="storageTree" :data="storageTree" :props="defaultProps" @node-click="handleNodeClick" node-key="id" highlight-current
+                             class="tree-highlight"
+                             :default-expanded-keys="defaultExpandedKeys">
+                        <div class="custom-tree-node" slot-scope="{ node, data }">
+                            <span>{{ node.label }}</span>
+                            <span>({{data.newProductCount}}/{{data.productTotalCount}})</span>
+                        </div>
+                    </el-tree>
+                    <div class="storage-hint">
+                        <p>注：</p>
+                        <p>树结构展示数据为本级+下级所有设备的新设备/总设备，不包括配件和SIM数量。</p>
+                    </div>
+                </div>
+            </el-col>
+            <el-col :span="18">
+                <el-card class="box-card">
+                    <el-form>
+                        <el-row>
+                            <el-col :span="8">
+                                <el-form-item label="有线设备量：">
+                                    {{stockData.wiredProdcutNum}}
+                                </el-form-item>
+                            </el-col>
+                            <el-col :span="8">
+                                <el-form-item label="无线设备量：">
+                                    {{stockData.wifiProductNum}}
+                                </el-form-item>
+                            </el-col>
+                            <el-col :span="8">
+                                <el-form-item label="GPS设备总量：">
+                                    {{GPSCount}}
+                                </el-form-item>
+                            </el-col>
+                        </el-row>
+                        <el-row>
+                            <el-col :span="8">
+                                <el-form-item label="配件总量：">
+                                    {{stockData.partsNum}}
+                                </el-form-item>
+                            </el-col>
+                            <el-col :span="8">
+                                <el-form-item label="SIM卡总量：">
+                                    {{stockData.cardNum}}
+                                </el-form-item>
+                            </el-col>
+                            <el-col :span="8">
+                                <el-form-item label="库房总量：">
+                                    {{stockData.partsNum + stockData.cardNum + stockData.wiredProdcutNum + stockData.wifiProductNum}}
+                                </el-form-item>
+                            </el-col>
+                        </el-row>
+                    </el-form>
+
+                    <el-table :max-height="windowOutHeight-215" :data="dataList" border highlight-current-row
+                              v-loading="loading">
+                        <el-table-column type="index" align="center" label="序号" width="50">
+                        </el-table-column>
+                        <el-table-column prop="modelspec" align="center" label="规格" min-width="100">
+                        </el-table-column>
+                        <el-table-column prop="modelname" align="center" label="类型名称" min-width="100">
+                            <template slot-scope="scope">
+                                <span class="color-danger" v-if="scope.row.isMin || scope.row.isMax">
+                                    {{scope.row.modelname}}
+                                    <i class="iconfont icon-xiafan" v-if="scope.row.isMin" style="font-weight: 600"></i>
+                                    <i class="iconfont icon-shangfan" v-else style="font-weight: 600"></i>
+                                </span>
+                                <span v-else>
+                                    {{scope.row.modelname}}
+                                </span>
+                            </template>
+                        </el-table-column>
+                        <el-table-column align="center" label="库存量" min-width="50">
+                            <template slot-scope="scope">
+                                <span class="color-danger" v-if="scope.row.isMin || scope.row.isMax">
+                                    {{scope.row.count}}
+                                </span>
+                                <span v-else>
+                                    {{scope.row.count}}
+                                </span>
+                            </template>
+                        </el-table-column>
+                        <el-table-column prop="minlimit" align="center" label="最低预警值" width="160">
+                            <template slot-scope="scope">
+                                <span class="color-danger" v-if="scope.row.isMin || scope.row.isMax">
+                                    {{scope.row.minlimit}}
+                                </span>
+                                <span v-else>
+                                     {{scope.row.minlimit}}
+                                </span>
+                            </template>
+                        </el-table-column>
+                        <el-table-column prop="maxlimit" align="center" label="最高预警值" width="160">
+                            <template slot-scope="scope">
+                                <span class="color-danger" v-if="scope.row.isMin || scope.row.isMax">
+                                    {{scope.row.maxlimit}}
+                                </span>
+                                <span v-else>
+                                     {{scope.row.maxlimit}}
+                                </span>
+                            </template>
+                        </el-table-column>
+                        <el-table-column label="操作" width="100" align="center" fixed="right">
+                            <template slot-scope="scope">
+                                <el-button id="button" @click="viewDetails(scope.row)" v-if="scope.row.order !== 3" title="查看详情">
+                                    <i class="iconfont icon-xiangqing operate operate-xiangqing"></i>
+                                </el-button>
+                            </template>
+                        </el-table-column>
+                    </el-table>
+                </el-card>
+            </el-col>
+        </el-row>
+        <el-dialog
+                title="查看设备详情"
+                :visible.sync="dialogVisible"
+                width="60%">
+            <el-table v-if="dialogVisible" border :data="listData" :max-height="windowOutHeight-300" highlight-current-row v-loading="listLoading">
+                <el-table-column type="index" width="30" align="center" label="#">
+                </el-table-column>
+                <el-table-column prop="storagename" label="库房" align="center">
+                </el-table-column>
+                <el-table-column prop="modelspecname" label="规格" align="center">
+                </el-table-column>
+                <el-table-column prop="modelname" label="型号" align="center">
+                </el-table-column>
+                <el-table-column prop="simnum" label="设备编号" align="center" v-if="currentData.order === 4"></el-table-column>
+                <el-table-column prop="prodnum" label="设备编号" align="center" v-else>
+                    <template slot-scope="scope">{{scope.row.prodnum}}
+                        <el-badge v-if="scope.row.isold == '0' && scope.row.isrepairing !== '2'" class="new" value="新" style="top:0.5em;"/>
+                        <el-badge v-if="scope.row.isrepairing == '2'" class="mark" value="坏" style="top:0.5em;"/>
+                    </template>
+                </el-table-column>
+                <el-table-column prop="statusval" label="库房状态" align="center" v-if="currentData.order === 4">
+                </el-table-column>
+                <el-table-column prop="prodstatus" label="库房状态" align="center" v-else>
+                </el-table-column>
+            </el-table>
+            <el-pagination @size-change="handleSizeChange" background @current-change="handleCurrentChange" :page-sizes="[15, 50, 80, 99]"
+                           :current-page="pagination.page"
+                           :page-size="pagination.limit" layout="total, sizes, prev, pager, next" :total="pagination.total">
+            </el-pagination>
+            <div slot="footer" class="dialog-footer">
+                <el-button @click="dialogVisible = false">返回</el-button>
+            </div>
+        </el-dialog>
+        <el-dialog :visible.sync="earlyWarningVisible" title="设置预警值" width="1000px">
+            <el-row v-if="earlyWarningVisible">
+                <el-col :span="6">
+                    <el-tree
+                            :data="earlyWarningStorages"
+                            show-checkbox
+                            node-key="id"
+                            :check-strictly="true"
+                            ref="treeRouse"
+                            @check-change="handleCheckChange"
+                            :default-expand-all="true"
+                            :props="defaultProps">
+                    </el-tree>
+                </el-col>
+                <el-col :span="16">
+                    <el-table :data="earlyWarningData" border highlight-current-row @row-click="rowClick" v-loading="earlyLoading">
+                        <el-table-column type="index" align="center" label="序号" width="50">
+                        </el-table-column>
+                        <el-table-column prop="modelspec" align="center" label="规格" min-width="100">
+                        </el-table-column>
+                        <el-table-column prop="modelname" align="center" label="类型名称" min-width="100">
+                        </el-table-column>
+                        <el-table-column align="center" label="最低预警值" width="160">
+                            <template slot-scope="scope">
+                                <div>
+                                    <el-input v-if="scope.row.isEdit" size="mini" type="number" :min="0" @blur="verifyMinNum(scope.row)"
+                                              v-model="scope.row.minlimit"></el-input>
+                                    <span v-else>{{scope.row.minlimit}}</span>
+                                </div>
+                            </template>
+                        </el-table-column>
+                        <el-table-column align="center" label="最高预警值" width="160">
+                            <template slot-scope="scope">
+                                <div>
+                                    <el-input v-if="scope.row.isEdit" size="mini" type="number" :min="0" @blur="verifyMaxNum(scope.row)"
+                                              v-model="scope.row.maxlimit"></el-input>
+                                    <span v-else>{{scope.row.maxlimit}}</span>
+                                </div>
+                            </template>
+                        </el-table-column>
+                    </el-table>
+                </el-col>
+            </el-row>
+            <div slot="footer" class="dialog-footer">
+                <el-button @click="earlyWarningVisible = false">取消</el-button>
+                <el-button @click="submit" type="primary" :disabled="earlyWarningData.length === 0">提交</el-button>
+            </div>
+        </el-dialog>
+    </section>
+</template>
+
+<script src="./index.js">
+</script>
+
+<style scoped lang="stylus">
+    @import "../../../../assets/styl/variables.styl";
+
+    .storage-hint
+        font-size: 14px;
+        margin-top 10px;
+        padding 5px;
+        p
+            color: #404040;
+
+    .color-danger
+        color danger-color
+        font-weight 600
+
+
+</style>

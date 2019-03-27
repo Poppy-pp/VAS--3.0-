@@ -1,0 +1,7 @@
+import axios from 'axios'
+
+export const getProducts = params => {
+    return axios.get('/admin/cmsPackcust/page/1', {
+        params
+    })
+}

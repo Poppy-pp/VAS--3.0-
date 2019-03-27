@@ -1,0 +1,378 @@
+import util from 'utils/tools';
+import { getSupplierList, addSupplier, modifySupplier, removeSupplier, getSelectListSupplier,getNamebyUserid } from './service'
+
+export default {
+        props: ['windowOutHeight'],
+        data() {
+            return {
+                fmtdata: util,
+                prOptions: util.initProvince(),
+                filters: {
+                    domSearch: [{
+                        select: ['suppliername'],
+                        content: ''
+                    }], //查询框
+                    isactive: '1'
+                },
+                filtersProd: {
+                    timeScope: '',
+                },
+
+                supplierProdOptions: [{
+                    value: 'A',
+                    label: 'VAS'
+                }, {
+                    value: 'B',
+                    label: 'E车宝'
+                }, {
+                    value: 'C',
+                    label: 'UCHE'
+                }],
+                listData: [],
+                total: 0,
+                currentPage: 1,
+                pageSize: 15,
+                listLoading: false,
+                activeName:'first',
+                supplierThisList: [],//基础详情
+                moreData:[],//设备信息
+                formDialogTableVisible: false,
+                dtotal: 0,//设备详情
+                dcurrentPage: 1,
+                dpageSize: 15,
+                sels: [], //列表选中列
+                editFormVisible: false, //编辑界面是否显示
+                editLoading: false,
+                editFormRules: {
+                    suppliername: [{
+                        required: true,
+                        message: '请输入供应商名称',
+                        trigger: 'blur'
+                    }],
+                    suppliertype :[{
+                        required: true,
+                        message: '请选择供应商类别',
+                        trigger: 'blur'
+                    }],
+                },
+                //编辑界面数据
+                editForm: {
+                    id: '',
+                    suppliercode: '',
+                    suppliername: '',
+                    suppliertype: '',
+                    addressAll:'',
+                    supplieraddress: '',
+                    linkman: '',
+                    contactno: '',
+                    remark: '',
+                },
+                addFormVisible: false, //新增界面是否显示
+                addLoading: false,
+                addFormRules: {
+                    suppliername: [{
+                        required: true,
+                        message: '请输入供应商名称',
+                        trigger: 'blur'
+                    }],
+                    suppliertype: [{
+                        required: true,
+                        message: '请选择供应商类别',
+                        trigger: 'blur'
+                    }],
+                },
+                //新增界面数据
+                addForm: {
+                    suppliercode: '',
+                    suppliername: '',
+                    suppliertype: '',
+                    addressAll:'',
+                    supplieraddress: '',
+                    linkman: '',
+                    contactno: '',
+                    remark: '',
+                },
+                createname: "",
+                updatename: "",
+            }
+        },
+        methods: {
+            // 员工——搜索下拉
+
+            //查询清空
+            clearAll() {
+                this.filters.domSearch = [{
+                    select: [],
+                    content: ''
+                }] //清空查询框;
+            },
+            //详情查看
+            formDetailHandle(supId) {
+                this.formDialogTableVisible = true;
+                this.supplierThisList = ''; //清空上条数据
+                this.createname = "";
+                this.updatename = "";
+                // 获取当前分组信息
+                let para = {
+                    id: supId
+                }
+                nanobar.go(70);
+                getSupplierList(para).then((res) => {
+                    this.supplierThisList = res.data.data.records[0];
+                    nanobar.go(100);
+
+                    let paraThree = {
+                        createby: this.supplierThisList.createby == null ? 0 : this.supplierThisList.createby,
+                        updateby: this.supplierThisList.updateby == null ? 0 : this.supplierThisList.updateby,
+                    }
+                    getNamebyUserid(paraThree).then((res) => {
+                        this.createname = res.data.data[0];
+                        this.updatename = res.data.data[1];
+                    });
+                });
+            },
+            // 有效 鼠标移入
+            mouseoverChange(e) {
+                if($(e.target).hasClass('icon-duigou')) {
+                    $(e.target).addClass('operate-cha icon-cha').removeClass('operate-duigou icon-duigou');
+                } else {
+                    $(e.target).addClass('operate-duigou icon-duigou').removeClass('operate-cha icon-cha');
+                }
+            },
+            // 有效 鼠标移除
+            mouseoutChange(e) {
+                if($(e.target).hasClass('icon-cha')) {
+                    $(e.target).addClass('operate-duigou icon-duigou').removeClass('operate-cha icon-cha');
+                } else {
+                    $(e.target).addClass('operate-cha icon-cha').removeClass('operate-duigou icon-duigou');
+                }
+            },
+            // 添加查询条件
+            addSelect() {
+                this.filters.domSearch.push({
+                    select: [],
+                    content: ''
+                });
+            },
+            // 移除查询条件
+            removeSelect(index) {
+                this.filters.domSearch.splice(index, 1); //从当前index位置开始，删除一项
+            },
+            // 有效无效开关
+            showData(i) {
+                this.filters.isactive = i;
+                this.GetPositions();
+            },
+            //有效无效转换
+            isactiveFomat(row, col) {
+                return row.isactive == 1 ? '是' : row.isactive != undefined ? '否' : '未知';
+            },
+            // 有效无效颜色切换
+            tableRowClassName(row, index) {
+                if(row.isactive == 0) {
+                    return 'warning-row';
+                }
+                return '';
+            },
+            // 有效按钮切换状态
+            handleChange: function(index, row) {
+                this.$confirm('确认设置该条记录的状态吗？', '提示', {
+                    type: 'warning'
+                }).then(() => {
+                    let para = {
+                        id: row.id,
+                        isactive: row.isactive == 0 ? 1 : 0,
+                    }
+                    modifySupplier(para).then((res) => {
+                        this.$message({
+                            message: '设置成功',
+                            type: 'success'
+                        });
+                        row.isactive = para.isactive;
+                    }).catch(() => {
+                        this.listLoading = false;
+                    });
+                });
+            },
+            //切换当前页
+            dhandleCurrentChange(val) {
+                this.dcurrentPage = val;
+                // this.getDeciceListInfo();
+            },
+            //切换每页显示数量
+            dhandleSizeChange(val) {
+                this.dpageSize = val;
+                // this.getDeciceListInfo();
+            },
+
+            //切换当前页
+            handleCurrentChange(val) {
+                this.currentPage = val;
+                this.handleQuerySelect();
+                // this.GetPositions();
+            },
+            //切换每页显示数量
+            handleSizeChange(val) {
+                this.pageSize = val;
+                this.GetPositions();
+            },
+            //搜索按钮——模糊查询
+            handleQuerySelect() {
+                let para = {
+                    currentPage: this.currentPage,
+                    showCount: this.pageSize,
+                    isactive: this.filters.isactive,
+                    domSearch: this.filters.domSearch,
+                };
+                this.listLoading = true;
+                getSelectListSupplier(para).then((res) => {
+                    this.total = res.data.data.totalResult;
+                    this.listData = res.data.data.records;
+                    this.listLoading = false;
+                }).catch((error) => {
+                    this.listLoading = false;
+                });
+            },
+            //获取保单列表
+            GetPositions() {
+                let para = {
+                    currentPage: this.currentPage,
+                    showCount: this.pageSize,
+                    // 搜索设置部分
+                    isactive: this.filters.isactive,
+                };
+                this.listLoading = true;
+                getSupplierList(para).then((res) => {
+                    this.total = res.data.data.totalResult;
+                    this.listData = res.data.data.records;
+                    this.listLoading = false;
+                }).catch((error) => {
+                    this.listLoading = false;
+                });
+            },
+            //删除
+            handleDel(index, row) {
+                this.$confirm('确认删除该记录吗?', '提示', {
+                    type: 'warning'
+                }).then(() => {
+                    this.listLoading = true;
+                    let para = {
+                        id: row.id,
+                        isdelete: 1,
+                    };
+                    modifySupplier(para).then((res) => {
+                        this.listLoading = false;
+                        this.$message({
+                            message: '删除成功',
+                            type: 'success'
+                        });
+                        this.GetPositions();
+                        // this.handleQuerySelect();
+                    });
+                }).catch(() => {
+
+                });
+            },
+            //显示编辑界面
+            handleEdit(index, row) {
+                // 地址
+                var addrVal = row.area;
+                if(addrVal != null) {
+                    var addrArr = addrVal.split(",");
+                } else {
+                    var addrArr = ["四川", "成都", "高新区"];
+                }
+                this.editFormVisible = true;
+                this.editForm = {
+                    id: row.id,
+                    suppliercode: row.suppliercode,
+                    suppliername: row.suppliername,
+                    suppliertype: row.suppliertype,
+                    addressAll: addrArr, //区域
+                    supplieraddress: row.supplieraddress,
+                    linkman: row.linkman,
+                    contactno: row.contactno,
+                    remark: row.remark,
+                }
+            },
+            //显示新增界面
+            handleAdd() {
+                this.addFormVisible = true;
+                this.addForm = {
+                    suppliercode: '',
+                    suppliername: '',
+                    suppliertype: '',
+                    addressAll: ["四川", "成都", "高新区"],
+                    supplieraddress: '',
+                    linkman: '',
+                    contactno: '',
+                    remark: '',
+                };
+
+            },
+            //编辑
+            editSubmit() {
+                this.$refs.editForm.validate((valid) => {
+                    if(valid) {
+                        this.editLoading = true;
+                        let para = {
+                            id: this.editForm.id,
+                            suppliercode: this.editForm.suppliercode,
+                            suppliername: this.editForm.suppliername,
+                            suppliertype: this.editForm.suppliertype,
+                            // area:this.editForm.addressAll.toString(),
+                            supplieraddress: this.editForm.supplieraddress,
+                            linkman: this.editForm.linkman,
+                            contactno: this.editForm.contactno,
+                            remark: this.editForm.remark,
+                        }
+
+                        modifySupplier(para).then((res) => {
+                            this.editLoading = false;
+                            this.$message({
+                                message: '编辑成功',
+                                type: 'success'
+                            });
+                            this.$refs['editForm'].resetFields();
+                            this.editFormVisible = false;
+                            this.GetPositions();
+                            // this.handleQuerySelect();
+                        });
+                    }
+                });
+            },
+            //新增
+            addSubmit() {
+                this.$refs.addForm.validate((valid) => {
+                    if(valid) {
+                        this.addLoading = true;
+                        let para = {
+                            suppliercode: this.addForm.suppliercode,
+                            suppliername: this.addForm.suppliername,
+                            suppliertype: this.addForm.suppliertype,
+                            // area:this.editForm.addressAll.toString(),
+                            supplieraddress: this.addForm.supplieraddress,
+                            linkman: this.addForm.linkman,
+                            contactno: this.addForm.contactno,
+                            remark: this.addForm.remark,
+                        }
+                        addSupplier(para).then((res) => {
+                            this.addLoading = false;
+                            this.$message({
+                                message: '新增成功',
+                                type: 'success'
+                            });
+                            this.$refs['addForm'].resetFields();
+                            this.addFormVisible = false;
+                            this.GetPositions();
+                        });
+                    }
+                });
+            },
+           
+        },
+        created() {
+            this.GetPositions();
+        },
+
+    }

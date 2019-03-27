@@ -1,0 +1,473 @@
+import util from 'utils/tools';
+
+import { 
+    getStorageInfoList, 
+    addStorageInfo, 
+    modifyStorageInfo, 
+    removeStorageInfo, 
+    getSelectListSto, 
+    getDeptManagerInfoList, 
+    getStorageInfoListSelect, 
+    getNamebyUserid, 
+    getCheckoutOfStoInfo 
+} from './service.js';
+
+export default {
+    name:'StorageInfo',
+    props: ['windowOutHeight'],
+    data() {
+        //验证中文
+        var checkChinese = (rule, value, callback) => {
+            var reg = /^[\u4e00-\u9fa5]+$/g,
+                flag = reg.test(value);
+            if(!flag) {
+                return callback(new Error('只能输入中文'));
+            } else {
+                callback();
+            }
+        };
+        return {
+            fmtdata: util,
+            prOptions: util.initProvince(),
+            filters: {
+                domSearch: [{
+                    select: ['STORAGENAME'],
+                    content: ''
+                }], //查询框
+                ISDELETE: '0',
+            },
+            stoOptions: [{
+                value: '1',
+                label: '总库'
+            }, {
+                value: '2',
+                label: '地方库'
+            }, {
+                value: '3',
+                label: '个人库'
+            }],
+            value: '',
+            pickerOptions: { //日期
+            },
+            listData: [],
+            contractList:[],//采购合同
+            contractLoading:false,
+            partsType: [], //配件类型
+            partsLoading: false,
+            supplierList:[],//供应商
+            supplierLoading: false,
+            customers: [],
+            total: 0,
+            currentPage: 0,
+            createname: "",
+            updatename: "",
+            pageSize: 15,
+            listLoading: false,
+            stoThisList: [],
+            formDialogTableVisible: false,
+            sels: [], //列表选中列
+            checkoutDataT: true, //数据验证返回的布尔值true
+            checkoutDataF: [], //数据验证组
+            thisInput: '', //编辑时存入row验证的值
+            addFormVisible: false, //新增界面是否显示
+            addLoading: false,
+            addFormRules: {
+                storagename: [{
+                        required: true,
+                        message: '请输入库房名称',
+                        trigger: 'blur'
+                    },
+                    {
+                        validator: checkChinese,
+                        trigger: 'blur'
+                    }
+                ],
+                managername: [{
+                        required: true,
+                        message: '请输入库管名称',
+                        trigger: 'blur'
+                    },
+                    {
+                        validator: checkChinese,
+                        trigger: 'blur'
+                    }
+                ],
+                storagelevel: [{
+                    required: true,
+                    message: '请选择库房级别',
+                    trigger: 'blur'
+                }],
+            },
+            //新增界面数据
+            addForm: {
+                act_id: '',
+                act_status: '',
+                parentname: '',
+                storagecode: '',
+                storagename: '',
+                storagelevel: '',
+                createdate: '',
+                createby: '',
+                updatedate: '',
+                updateby: '',
+                isdelete: 0,
+                addressAll: '',
+                managerid: '',
+                managername: '',
+                managermobile: '',
+                managerregion: '',
+                manageraddress: '',
+            },
+        }
+    },
+    methods: {
+        // 配件类型——搜索下拉
+        partsChange(r) {
+            if(!r || this.empOptions.length > 0) return;
+            this.empLoading = true;
+            let para = {
+                notStorageManager: 'y',
+                isenable: 1,
+                showCount:10000
+            }
+            getDeptManagerInfoList(para).then((res) => {
+                this.empOptions = res.data.data.records;
+                this.empLoading = false;
+            });
+        },
+        // 供应商
+        supplierChange(r) {
+            if(!r || this.empOptions.length > 0) return;
+            this.empLoading = true;
+            let para = {
+                notStorageManager: 'y',
+                isenable: 1,
+                showCount:10000
+            }
+            getDeptManagerInfoList(para).then((res) => {
+                this.empOptions = res.data.data.records;
+                this.empLoading = false;
+            });
+        },
+        // 数据重复验证
+        checkout(p, v, index) {
+            if(v == "") return;
+            if(this.thisInput == v) return; //编辑时 没改输入框值
+            this.checkoutDataT = true; //初始化
+            let paras = {
+                para: p,
+                value: v,
+            }
+            getCheckoutOfStoInfo(paras).then((res) => {
+                let errorInput = res.data.data.param; //保存验证失败的字段
+                if(!res.data.data.result) {
+                    this.$message({
+                        message: '信息输入重复！',
+                        type: 'warning'
+                    });
+                    this.$refs[errorInput].$el.className = "el-form-item is-error"; //输入框标红
+                    this.checkoutDataF[index] = false
+                } else {
+                    this.$refs[errorInput].$el.className = "el-form-item"; //输入框恢复
+                    this.checkoutDataF[index] = true
+                }
+            });
+        },
+        //查询清空
+        clearAll() {
+            this.filters.domSearch = [{
+                select: [],
+                content: ''
+            }] //清空查询框;
+        },
+        //详情查看
+        formDetailHandle(stoid, magid) {
+            this.formDialogTableVisible = true;
+            this.stoThisList = ''; //清空上条数据
+            // 获取当前库房信息
+            let para = {
+                id: stoid
+            }
+            nanobar.go(70);
+            getStorageInfoList(para).then((res) => {
+                this.stoThisList = res.data.data.records[0];
+                nanobar.go(100);
+
+                let paraThree = {
+                    createby: this.stoThisList.CREATEBY == null ? 0 : this.stoThisList.CREATEBY,
+                    updateby: this.stoThisList.UPDATEBY == null ? 0 : this.stoThisList.UPDATEBY,
+                }
+                getNamebyUserid(paraThree).then((res) => {
+                    this.createname = res.data.data[0];
+                    this.updatename = res.data.data[1];
+                });
+            });
+        },
+        // 添加查询条件
+        addSelect() {
+            this.filters.domSearch.push({
+                select: [],
+                content: ''
+            });
+        },
+        // 移除查询条件
+        removeSelect(index) {
+            this.filters.domSearch.splice(index, 1); //从当前index位置开始，删除一项
+        },
+        // 排序
+        sortChange(col, prop, order) {
+            let para = {
+                prop: col.prop,
+                order: col.order.substring(0, col.order.length - 6),
+            }
+            console.log(para);
+            // getSortList(para).then((res) => {});
+        },
+        //有效无效转换
+        isdeleteFomat(row, col) {
+            return row.ISDELETE == 1 ? '否' : row.ISDELETE != undefined ? '是' : '未知';
+        },
+        // 有效无效颜色切换
+        tableRowClassName(row, index) {
+            if(row.ISDELETE == 1) {
+                return 'warning-row';
+            }
+            return '';
+        },
+        // 有效按钮切换状态
+        handleChange: function(index, row) {
+            this.$confirm('确认设置该条记录的状态吗？', '提示', {
+                type: 'warning'
+            }).then(() => {
+                let para = {
+                    id: row.ID,
+                    isdelete: row.ISDELETE == 0 ? 1 : 0,
+                    isactive:1
+                }
+                modifyStorageInfo(para).then((res) => {
+                    if(para.isdelete == 1) {
+                        if(res.data.result.code == 4001) {
+                            this.$message({
+                                message: res.data.result.desc,
+                                type: 'warning'
+                            });
+                        } else {
+                            this.$message({
+                                message: '设置成功',
+                                type: 'success'
+                            });
+                            row.ISDELETE = para.isdelete;
+                        }
+                    } else {
+                        this.$message({
+                            message: '设置成功',
+                            type: 'success'
+                        });
+                        row.ISDELETE = para.isdelete;
+                    }
+                }).catch(() => {
+                    this.listLoading = false;
+                });
+            });
+        },
+        // 上级库房——下拉
+        contractChange(r) {
+            if(!r || this.parlist.length > 0) return;
+            this.parLoading = true;
+            getStorageInfoListSelect().then((res) => {
+                this.parlist = res.data.data.records;
+                this.parLoading = false;
+            });
+        },
+        // 上级库房——下拉
+        contractChangeSelect(query) {
+            let para = {
+                showCount: 30,
+                storagename: query,
+            }
+            this.parLoading = true;
+            getStorageInfoListSelect(para).then((res) => {
+                this.parlist = res.data.data.records;
+                this.parLoading = false;
+            });
+        },
+        //有效转换
+        isactiveFomat(row, col) {
+            return row.isactive == 1 ? '是' : '否';
+        },
+        //切换当前页
+        handleCurrentChange(val) {
+            this.currentPage = val;
+            this.handleQuerySelect();
+            // this.handleQuery();
+        },
+        //切换每页显示数量
+        handleSizeChange(val) {
+            this.pageSize = val;
+            this.handleQuery();
+        },
+        //搜索按钮——模糊查询
+        handleQuerySelect() {
+            let para = {
+                currentPage: this.currentPage,
+                showCount: this.pageSize,
+                isdelete: this.filters.ISDELETE,
+                domSearch: this.filters.domSearch,
+            };
+            this.listLoading = true;
+            getSelectListSto(para).then((res) => {
+                this.total = res.data.data.totalResult;
+                this.listData = res.data.data.records;
+                this.listLoading = false;
+            }).catch((error) => {
+                this.listLoading = false;
+            });
+        },
+        //获取保单列表
+        handleQuery() {
+            let para = {
+                currentPage: this.currentPage,
+                showCount: this.pageSize,
+                isdelete: this.filters.ISDELETE,
+            };
+            this.listLoading = true;
+            getStorageInfoList(para).then((res) => {
+                this.total = res.data.data.totalResult;
+                this.listData = res.data.data.records;
+                this.listLoading = false;
+            }).catch((error) => {
+                this.listLoading = false;
+            });
+        },
+        //删除
+        handleDel(index, row) {
+            this.$confirm('确认删除该记录吗?', '提示', {
+                type: 'warning'
+            }).then(() => {
+                this.listLoading = true;
+                let para = {
+                    ids: row.ID,
+                    method: "delete"
+                };
+                removeStorageInfo(para).then((res) => {
+                    this.listLoading = false;
+                    this.$message({
+                        message: '删除成功',
+                        type: 'success'
+                    });
+                    this.handleQuery();
+                });
+            }).catch(() => {
+
+            });
+        },
+       
+        //显示新增界面
+        handleAdd() {
+            $(".is-error").removeClass('is-error'); //清空验证时的红框
+            this.addFormVisible = true;
+            this.addForm = {
+                storagecode: '',
+                storagename: '',
+                storagelevel: '',
+                parentname: '',
+                createdate: '',
+                createby: '',
+                updatedate: '',
+                updateby: '',
+                isdelete: 0,
+                addressAll: ["四川", "成都", "高新区"],
+                managerid: '',
+                managername: '',
+                managermobile: '',
+                managerregion: '',
+                manageraddress: '',
+            };
+
+        },
+       
+        //新增
+        addSubmit() {
+            this.checkoutDataF.forEach((item, index) => {
+                this.checkoutDataT = item && this.checkoutDataT;
+            });
+            this.$refs.addForm.validate((valid) => {
+                if(valid) {
+                    this.addLoading = true;
+                    let para = {
+                        storagename: this.addForm.storagename,
+                        storagelevel: this.addForm.storagelevel,
+                        parentid: this.addForm.parentname,
+                        createdate: this.addForm.createdate,
+                        createby: this.addForm.createby,
+                        updatedate: this.addForm.updatedate,
+                        updateby: this.addForm.updateby,
+                        isdelete: this.addForm.isdelete,
+                        // area:this.addForm.addressAll.toString(),
+                        managerid: this.addForm.managerid,
+                        managername: this.addForm.managername,
+                        managermobile: this.addForm.managermobile,
+                        manageraddress: this.addForm.manageraddress,
+                    }
+                    if(this.checkoutDataT) { //验证通过时(无重复时)
+                        if(para.managerid == '') {
+                            this.$message({
+                                message: '此库管人员已有库房或当前库管无效！',
+                                type: 'warning'
+                            });
+                            this.addLoading = false;
+                        } else {
+                            addStorageInfo(para).then((res) => {
+                                this.addLoading = false;
+                                this.$message({
+                                    message: '新增成功',
+                                    type: 'success'
+                                });
+                                this.$refs['addForm'].resetFields();
+                                this.addFormVisible = false;
+                                this.handleQuery();
+                            });
+                        }
+                    } else {
+                        this.addLoading = false;
+                        this.$message({
+                            message: '标红信息已存在！',
+                            type: 'warning'
+                        });
+                    }
+
+
+                }
+            });
+        },
+        selsChange(sels) {
+            this.sels = sels;
+        },
+        //批量删除
+        batchRemove() {
+            var ids = this.sels.map(item => item.id).toString();
+            this.$confirm('确认删除选中记录吗？', '提示', {
+                type: 'warning'
+            }).then(() => {
+                this.listLoading = true;
+                let para = {
+                    ids: ids,
+                    method: "delete"
+                };
+                removeStorageInfo(para).then((res) => {
+                    this.listLoading = false;
+                    this.$message({
+                        message: '删除成功',
+                        type: 'success'
+                    });
+                    this.handleQuery();
+                });
+            }).catch(() => {
+
+            });
+        }
+    },
+    created() {
+        this.handleQuery();
+    }
+}

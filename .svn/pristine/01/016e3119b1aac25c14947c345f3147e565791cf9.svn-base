@@ -1,0 +1,109 @@
+// 路由权限
+import { constantRouterMap } from '@/router'
+import { asyncRouterMap } from '@/router/asyncRouterMap'
+import * as types from '../mutaion-types'
+
+const routePermission = (roles, route) => {
+    if (route.meta && route.meta.roles) {
+        return roles.some(role => route.meta.roles.indexOf(role) > -1)
+    } else {
+        return true
+    }
+}
+
+const filterAsyncRouter = (asyncRouterMap, roles) => {
+    const routers = asyncRouterMap.filter(route => {
+        if (routePermission(roles, route)) {
+            if (route.children && route.children.length) {
+                route.children = filterAsyncRouter(route.children, roles)
+            }
+            return true
+        }
+        return false
+    })
+    return routers
+}
+
+
+/**
+ * 判断是否为空
+ */
+function validatenull (val) {
+    if (val instanceof Array) {
+        if (val.length == 0) return true;
+    } else if (val instanceof Object) {
+        if (JSON.stringify(val) === '{}') return true;
+    } else {
+        if (val == 'null' || val == null || val == 'undefined' || val == undefined || val == '') return true;
+        return false;
+    }
+    return false;
+}
+
+const formatRoutes = (aMenu) => {
+    const aRouter = []
+    aMenu.forEach(oMenu => {
+        const {
+            path,
+            component,
+            name,
+            icon,
+            children,
+            type
+        } = oMenu
+        if (!validatenull(component) && !validatenull(path)) {
+            let filePath;
+            const oRouter = {
+                path: path,
+                component (resolve) {
+                    let componentPath = ''
+                    if (component === 'Layout') {
+                        require(['@/views/layout/Layout'], resolve)
+                        return
+                    } else {
+                        componentPath = component
+                    }
+                    require([`@/${componentPath}.vue`], resolve)
+                },
+                name: name,
+                hidden: type == '-1' ? true : false,
+                icon: icon,
+                children: validatenull(children) ? [] : formatRoutes(children),
+                meta: {
+                    title: name,
+                    icon: icon
+                }
+            }
+            aRouter.push(oRouter)
+        }
+
+    })
+    return aRouter
+}
+
+const permission = {
+    state: {
+        routers: constantRouterMap,
+        addRouters: []
+    },
+    mutations: {
+        [types.SET_ROUTERS]: (state, routers) => {
+            state.addRouters = routers
+            state.routers = constantRouterMap.concat(routers)
+        }
+    },
+    actions: {
+        generateRoutes ({commit}, rolesRoutes) {
+            return new Promise(resolve => {
+                let routers = formatRoutes(rolesRoutes);
+                // console.log(asyncRouterMap)
+                // console.log(routers)
+                // let routers = asyncRouterMap;//权限列表
+                commit(types.SET_ROUTERS, routers)
+                resolve()
+            })
+        }
+    }
+}
+
+export default permission

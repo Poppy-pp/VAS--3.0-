@@ -1,0 +1,11 @@
+import axios from 'axios';
+import Qs from 'qs';
+
+export const getTodoInfoList = params => {
+    return axios.get(`/sto/stoProduct/page`, {params: params})
+};
+
+//安装位置信息
+export const getInstallPositionCode = params => {
+    return axios.get(`/vasms-web/api/v1/sys/sysDictionaryData?dicvalue=InstallPositionCode`)
+};

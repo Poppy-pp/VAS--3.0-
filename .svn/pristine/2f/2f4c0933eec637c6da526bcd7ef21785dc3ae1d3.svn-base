@@ -1,0 +1,384 @@
+<template>
+    <div class="invoice-detail">
+        <h2>物资调拨单</h2>
+        <svg ref="invoice-bar-code"></svg>
+        <el-form label-width="100px" ref="facilityForm" :model="facilityForm" :rules="facilityFormRules" style="margin-top:10px;">
+            <p class="invoice-title">基础信息</p>
+            <el-row>
+                <el-col :span="12">
+                    <el-form-item label="调拨类型" prop="actiontype">
+                        <el-select :disabled="isView" filterable placeholder="请选择调拨类型" v-model="facilityForm.actiontype" @visible-change="getActionType" >
+                            <el-option v-for="(item, index) in inTypes" :value="item.dictdataname" :label="item.dictdatavalue" :key="index"></el-option>
+                        </el-select>
+                    </el-form-item>
+                </el-col>
+                <el-col :span="12">
+                    <el-form-item label="调拨日期" prop="actiondate">
+                        <el-date-picker value-format="yyyy-MM-dd" v-model="facilityForm.actiondate" type="date" :disabled="isView" placeholder="选择日期"></el-date-picker>
+                    </el-form-item>
+                </el-col>
+                <el-col :span="12">
+                    <el-form-item label="调出仓库" prop="storagename">
+                        <el-select :disabled="isView" v-model="facilityForm.storagename" @change="chooseStorage" filterable clearable placeholder="请选择调出仓库" value-key="storagename">
+                            <el-option v-for="item in storages" :key="item.storagename" :label="item.storagename" :value="item"></el-option>
+                        </el-select>
+                    </el-form-item>
+                </el-col>
+                <el-col :span="12">
+                    <el-form-item label="调入仓库" prop="tostoragename">
+                        <el-select :disabled="isView" v-model="facilityForm.tostoragename" @visible-change="getStorage" @change="chooseStorageTo" filterable clearable placeholder="请选择调入仓库" value-key="storagename">
+                            <el-option v-for="(item, index) in storageList" :value="item" :label="item.storagename + '（库管：' + item.managername + '）'" :key="index"></el-option>
+                        </el-select>
+                    </el-form-item>
+                </el-col>
+                <el-col :span="12">
+                    <el-form-item label="发货地址" prop="delivery.fromaddressname">
+                        <el-select :disabled="isView" filterable placeholder="根据调出仓库选择发货地址" @visible-change="deliveryAddress(0)" @change="chooseAddress" :loading="addressLoading" v-model="facilityForm.delivery.fromaddressname" value-key="addressdetail">
+                            <el-option v-for="(item, index) in addressList" :value="item" :label="item.addressdetail" :key="index"></el-option>
+                        </el-select>
+                    </el-form-item>
+                </el-col>
+                <el-col :span="12">
+                    <el-form-item label="收货地址" prop="delivery.toaddressname">
+                        <el-select :disabled="isView" filterable placeholder="根据调入仓库选择收货地址" @visible-change="deliveryAddress(1)" @change="chooseAddressTo" :loading="addressLoading" v-model="facilityForm.delivery.toaddressname" value-key="addressdetail">
+                            <el-option v-for="(item, index) in addressList" :value="item" :label="item.addressdetail" :key="index"></el-option>
+                        </el-select>
+                    </el-form-item>
+                </el-col>
+                <el-col :span="12">
+                    <el-form-item label="发货人">
+                       <el-input placeholder="选择发货地址自动获取发货人" v-model="consigner" disabled></el-input>
+                    </el-form-item>
+                </el-col>
+                <el-col :span="12">
+                    <el-form-item label="收货人">
+                        <el-input placeholder="选择收货地址自动获取收货人" v-model="receiver" disabled></el-input>
+                    </el-form-item>
+                </el-col>
+                <el-col :span="12">
+                    <el-form-item label="发货电话">
+                        <el-input placeholder="选择发货人自动获取发货电话" v-model="consignerPhone" disabled></el-input>
+                    </el-form-item>
+                </el-col>
+                <el-col :span="12">
+                    <el-form-item label="收货电话">
+                        <el-input placeholder="选择收货人自动获取收货电话" v-model="receiverPhone" disabled></el-input>
+                    </el-form-item>
+                </el-col>
+                <el-col :span="12">
+                    <el-form-item label="经办人" prop="username">
+                        <el-select
+                                :disabled="isView"
+                                v-model="facilityForm.username"
+                                filterable clearable
+                                @visible-change="userChange"
+                                @change="chooseUser"
+                                remote
+                                placeholder="请选择经办人"
+                                :remote-method="remoteMethod"
+                                :loading="selectLoading"
+                                value-key="employeename">
+                            <el-option v-for="item in employeeInfoLis" :key="item.ID" :label="item.employeename + '-' + item.mobile + '-' + item.deptname" :value="item"></el-option>
+                        </el-select>
+                    </el-form-item>
+                </el-col>
+            </el-row>
+            <el-row>
+                <div>
+                    <p class="invoice-title">物流信息</p>
+                </div>
+                <el-col :span="12">
+                    <el-form-item label="发货方式" prop="delivery.deliverytype">
+                        <el-select filterable placeholder="请选择发货方式" v-model="facilityForm.delivery.deliverytype" :disabled="isView">
+                            <el-option value="1" label="物流配送"></el-option>
+                            <el-option value="2" label="直接交接"></el-option>
+                            <el-option value="3" label="专车配送"></el-option>
+                            <el-option value="4" label="委托送货"></el-option>
+                        </el-select>
+                    </el-form-item>
+                </el-col>
+                <el-col :span="12">
+                    <el-form-item label="发货日期" prop="delivery.deliverydate">
+                        <el-date-picker
+                                :disabled="isView"
+                                value-format="yyyy-MM-dd"
+                                v-model="facilityForm.delivery.deliverydate"
+                                type="date"
+                                placeholder="选择发货日期">
+                        </el-date-picker>
+                    </el-form-item>
+                </el-col>
+                <el-col :span="12" v-if="facilityForm.delivery.deliverytype == 1">
+                    <el-form-item label="物流号" prop="delivery.deliveryno">
+                        <el-input placeholder="请输入物流单号" v-model="facilityForm.delivery.deliveryno" :disabled="isView"></el-input>
+                    </el-form-item>
+                </el-col>
+                <el-col :span="12" v-if="facilityForm.delivery.deliverytype == 1">
+                    <el-form-item label="物流公司" prop="delivery.deliverycorp">
+                        <el-select filterable placeholder="请选择物流公司" v-model="facilityForm.delivery.deliverycorp" @focus="getDeliveryCorps" :disabled="isView">
+                            <el-option v-for="(item, index) in deliveryCorps" :value="item.dictdataname" :label="item.dictdatavalue" :key="index"></el-option>
+                        </el-select>
+                    </el-form-item>
+                </el-col>
+                <el-col :span="12" v-if="facilityForm.delivery.deliverytype != 1 && facilityForm.delivery.deliverytype != 2">
+                    <el-form-item label="车牌号" prop="delivery.vehicleplate">
+                        <el-input placeholder="请输入车牌号" v-model="facilityForm.delivery.vehicleplate" :disabled="isView"></el-input>
+                    </el-form-item>
+                </el-col>
+                <el-col :span="12" v-if="facilityForm.delivery.deliverytype != 1 && facilityForm.delivery.deliverytype != 2">
+                    <el-form-item label="联系电话" prop="delivery.contactno">
+                        <el-input placeholder="请输入联系电话" v-model="facilityForm.delivery.contactno" :disabled="isView"></el-input>
+                    </el-form-item>
+                </el-col>
+                <el-col :span="12">
+                    <el-form-item label="预计到货日期">
+                        <el-date-picker
+                                value-format="yyyy-MM-dd"
+                                v-model="facilityForm.delivery.estreceivedate"
+                                type="date"
+                                :disabled="isView"
+                                placeholder="选择预计到货日期">
+                        </el-date-picker>
+                    </el-form-item>
+                </el-col>
+                <el-col :span="12">
+                    <el-form-item label="发生费用">
+                        <el-input placeholder="请输入快递费用" v-model="facilityForm.delivery.deliveryfee" :disabled="isView"></el-input>
+                    </el-form-item>
+                </el-col>
+            </el-row>
+            <el-row>
+                <p class="invoice-title">设备信息</p>
+                <el-button style="float: right; margin-left: 10px;" type="danger" v-if="!isView" @click="addParts()" :disabled="editable"><i class="iconfont icon-zhibiao"></i> 添加配件</el-button>
+                <el-button style="float: right; margin-left: 10px;" type="danger" v-if="!isView" @click="addFacility(true)" :disabled="editable"><i class="iconfont icon-qiandao"></i> 添加设备</el-button>
+                <el-button style="float: right; margin-left: 10px;" type="danger" v-if="!isView" @click="addFacility(false)" :disabled="editable"><i class="iconfont icon-saomiao"></i> 扫描添加</el-button>
+                 <el-form ref="typeForm" :model="typeForm">
+                    <el-table :data="listUpload" border highlight-current-row v-loading="facilityLoading" class="choose_table">
+                        <el-table-column type="index" align="center" label="序号" width="50"></el-table-column>
+                        <el-table-column align="center" label="库房">
+                            <template slot-scope="scope">
+                                <div v-if="scope.$index == listUpload.length-1 && editable" >
+                                    <el-form-item prop="storagename" :rules="{required: true, message: '库房不能为空', trigger: 'blur'}">
+                                        <el-select v-model="typeForm.storagename" @change="chooseStorageParts" filterable clearable value-key="storagename">
+                                            <el-option v-for="item in storages" :key="item.storagename" :label="item.storagename" :value="item"></el-option>
+                                        </el-select>
+                                    </el-form-item>
+                                </div>
+                                <span v-else>{{ scope.row.storagename }}</span>
+                            </template>
+                        </el-table-column>
+                        <el-table-column prop="modelcategoryname" align="center" label="分类" width="80">
+                            <template slot-scope="scope">
+                                <div v-if="scope.$index == listUpload.length-1 && editable" >{{ typeForm.modelcategoryname }}</div>
+                                <span v-else>{{ scope.row.modelcategoryname }}</span>
+                            </template>
+                        </el-table-column>
+                        <el-table-column prop="modelspecname" label="设备规格" align="center" width="100"></el-table-column>
+                        <el-table-column label="型号名称" align="center">
+                             <template slot-scope="scope">
+                                <div v-if="scope.$index == listUpload.length-1 && editable" >
+                                    <el-form-item prop="modelnameArr" :rules="{required: true, message: '型号不能为空', trigger: 'blur'}">
+                                        <el-cascader @focus="modelCascader" @change="handleChange" :options="modelOptions" v-model="typeForm.modelnameArr" ref="cascader" clearable></el-cascader>
+                                    </el-form-item>
+                                </div>
+                                <span v-else>{{ scope.row.modelname }}</span>
+                            </template>
+                        </el-table-column>
+                        <el-table-column label="调拨数量" align="center" width="90">
+                            <template slot-scope="scope">
+                                <div v-if="scope.$index == listUpload.length-1 && editable" >
+                                    <el-form-item prop="qty" :rules="{required: true, message: '数量不能为空', trigger: 'blur'}">
+                                        <el-input v-model="typeForm.qty" > </el-input>
+                                    </el-form-item>
+                                </div>
+                                <el-tooltip v-else class="item" effect="dark" content="点击查看数量详情" placement="left" >
+                                    <!-- 设备卡调拨数量查看详情 -->
+                                    <el-popover trigger="click" placement="right" @show="getDetails(scope.row)" width="900" v-if="scope.row.modelcategory !== 'A'">
+                                        <el-table :data="chooseProdDetail" border v-loading="detailsLoading">
+                                            <el-table-column type="index" align="center" label="#" width="30"></el-table-column>
+                                            <el-table-column prop="prodnum" label="设备编号" align="center"></el-table-column>
+                                            <el-table-column prop="modelspecname" label="设备规格" align="center" width="80"></el-table-column>
+                                            <el-table-column prop="modelname" label="设备类型" align="center" width=    "120"></el-table-column>
+                                            <el-table-column prop="modelcategoryname" label="类别" align="center" width="80"></el-table-column>
+                                            <el-table-column prop="simnum" label="SIM卡通讯号" align="center" width="140"></el-table-column>
+                                            <el-table-column prop="simmodelspec" label="卡规格" align="center" width="80"></el-table-column>
+                                            <el-table-column prop="simmodelname" label="卡类型" align="center"></el-table-column>
+                                            <el-table-column label="操作" width="80" align="center" fixed="right" v-if="!isView">
+                                                <template slot-scope="scope">
+                                                    <el-button type="danger" size="mini" @click="remove(scope.$index,scope.row)">删 除</el-button>
+                                                </template>
+                                            </el-table-column>
+                                        </el-table>
+                                        <div slot="reference" class="name-wrapper">
+                                            <el-tag size="medium">{{ scope.row.qty }}</el-tag>
+                                        </div>
+                                    </el-popover>
+                                    <!-- 配件调拨数量无详情 -->
+                                    <el-tag v-else size="medium">{{ scope.row.qty }}</el-tag>
+                                </el-tooltip>
+                            </template>
+                        </el-table-column>
+                         <el-table-column v-if="editable" label="操作" width="140" align="center" fixed="right">
+                            <template slot-scope="scope">
+                                <div  v-if="scope.$index == listUpload.length-1 && editable">
+                                    <el-button-group>
+                                        <el-button type="primary" size="mini" @click="confirmParts(scope.$index,scope.row)">确认</el-button>
+                                        <el-button type="info" size="mini" @click="cancelParts()">取消</el-button>
+                                    </el-button-group>
+                                </div>
+                            </template>
+                         </el-table-column>
+                    </el-table>
+                </el-form>
+            </el-row>
+            <el-row style="margin-top: 20px;">
+                <el-form-item label="备注">
+                    <el-input type="textarea" :disabled="isView" v-model="facilityForm.delivery.remarks"></el-input>
+                </el-form-item>
+                <el-button type="primary" style="float: right" @click="submit" v-if="!isView"> 提 交 </el-button>
+            </el-row>
+            <el-row class="bar-code-footer">
+                <el-col :span="6">
+                    <el-form-item label="制单人："> {{facilityForm.username}} </el-form-item>
+                </el-col>
+                <el-col :span="6">
+                    <el-form-item label="制单日期："> {{ Dayjs(facilityForm.createdate).format('YYYY-MM-DD HH:mm:ss') }} </el-form-item>
+                </el-col>
+            </el-row>
+            <el-row class="bar-code-footer">
+                <el-col :span="6">
+                    <el-form-item label="收货人："> {{receiver == '' ? '暂无' : receiver}} </el-form-item>
+                </el-col>
+                <el-col :span="6">
+                    <el-form-item label="收货日期："> {{ facilityForm.delivery.estreceivedate == '' || facilityForm.delivery.estreceivedate == null ? '暂无' : Dayjs(facilityForm.delivery.estreceivedate).format('YYYY-MM-DD') }} </el-form-item>
+                </el-col>
+            </el-row>
+        </el-form>
+
+        <!-- 手动添加设备 -->
+        <el-dialog title="选择设备" :visible.sync="chooseFacilityVisible" append-to-body width="60%">
+            <el-tabs v-model="activeName" type="card">
+                <el-tab-pane :label="'当前库房：'+ facilityForm.storagename" name="first">
+                    <!-- 查询框 -->
+                    <el-col :span="24" class="toolbar">
+                        <el-form :inline="true" :model="filtersProd">
+                            <div style="display:inline-block;margin:0 10px 10px 0;">
+                                <el-input class="noborder color icon nofocus" @keyup.native.ctrl.8="clearAll()" @keyup.native.13="getDeciceListInfo" placeholder="请输入查询内容" v-model="filtersProd.domSearch[0].content">
+                                    <el-select class="wp_select" multiple clearable filterable v-model="filtersProd.domSearch[0].select" slot="prepend" placeholder="选择条件">
+                                        <el-option label="设备编号" value="prodnum"></el-option>
+                                        <el-option label="型号" value="modelname"></el-option>
+                                        <el-option label="SIM卡通讯号" value="simnum"></el-option>
+                                        <el-option label="类别" value="modelcategoryname"></el-option>
+                                    </el-select>
+                                </el-input>
+                            </div>
+                            <el-form-item>
+                                <el-button type="primary" @click="getDeciceListInfo" @keyup.native.13="getDeciceListInfo" icon="el-icon-search">查询</el-button>
+                            </el-form-item>
+                        </el-form>
+                    </el-col>
+                    <!-- 列表 -->
+                    <el-table :data="facilities" border highlight-current-row @selection-change="selectFacility" max-height="500">
+                        <el-table-column align="center" type="selection" width="35"></el-table-column>
+                        <el-table-column type="index" align="center" label="序号" width="50"></el-table-column>
+                        <el-table-column prop="prodnum" label="设备编号" align="center"></el-table-column>
+                        <el-table-column prop="modelspecname" label="设备规格" align="center" width="80"></el-table-column>
+                        <el-table-column prop="modelname" label="设备类型" align="center"></el-table-column>
+                        <el-table-column prop="modelcategoryname" label="类别" align="center" width="80"></el-table-column>
+                        <el-table-column prop="simnum" label="SIM卡通讯号" align="center"></el-table-column>
+                        <el-table-column prop="simmodelspec" label="卡规格" align="center" width="80"></el-table-column>
+                        <el-table-column prop="simmodelname" label="卡类型" align="center"></el-table-column>
+                    </el-table>
+                    <!--工具条-->
+                    <el-col :span="24" class="toolbar">
+                        <el-pagination @size-change="dhandleSizeChange" @current-change="dhandleCurrentChange" :page-sizes="[10, 50, 80,100]" :page-size="dpageSize" layout="total, sizes, prev, pager, next, jumper" :total="dtotal"></el-pagination>
+                    </el-col>
+                </el-tab-pane>
+            </el-tabs>
+            <div slot="footer">
+                <el-button @click="chooseFacilityVisible = false">取 消</el-button>
+                <el-button type="primary" @click="confirmFacility">确 定</el-button>
+            </div>
+        </el-dialog>
+
+        <!-- 扫描添加设备 -->
+        <el-dialog title="扫描添加设备" :visible.sync="scanNumberVisible" width="500px">
+            <el-input prefix-icon="iconfont icon-saomiao mr5" @keyup.13.native="keyUpDevice" v-model="devNum" placeholder="扫描/输入设备号按回车"></el-input>
+            <div class="ant-row dis_newInstallTitle">
+                <h3>操作记录：本次成功登记数量({{devNumList.length}})</h3>
+                <div style="min-height: 200px;max-height: 300px; overflow-y: scroll;">
+                    <ul>
+                        <li v-for="(item,index) in devNumList">
+                            <span>{{ item.equipmentnum }}</span>
+                            <el-button type="text" class="ml20" @click="deleteSavDeviceNum(index)" icon="el-icon-delete"></el-button>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            <div slot="footer">
+                <el-button type="primary" @click="checkScanNumber" :disabled="!scanNumberVisible">确 定</el-button>
+            </div>
+        </el-dialog>
+    </div>
+</template>
+
+<script src="./index.js">
+
+</script>
+<style type="text/css" media="screen">
+    .choose_table .el-form-item .el-form-item__content{margin-left :0 !important;}
+</style>
+<style scoped lang="stylus">
+    head-title-bg = #41B883
+
+    .invoice-detail
+        position relative
+        h2
+            text-align center
+            margin 10px 0 0 0
+            font-size 20px
+        svg
+            position absolute
+            right 20px;
+            top -15px;
+
+    .invoice-title
+        color white
+        margin-bottom 10px;
+        background head-title-bg
+        width 100px;
+        height 35px;
+        line-height 35px;
+        padding-left 20px;
+        font-size 15px;
+        display inline-block
+        /*float left*/
+        position relative
+        &::after
+            content: ''
+            width: 0;
+            height: 0;
+            display block
+            position absolute
+            border: 18px solid transparent;
+            border-left-color: head-title-bg;
+            border-right-width: 0;
+            right -18px
+            top 0
+
+    .bar-code-footer
+        .el-form-item
+            margin 0
+
+    .dis_newInstallTitle
+        h3
+            margin 10px 0;
+        > div
+            border 1px solid #ccc
+            padding 5px;
+            border-radius 5px
+
+    .color-red
+        color rgb(224, 70, 89)
+
+</style>

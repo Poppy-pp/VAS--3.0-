@@ -1,0 +1,30 @@
+import axios from 'axios';
+import Qs from 'qs';
+
+let base = '/vasms-web';
+let api = '/api';
+
+const getAttdCenterList = params => {
+	return axios.get(`${base}/api/v1/att/attdCenter/`, {
+		params: params
+	})
+};
+
+const addAttdCenter = params => {
+	return axios.post(`${base}/api/v1/att/attdCenter`, params)
+};
+
+const modifyAttdCenter = params => {
+	return axios.put(`${base}/api/v1/att/attdCenter/` + params.id, params)
+};
+
+const removeAttdCenter = params => {
+	return axios.post(`${base}/api/v1/att/attdCenter/batch`, Qs.stringify(params))
+};
+
+export{
+        getAttdCenterList, 
+        addAttdCenter, 
+        modifyAttdCenter, 
+        removeAttdCenter
+}

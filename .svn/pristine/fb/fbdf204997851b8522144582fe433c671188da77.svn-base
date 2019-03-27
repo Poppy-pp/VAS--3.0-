@@ -1,0 +1,15 @@
+<template>
+    <div>
+        维修/拆除单
+    </div>
+</template>
+
+<script>
+    export default {
+        name: "maintainOrder"
+    }
+</script>
+
+<style scoped>
+
+</style>

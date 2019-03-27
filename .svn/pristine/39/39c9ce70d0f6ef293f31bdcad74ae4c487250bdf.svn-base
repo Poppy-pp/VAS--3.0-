@@ -1,0 +1,196 @@
+<template>
+    <section>
+        <el-col :span="24" class="toolbar" style="padding-bottom: 0px;">
+            <el-form :inline="true" :model="filters">
+                <template v-for="(item, index) in filters.domSearch">
+                    <template v-if="index == 0">
+                        <div style="display:inline-block;margin:0 10px 10px 0;">
+                            <el-input class="noborder color icon nofocus" @keyup.native.ctrl.8="resetForm()" @keyup.native.13="getPutIn" placeholder="请输入查询内容"
+                                      v-model="filters.domSearch[index].content">
+                                <el-select class="wp_select" multiple clearable filterable v-model="filters.domSearch[index].select" slot="prepend"
+                                           placeholder="选择条件">
+                                    <el-option label="单号" value="batchno"></el-option>
+                                    <el-option label="库房区域" value="storagearea"></el-option>
+                                    <el-option label="收货人" value="receiver"></el-option>
+                                    <el-option label="经办人" value="operator"></el-option>
+                                </el-select>
+                                <template v-if="index == filters.domSearch.length-1">
+                                    <el-button slot="append" @click="addSelect" icon="el-icon-plus" title="添加查询条件"></el-button>
+                                </template>
+                                <template v-else>
+                                    <el-button slot="append" @click="removeSelect(index)" icon="el-icon-minus" title="移除查询条件"></el-button>
+                                </template>
+                            </el-input>
+                        </div>
+                    </template>
+                    <template v-else>
+                        <el-col :span="24">
+                            <div style="display:inline-block;margin:0 10px 10px 0;">
+                                <el-input class="noborder color icon nofocus" @keyup.native.ctrl.8="clearAll()" @keyup.native.13="getPutIn"
+                                          placeholder="请输入查询内容"
+                                          v-model="filters.domSearch[index].content">
+                                    <el-select class="wp_select" multiple clearable filterable v-model="filters.domSearch[index].select" slot="prepend"
+                                               placeholder="选择条件">
+                                        <el-option label="单号" value="batchno"></el-option>
+                                        <el-option label="库房区域" value="storagearea"></el-option>
+                                        <el-option label="收货人" value="receiver"></el-option>
+                                        <el-option label="经办人" value="operator"></el-option>
+                                    </el-select>
+                                    <template v-if="index == filters.domSearch.length-1">
+                                        <el-button slot="append" @click="addSelect" icon="el-icon-plus" title="添加查询条件"></el-button>
+                                    </template>
+                                    <template v-else>
+                                        <el-button slot="append" @click="removeSelect(index)" icon="el-icon-minus" title="移除查询条件"></el-button>
+                                    </template>
+                                </el-input>
+                            </div>
+                        </el-col>
+                    </template>
+                    <template v-if="index == 0">
+                        <el-form-item>
+                            <el-button type="primary" @click="getPutIn" icon="el-icon-search">查询</el-button>
+                        </el-form-item>
+                        <el-form-item>
+                            <el-button type="info" @click="resetForm" icon="el-icon-refresh">重置</el-button>
+                        </el-form-item>
+                        <el-form-item>
+                            <el-dropdown trigger="click" @command="addPutInStorage">
+                                <el-button type="primary">
+                                    新增入库 <i class="el-icon-arrow-down el-icon--right"></i>
+                                </el-button>
+                                <el-dropdown-menu slot="dropdown">
+                                    <el-dropdown-item :command="true">excel导入</el-dropdown-item>
+                                    <el-dropdown-item :command="false">手动添加</el-dropdown-item>
+                                </el-dropdown-menu>
+                            </el-dropdown>
+                        </el-form-item>
+                    </template>
+                </template>
+            </el-form>
+        </el-col>
+        <el-table :max-height="windowOutHeight-215" :data="putInList" border ref="todeTable" highlight-current-row v-loading="loading">
+            <el-table-column
+                    type="selection"
+                    align="center"
+                    width="35">
+            </el-table-column>
+            <el-table-column type="index" align="center" label="序号" width="50">
+            </el-table-column>
+            <el-table-column prop="batchno" label="单号" min-width="200" align="center">
+            </el-table-column>
+            <el-table-column prop="purchasedate" align="center" label="采购日期" min-width="100" :formatter="dateFormatter">
+            </el-table-column>
+            <el-table-column prop="actiontype" align="center" label="入库类型" min-width="160" :formatter="typeFormatter">
+            </el-table-column>
+            <el-table-column prop="storagearea" align="center" label="库房区域" min-width="100">
+            </el-table-column>
+            <el-table-column prop="receiver" align="center" label="收货人" min-width="100">
+            </el-table-column>
+            <el-table-column prop="operator" align="center" label="经办人" min-width="100">
+            </el-table-column>
+            <!--<el-table-column prop="vehiclemodel" align="center" label="设备状态" width="160">-->
+            <!--</el-table-column>-->
+            <el-table-column prop="actionstatus" align="center" label="单据状态" width="160">
+            </el-table-column>
+            <el-table-column label="操作" width="160" align="center" fixed="right">
+                <template slot-scope="scope">
+                    <el-button type="text" @click="viewDistribution(scope.row)" v-if="scope.row.deliveryid">
+                        查看物流
+                    </el-button>
+                    <el-button type="text" @click="viewDetails(scope.row)">
+                        查看详情
+                    </el-button>
+                </template>
+            </el-table-column>
+        </el-table>
+        <!--工具条-->
+        <el-col :span="24" class="toolbar">
+            <el-pagination @size-change="handleSizeChange" background @current-change="handleCurrentChange" :page-sizes="[15, 50, 80, 99]"
+                           :page-size="pagination.limit" layout="total, sizes, prev, pager, next" :total="pagination.total">
+            </el-pagination>
+        </el-col>
+
+        <el-dialog title="新增入库" :visible.sync="visible">
+            <div style="padding: 0 20px;">
+                <el-form label-width="80px" :model="putInForm" ref="putInForm" :rules="putInRules" v-if="visible">
+                    <el-form-item label="入库类型" prop="inType">
+                        <el-select filterable placeholder="请选择入库类型" v-model="putInForm.inType">
+                            <el-option v-for="(item, index) in inTypes" :value="item.value" :label="item.label" :key="index"></el-option>
+                        </el-select>
+                    </el-form-item>
+                    <el-form-item label="采购合同" prop="contractNo">
+                        <el-select filterable placeholder="请选择采购合同" v-model="putInForm.contractNo" @focus="getStoPurchaseList">
+                            <el-option v-for="(item, index) in purchaseList" :value="item.contractno" :label="item.contractno" :key="index"></el-option>
+                        </el-select>
+                    </el-form-item>
+                    <el-form-item label="选择文件" prop="filePath" ref="putInFilePath" v-if="isExcel">
+                        <div style="display: flex; justify-content: space-between">
+                            <el-upload
+                                    ref="upload"
+                                    :accept="accept"
+                                    :on-success="uploadSuccess"
+                                    :on-error="uploadError"
+                                    :file-list="fileList"
+                                    :on-change="changeFile"
+                                    :on-remove="removeFile"
+                                    name="file"
+                                    :headers="{Authorization: 'Bearer '+ token}"
+                                    action="/admin/atta/upload/template">
+                                <i class="el-icon-plus avatar-uploader-icon" style="border: 1px dashed #d9d9d9"></i>
+                            </el-upload>
+                            <div class="upload-row">
+                                <el-button type="primary" @click="download">下载模板</el-button>
+                                <!--<el-button type="primary" @click="submitUpload">上传</el-button>-->
+                            </div>
+                        </div>
+                    </el-form-item>
+                </el-form>
+            </div>
+            <div slot="footer" class="dialog-footer">
+                <el-button @click="submit" type="primary" v-loading="putInLoading" :disabled="putInLoading">提交</el-button>
+                <el-button @click="visible = false">取消</el-button>
+            </div>
+        </el-dialog>
+
+        <el-dialog title="物流信息" :visible.sync="distributionVisible">
+            <div class="logistice_content" style="overflow: hidden" v-loading="expandLoading" element-loading-text="物流信息加载中..." element-loading-spinner="el-icon-loading"
+                 element-loading-background="rgba(0, 0, 0, 0.7)">
+                <article v-if="logisticsList.length">
+                    <section v-for="(item,index) in logisticsList" :key="index">
+                        <span :class="[index === logisticsList.length -1 ? 'point-green': '', 'point-time']"></span>
+                        <div class="aside">
+                            <p class="things">{{ item.acceptTime }}</p>
+                            <p class="brief"><span :class="[index === logisticsList.length -1 ? 'text-green': '']">{{ item.acceptStation }}</span></p>
+                        </div>
+                    </section>
+                </article>
+                <div v-else="notext" style="text-align: center;color: #555;margin-top: 40px;">
+                    <span class="iconfont icon-notfind01" style="font-size:8rem;dispaly:block;color:#555"></span>
+                    <p>{{ notext || '暂无物流信息' }}</p>
+                </div>
+            </div>
+            <div slot="footer" class="dialog-footer">
+                <el-button @click="distributionVisible = false">关 闭</el-button>
+            </div>
+        </el-dialog>
+
+    </section>
+</template>
+
+<script src="./index.js">
+
+</script>
+
+<style scoped lang="stylus">
+    .upload-row {
+        display flex
+        flex-direction column
+        /*margin-left 20px;*/
+        .el-button {
+            width 100px;
+            margin-top 20px;
+            margin-left 0
+        }
+    }
+
+</style>

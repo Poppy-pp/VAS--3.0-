@@ -1,0 +1,61 @@
+import axios from 'axios';
+import Qs from 'qs';
+
+let base = '/vasms-web';
+let api = '/api';
+
+const getAttdRuleList = params => {
+	return axios.get(`${base}/api/v1/att/attdRule/query/vwto`, {
+		params: params
+	})
+};
+
+const addAttdRule = params => {
+	return axios.post(`${base}/api/v1/att/attdRule`, params)
+};
+
+const modifyAttdRule = params => {
+	return axios.put(`${base}/api/v1/att/attdRule/` + params.id, params)
+};
+
+const removeAttdRule = params => {
+	return axios.post(`${base}/api/v1/att/attdRule/batch`, Qs.stringify(params))
+};
+
+const getSelectAttdRuleList = params => {
+	return axios.get(`${base}/api/v1/att/attdRule/query/like`, {
+		params: params
+	});
+};
+
+//分组信息管理接口
+const getGroupInfoList = params => {
+	return axios.get(`${base}/api/v1/org/groupInfo/query/vw`, {
+		params: params
+	});
+};
+
+//获取员工所属部门列表
+const getDeptList = params => {
+	return axios.get(`${base}/api/v1/org/departmentInfo?dicvalue=DeptName`, {
+		params: params
+	});
+};
+
+//区域管理接口
+const getAttdCenterList = params => {
+	return axios.get(`${base}/api/v1/att/attdCenter/`, {
+		params: params
+	})
+};
+
+export{
+    getAttdRuleList, 
+    addAttdRule, 
+    modifyAttdRule, 
+    removeAttdRule, 
+    getSelectAttdRuleList, 
+    getGroupInfoList, 
+    getDeptList, 
+    getAttdCenterList 
+}

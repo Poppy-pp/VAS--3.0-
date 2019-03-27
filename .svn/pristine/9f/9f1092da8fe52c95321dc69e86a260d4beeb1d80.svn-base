@@ -1,0 +1,27 @@
+import axios from 'axios';
+import Qs from 'qs';
+
+export const getPartsList = params => {
+	return axios.get(`/sto/stoModel/parts/query/page`, {params: params})
+};
+
+export const addPartsInfo = params => {
+	return axios.post(`/sto/stoModel/parts`, params)
+};
+
+export const modifyPartsInfo = params => {
+	return axios.put(`/sto/stoModel/parts` , params)
+};
+
+export const removePartsInfo = params => {
+	return axios.delete(`/sto/stoModel/parts/`+ params.id, params )
+};
+
+// 查询配件类型
+export const getPartsModelList = params => {
+	return axios.get(`/sto/stoModel/parts/page`, {params: params});
+};
+// 供应商列表
+export const getSupplierList = params => {
+    return axios.get(`/sto/stoSupplier/page`, {params: params})
+};

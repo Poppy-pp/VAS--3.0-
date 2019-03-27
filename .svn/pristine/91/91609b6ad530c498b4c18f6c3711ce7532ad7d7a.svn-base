@@ -1,0 +1,766 @@
+import util from 'utils/tools';
+
+import { getSIMInfoList, addSIMInfo, modifySIMInfo, removeSIMInfo, getSIMNameList, getStoNameList, getProductInfoList, getSelectListSIM, getAllProSimInfoList, cancelUnbundleSIM, addUnbundleSIM, getProductOwnerList, getCheckoutOfProdInfo, getNamebyUserid } from './service';
+
+export default {
+		name:'SIMInfo',
+		props: ['windowOutHeight'],
+		data() {
+			return {
+				fmtdata: util,
+				filters: {
+					domSearch: [{
+						select: ['prodnum'],
+						content: ''
+					}], //查询框
+					isdelete: '0'
+				},
+				statusOptions: [{
+					value: 'INSTO',
+					label: '在库'
+				}, {
+					value: 'INSTALL',
+					label: '已安装'
+				}, {
+					value: 'LOST',
+					label: '报失'
+				}, {
+					value: 'REPAIR',
+					label: '维修'
+				}, {
+					value: 'DAMAGE',
+					label: '报费'
+				}, {
+					value: 'ONWAY',
+					label: '在途'
+				}, {
+					value: 'REMOVING',
+					label: '拆除中'
+				}],
+				pickerOptions: { //日期
+				},
+				fdtLoading: false,
+				radio: '',
+				moreData: [], //创建信息
+				resID: [], //绑卡后返回的设备id和卡id
+				checkData: [], //选择绑定check
+				deviceListData: [], //绑定
+				deviceFormVisible: false,
+				devicelistLoading: false,
+				dtotal: 0,
+				dcurrentPage: 1,
+				dpageSize: 15,
+				listData: [],
+				comfirLoading: false,
+				psData: [], //绑定设备SIM卡数据
+				vehInfo: [], //卡绑定的设备所绑定的车辆
+				SIMdata: [],
+				customers: [],
+				createname: "",
+				updatename: "",
+				simNamelist: [], //设备型号列表
+				simNamelist2: [],
+				simNameLoading: false, //设备型号
+				stoNamelist: [], //库房名称列表
+				stoNameLoading: false, //库房名称
+				formDialogTableVisible: false,
+				total: 0,
+				currentPage: 1,
+				pageSize: 15,
+				showCount: '',
+				listLoading: false,
+				sels: [], //列表选中列
+				checkoutDataT: true, //数据验证返回的布尔值true
+				checkoutDataF: [], //数据验证组
+				thisInput: '', //编辑时存入row验证的值
+				editFormVisible: false, //编辑界面是否显示
+				editLoading: false,
+				editFormRules: {
+					prodnum: [{
+						required: true,
+						message: "请输入卡号",
+						trigger: 'blur'
+					}],
+					productmodelname: [{
+						required: true,
+						message: "请选择卡型号",
+						trigger: 'blur'
+					}],
+					// storagename:[{required:true,message:"请输入库房名",trigger: 'blur'}],
+				},
+				//编辑界面数据
+				editForm: {
+					id: '',
+					prodnum: '',
+					prodsnnum: '',
+					prodspec: '',
+					prodcategory: '',
+					productmodelname: '',
+					storagename: '',
+					status: '',
+					ispack: '',
+					isold: '',
+					expiredate: '',
+					remark: '',
+					isdelete: '',
+					suppliername: '',
+				},
+				editFormId: {
+					storageid: '',
+					prodmodelid: '',
+				},
+
+				addFormVisible: false, //新增界面是否显示
+				addLoading: false,
+				addFormRules: {
+
+				},
+				//新增界面数据
+				addForm: {
+					prodnum: '',
+					prodsnnum: '',
+					prodspec: '',
+					prodcategory: '',
+					prodmodelid: '',
+					productmodelname: '',
+					storageid: '',
+					storagename: '',
+					status: '',
+					ispack: '',
+					isold: '',
+					expiredate: '',
+					remark: '',
+					isdelete: 0,
+					suppliername: '',
+				},
+			}
+		},
+		methods: {
+			// 数据重复验证
+			checkout(p, v, index) {
+				if(v == "") return;
+				if(this.thisInput == v) return; //编辑时 没改输入框值
+				this.checkoutDataT = true; //初始化
+				let paras = {
+					para: p,
+					value: v,
+				}
+				getCheckoutOfProdInfo(paras).then((res) => {
+					let errorInput = res.data.data.param; //保存验证失败的字段
+					if(!res.data.data.result) {
+						this.$message({
+							message: '信息输入重复！',
+							type: 'warning'
+						});
+						this.$refs[errorInput].$el.className = "el-form-item is-error"; //输入框标红
+						this.checkoutDataF[index] = false
+					} else {
+						this.$refs[errorInput].$el.className = "el-form-item"; //输入框恢复
+						this.checkoutDataF[index] = true
+					}
+				});
+			},
+
+			selsChange(sels, row) {
+				this.sels = sels;
+				this.checkData = row;
+			},
+			// 确认解绑
+			cancel() {
+				this.deviceFormVisible = false;
+				if(this.vehInfo.length != 0) { //该卡绑定的设备已有绑定车辆
+					this.$message({
+						message: '该卡所绑定的设备已绑定车辆，无法解绑！',
+						type: 'warning'
+					});
+				} else { //该卡绑定的设备未绑定车辆
+					let para = {
+						packID: this.psData.packID
+					};
+					cancelUnbundleSIM(para).then((res) => {
+						if(res.data.data) {
+							this.$message({
+								message: '该卡解绑成功！',
+								type: 'success'
+							});
+							this.psData = '';
+							this.deviceFormVisible = false;
+						} else {
+							this.$message({
+								message: '解绑失败！只有在库状态才可以解绑！',
+								type: 'warning'
+							});
+						}
+					});
+				}
+			},
+			// 确认绑卡
+			comlist(checkData, event) {
+				this.deviceFormVisible = false;
+				this.$refs.deviceListData.clearSelection();
+
+				let para = {
+					simcardid: this.SIMdata.id,
+					equipmentid: checkData.id,
+					storageid: this.checkData.storageid,
+				};
+				this.comfirLoading = true;
+				addUnbundleSIM(para).then((res) => {
+					this.comfirLoading = false;
+					this.$message({
+						message: '该卡绑设备成功！',
+						type: 'success'
+					});
+					this.resID = res.data.data;
+
+					let paraTwo = {
+						prodID: this.resID.equipmentid,
+					};
+					getAllProSimInfoList(paraTwo).then((res) => {
+						this.psData = ''; //清空上条数据赋的值
+						this.psData = res.data.data.records[0];
+					});
+				});
+
+			},
+			//切换当前页
+			dhandleCurrentChange(val) {
+				this.dcurrentPage = val;
+				this.getDeciceListInfo();
+			},
+			//切换每页显示数量
+			dhandleSizeChange(val) {
+				this.dpageSize = val;
+				this.getDeciceListInfo();
+			},
+			// 查询设备信息
+			addDeviceList() {
+				this.clearAll(); //打开dialog清空查询框
+				this.deviceFormVisible = true;
+				this.filters = {
+					isdelete: this.filters.isdelete,
+					domSearch: this.filters.domSearch, //查询框
+				};
+				this.getDeciceListInfo();
+			},
+			//获取设备信息
+			getDeciceListInfo() {
+				let para = {
+					currentPage: this.dcurrentPage,
+					showCount: this.dpageSize,
+					// 搜索设置部分
+					domSearch: this.filters.domSearch, //查询框
+					ispack: 0,
+					isdelete: 0,
+					storageid: this.SIMdata.storageid,
+					prodcategory: 'E',
+					status: 'INSTO'
+				};
+				this.devicelistLoading = true;
+				getSelectListSIM(para).then((res) => {
+					if(res.data.result.code == 4001) {
+						this.$message({
+							message: res.data.result.desc,
+							type: 'error'
+						});
+						this.devicelistLoading = false;
+						return;
+					}
+					this.dtotal = res.data.data.totalResult;
+					this.deviceListData = res.data.data.records;
+					this.devicelistLoading = false;
+				}).catch((error) => {
+					this.devicelistLoading = false;
+				});
+			},
+
+			//查询清空
+			clearAll() {
+				this.filters.domSearch = [{
+					select: [],
+					content: ''
+				}] //清空查询框;
+			},
+			// 有效 鼠标移入
+			mouseoverChange(e) {
+				if($(e.target).hasClass('icon-duigou')) {
+					$(e.target).addClass('operate-cha icon-cha').removeClass('operate-duigou icon-duigou');
+				} else {
+					$(e.target).addClass('operate-duigou icon-duigou').removeClass('operate-cha icon-cha');
+				}
+			},
+			// 有效 鼠标移除
+			mouseoutChange(e) {
+				if($(e.target).hasClass('icon-cha')) {
+					$(e.target).addClass('operate-duigou icon-duigou').removeClass('operate-cha icon-cha');
+				} else {
+					$(e.target).addClass('operate-cha icon-cha').removeClass('operate-duigou icon-duigou');
+				}
+			},
+			//详情查看
+			formDetailHandle(simid, data) {
+				this.createname = "";
+				this.updatename = "";
+				this.moreData = data;
+				this.formDialogTableVisible = true;
+				// 获取绑定的设备信息
+				let para = {
+					simID: simid,
+				}
+				nanobar.go(70);
+				this.fdtLoading = true;
+				this.editLoading = true;
+				//获取当前设备、SIM卡信息
+				getAllProSimInfoList(para).then((res) => {
+					this.psData = ''; //清空上条数据赋的值
+					if(res.data.data.records.length != 0) {
+						this.psData = res.data.data.records[0];
+					}
+
+					let paraThree = {
+						createby: this.moreData.createby == null ? 0 : this.moreData.createby,
+						updateby: this.moreData.updateby == null ? 0 : this.moreData.updateby,
+					}
+					getNamebyUserid(paraThree).then((res) => {
+						this.createname = res.data.data[0];
+						this.updatename = res.data.data[1];
+					});
+					// 获取当前的卡信息
+					let paraTwo = {
+						id: simid,
+					}
+					getProductInfoList(paraTwo).then((res) => {
+						this.SIMdata = ''; //清空上条数据赋的值
+						this.SIMdata = res.data.data.records[0];
+						let paraThree = {
+							PRODID: simid,
+						}
+						// 获取卡绑定的设备绑定车辆信息
+						getProductOwnerList(paraThree).then((res) => {
+							this.vehInfo = ''; //清空上条数据赋的值
+							if(res.data.data.records.length != 0) {
+								this.vehInfo = res.data.data.records[0];
+							}
+							nanobar.go(100);
+							this.fdtLoading = false;
+							this.editLoading = false;
+						});
+					});
+				});
+			},
+			// 排序
+			sortChange(col, prop, order) {
+				let para = {
+					prop: col.prop,
+					order: col.order.substring(0, col.order.length - 6),
+				}
+				// getSortList(para).then((res) => {});
+			},
+			// 有效无效开关
+			showData(i) {
+				this.filters.isdelete = i;
+				this.handleQuery();
+			},
+			//设备状态显示转换
+			statusFormat: function(row, col) {
+				return row.status == 'INSTO' ? '在库' : row.status == 'INSTALL' ? '已安装' : row.status == 'LOST' ? '报失' : row.status == 'REPAIR' ? '维修' : row.status == 'DAMAGE' ? '报废' : row.status == 'ONWAY' ? '在途' : row.status == 'REMOVING' ? '拆除中' : row.status == 'RETROFIT' ? '返厂' : row.status == 'BREAKGE' ? '报损' : row.status == 'DIRECTOUT' ? '直接出库' : '';
+			},
+			// 显示关联的设备信息
+			showProductTableData(id) {
+				let para = {
+					id: id - 1,
+				}
+				//获取设备信息
+				getProductInfoList(para).then((res) => {
+					this.productData = res.data.data.records;
+				});
+			},
+			//有效无效转换
+			isdeleteFomat(row, col) {
+				return row.isdelete == 1 ? '否' : row.isdelete != undefined ? '是' : '未知';
+			},
+			// 有效无效颜色切换
+			tableRowClassName(row, index) {
+				if(row.isdelete == 1) {
+					return 'warning-row';
+				}
+				return '';
+			},
+			// 有效按钮切换状态
+			handleChange: function(index, row) {
+				this.$confirm('确认设置该条记录的状态吗？', '提示', {
+					type: 'warning'
+				}).then(() => {
+					if(row.status == 'INSTALL') { //该卡是已安装状态
+						this.$message({
+							message: '该设备已安装，无法修改状态！如需修改请先解绑！',
+							type: 'warning'
+						});
+					} else { //该卡不是已安装状态时
+						let para = {
+							id: row.id,
+							isdelete: row.isdelete == 0 ? 1 : 0,
+						}
+						modifySIMInfo(para).then((res) => {
+							this.$message({
+								message: '设置成功',
+								type: 'success'
+							});
+							row.isdelete = para.isdelete;
+						}).catch(() => {
+							this.listLoading = false;
+						});
+					}
+				});
+			},
+			/*设备型号——下拉*/
+			simNameChange(r) {
+				if(!r || this.simNamelist.length > 0) return;
+				this.simNameLoading = true;
+				getSIMNameList().then((res) => {
+					this.simNamelist = res.data.data.records;
+					this.simNameLoading = false;
+				});
+			},
+			/*库房名称——下拉*/
+			stoNameChange(r) {
+				if(!r || this.stoNamelist.length > 0) return;
+				this.stoNameLoading = true;
+				getStoNameList().then((res) => {
+					this.stoNamelist = res.data.data.records;
+					this.stoNameLoading = false;
+				});
+			},
+			//新增—— 设备型号选中时自动获取设备分类
+			getNameAdd() {
+				for(var i = 0; i < this.simNamelist.length; i++) {
+					if(this.simNamelist[i].id == this.addForm.productmodelname) {
+						this.addForm.prodspec = this.simNamelist[i].prodspec;
+						this.addForm.prodcategory = this.simNamelist[i].prodcategory;
+					}
+				}
+			},
+			//编辑—— 设备型号选中时自动获取设备分类
+			getNameEdit() {
+				for(var i = 0; i < this.simNamelist.length; i++) {
+					if(this.simNamelist[i].id == this.editForm.productmodelname) {
+						this.editForm.prodspec = this.simNamelist[i].prodspec;
+						this.editForm.prodcategory = this.simNamelist[i].prodcategory;
+					}
+				}
+			},
+			//时间转换1
+			dateFormatter: function(row, col) {
+				if(row.expiredate == "" || row.expiredate == undefined) return;
+				return util.formatDate.format(new Date(row.expiredate), 'yyyy-MM-dd');
+			},
+			//时间转换2
+			dateFormatterSecond: function(row, col) {
+				if(row.createdate == "" || row.createdate == undefined) return;
+				return util.formatDate.format(new Date(row.createdate), 'yyyy-MM-dd');
+			},
+			//时间转换3
+			dateFormatterThird: function(row, col) {
+				if(row.updatedate == "" || row.updatedate == undefined) return;
+				return util.formatDate.format(new Date(row.updatedate), 'yyyy-MM-dd');
+			},
+			//是否的转换
+			isFormat: function(row, col) {
+				return row.ispack == 1 ? '是' : '否';
+			},
+			isFormatTwo: function(row, col) {
+				return row.isold == 1 ? '是' : '否';
+			},
+			//切换当前页
+			handleCurrentChange(val) {
+				this.currentPage = val;
+				this.handleQuerySelect();
+				// this.handleQuery();
+			},
+			//切换每页显示数量
+			handleSizeChange(val) {
+				this.pageSize = val;
+				this.handleQuery();
+			},
+			// 添加查询条件
+			addSelect() {
+				this.filters.domSearch.push({
+					select: [],
+					content: ''
+				});
+			},
+			// 移除查询条件
+			removeSelect(index) {
+				this.filters.domSearch.splice(index, 1); //从当前index位置开始，删除一项
+			},
+			//搜索按钮——模糊查询
+			handleQuerySelect() {
+				let para = {
+					currentPage: this.currentPage,
+					showCount: this.pageSize,
+					prodcategory: "C",
+					isdelete: this.filters.isdelete,
+					domSearch: this.filters.domSearch,
+				};
+				this.listLoading = true;
+				getSelectListSIM(para).then((res) => {
+					this.total = res.data.data.totalResult;
+					this.listData = res.data.data.records;
+					this.listLoading = false;
+				}).catch((error) => {
+					this.listLoading = false;
+				});
+			},
+			//获取保单列表
+			handleQuery() {
+				let para = {
+					currentPage: this.currentPage,
+					showCount: this.pageSize,
+					prodcategory: 'C',
+					// 搜索设置部分
+					isdelete: this.filters.isdelete,
+				};
+				this.listLoading = true;
+				getProductInfoList(para).then((res) => {
+					this.total = res.data.data.totalResult;
+					this.listData = res.data.data.records;
+					this.listLoading = false;
+				}).catch((error) => {
+					this.listLoading = false;
+				});
+			},
+			//获取客户列表
+			// GetCustomers() {
+			//     let para = {};
+			//     getCustomerInfoList(para).then((res) => {
+			//         this.customers = res.data.data.records;
+			//     });
+			// },
+			//删除
+			handleDel(index, row) {
+				this.$confirm('确认删除该记录吗?', '提示', {
+					type: 'warning'
+				}).then(() => {
+					this.listLoading = true;
+					//NProgress.start();
+					let para = {
+						ids: row.id,
+						method: "delete"
+					};
+					removeSIMInfo(para).then((res) => {
+						this.listLoading = false;
+						//NProgress.done();
+						this.$message({
+							message: '删除成功',
+							type: 'success'
+						});
+						this.handleQuery();
+					});
+				}).catch(() => {
+
+				});
+			},
+			//显示编辑界面
+			handleEdit(index, row) {
+				$(".is-error").removeClass('is-error'); //清空验证时的红框
+				this.formDetailHandle(row.id, row); //调用详情，获取SIM卡信息
+				this.formDialogTableVisible = false; //详情页面不显示
+
+				this.editFormVisible = true;
+
+				this.editForm = {
+					id: row.id,
+					prodnum: row.prodnum,
+					prodsnnum: row.prodsnnum,
+					prodspec: row.prodspec,
+					prodcategory: row.prodcategory,
+					productmodelname: row.productmodelname,
+					storagename: row.storagename,
+					status: row.status,
+					ispack: parseInt(row.ispack),
+					isold: parseInt(row.isold),
+					expiredate: row.expiredate,
+					remark: row.remark,
+					isdelete: parseInt(row.isdelete),
+					suppliername: row.suppliername,
+				}
+				this.editFormId = {
+					prodmodelid: row.prodmodelid,
+					storageid: row.storageid,
+					productmodelname: row.productmodelname,
+					storagename: row.storagename
+				}
+				this.thisInput = this.editForm.prodnum; //将当前验证的字段 已获得的值存入
+			},
+			//显示新增界面
+			handleAdd() {
+				this.addFormVisible = true;
+				this.addForm = {
+					prodnum: '',
+					prodsnnum: '',
+					prodspec: '',
+					prodcategory: '',
+					prodmodelid: '',
+					productmodelname: '',
+					storageid: '',
+					storagename: '',
+					status: '',
+					ispack: '',
+					isold: '',
+					expiredate: '',
+					remark: '',
+					isdelete: 0,
+				};
+			},
+			//编辑
+			editSubmit() {
+				this.checkoutDataF.forEach((item, index) => {
+					this.checkoutDataT = item && this.checkoutDataT;
+				});
+				this.$refs.editForm.validate((valid) => {
+					if(valid) {
+						this.editLoading = true;
+						let para = {
+							id: this.editForm.id,
+							prodnum: this.editForm.prodnum,
+							prodsnnum: this.editForm.prodsnnum,
+							productmodelname: this.editForm.productmodelname,
+							storagename: this.editForm.storagename,
+							status: this.editForm.status,
+							ispack: parseInt(this.editForm.ispack),
+							isold: parseInt(this.editForm.isold),
+							expiredate: this.editForm.expiredate,
+							remark: this.editForm.remark,
+							isdelete: parseInt(this.editForm.isdelete),
+							prodcategory: this.editForm.prodcategory,
+							suppliername: this.editForm.suppliername,
+						}
+						if(this.psData.length != 0) { //该卡已绑定设备时
+							if(this.psData.prodstatus == 'INSTALL') { //该卡所绑定的设备状态是已安装
+								if(para.status == 'INSTO' || para.status == 'ONWAY') {
+									this.$message({
+										message: '该卡所绑定的设备已绑定车辆，无法修改状态！如需修改请先解绑！',
+										type: 'warning'
+									});
+									this.editLoading = false; //提交按钮不加载
+									return; //终止执行
+								}
+							} else {
+								console.log('该卡绑定的设备状态不是已安装')
+							}
+						} else { //该卡未绑定设备时
+							console.log('该卡未绑定设备')
+						}
+
+						if(this.editFormId.productmodelname == this.editForm.productmodelname) {
+							para.prodmodelid = this.editFormId.prodmodelid;
+						} else {
+							para.prodmodelid = this.editForm.productmodelname;
+						}
+						if(this.editFormId.storagename == this.editForm.storagename) {
+							para.storageid = this.editFormId.storageid;
+						} else {
+							para.storageid = this.editForm.storagename;
+						}
+						if(this.checkoutDataT) { //验证通过时(无重复时)
+							modifySIMInfo(para).then((res) => {
+								this.editLoading = false;
+								this.$message({
+									message: '编辑成功',
+									type: 'success'
+								});
+								this.$refs['editForm'].resetFields();
+								this.editFormVisible = false;
+								this.handleQuery();
+							});
+						} else {
+							this.editLoading = false;
+							this.$message({
+								message: '标红信息已存在！',
+								type: 'warning'
+							});
+						}
+
+					}
+				});
+			},
+			//新增
+			addSubmit() {
+				this.checkoutDataF.forEach((item, index) => {
+					this.checkoutDataT = item && this.checkoutDataT;
+				});
+				this.$refs.addForm.validate((valid) => {
+					if(valid) {
+						this.addLoading = true;
+						//NProgress.start();
+						// let para = Object.assign({}, this.addForm);
+						let para = {
+							prodnum: this.addForm.prodnum,
+							prodsnnum: this.addForm.prodsnnum,
+							prodspec: this.addForm.prodspec,
+							prodcategory: this.addForm.prodcategory,
+							productmodelname: this.addForm.productmodelname,
+							storagename: this.addForm.storagename,
+							status: this.addForm.status,
+							ispack: parseInt(this.addForm.ispack),
+							isold: parseInt(this.addForm.isold),
+							expiredate: this.addForm.expiredate,
+							remark: this.addForm.remark,
+							isdelete: parseInt(this.addForm.isdelete),
+							prodmodelid: this.addForm.productmodelname,
+							storageid: this.addForm.storagename,
+							suppliername: this.addForm.suppliername,
+						}
+						if(this.checkoutDataT) { //验证通过时(无重复时)
+							addSIMInfo(para).then((res) => {
+								this.addLoading = false;
+								//NProgress.done();
+								this.$message({
+									message: '新增成功',
+									type: 'success'
+								});
+								this.$refs['addForm'].resetFields();
+								this.addFormVisible = false;
+								this.handleQuery();
+							});
+						} else {
+							this.addLoading = false;
+							this.$message({
+								message: '标红信息已存在！',
+								type: 'warning'
+							});
+						}
+
+					}
+				});
+			},
+			//批量删除
+			batchRemove() {
+				var ids = this.sels.map(item => item.id).toString();
+				this.$confirm('确认删除选中记录吗？', '提示', {
+					type: 'warning'
+				}).then(() => {
+					this.listLoading = true;
+					//NProgress.start();
+					let para = {
+						ids: ids,
+						method: "delete"
+					};
+					removeSIMInfo(para).then((res) => {
+						this.listLoading = false;
+						//NProgress.done();
+						this.$message({
+							message: '删除成功',
+							type: 'success'
+						});
+						this.handleQuery();
+					});
+				}).catch(() => {
+
+				});
+			}
+		},
+		activated() {
+			this.handleQuery();
+		}
+	}

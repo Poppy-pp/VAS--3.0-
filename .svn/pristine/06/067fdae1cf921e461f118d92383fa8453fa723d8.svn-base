@@ -1,0 +1,50 @@
+.count-box
+  padding 20px;
+  border 1px solid #ccc
+  border-radius 5px;
+  height 120px;
+  text-align center
+  color #fff
+  background #000000
+  margin 5px 0
+  cursor pointer
+  i
+    font-size 26px
+
+.count-sum
+  font-size 24px;
+
+.count-content
+  font-size 22px;
+  margin 10px 0;
+
+.bg-cyan
+  background #36cbcb
+  border-color #36cbcb
+
+.bg-yellow
+  background #e6a23c
+  border-color #e6a23c
+
+.bg-blue
+  background #409eff
+  border-color #409eff
+
+.bg-red
+  background #f56c6c
+  border-color #f56c6c
+
+.bg-green
+  background #41B883
+  border-color #41B883
+
+
+.general-situation
+  display flex
+  align-items center
+  >span
+    font-size 14px;
+    margin-right 15px;
+
+.rotateBell{transition:all 0.4s ease-in-out;-webkit-transition:all 0.4s ease-in-out;}
+.count-box:hover .rotateBell{animation: 0.5s linear;transform scale(0.6)}

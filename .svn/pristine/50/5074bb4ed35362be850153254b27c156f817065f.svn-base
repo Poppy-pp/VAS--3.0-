@@ -1,0 +1,47 @@
+import axios from 'axios';
+import Qs from 'qs';
+
+export const getPartsInfo = params => {
+    return axios.get(`/sto/stoAccessory/query`, {params: params})
+};
+
+export const getPartsList = params => {
+	return axios.get(`/sto/stoModel/parts/query/page`, {params: params})
+};
+
+export const addPartsInfo = params => {
+	return axios.post(`/sto/stoModel/parts`, params)
+};
+
+export const modifyPartsInfo = params => {
+	return axios.get(`/sto/stoModel/pub/isactive/`+ params.id + `/`+ params.isactive );
+};
+
+export const removePartsInfo = params => {
+	return axios.delete(`/sto/stoModel/parts/`+ params.id, params )
+};
+// 修改配件类型
+export const editPartsInfo = params => {
+    return axios.put(`/sto/stoModel/parts`, params);
+};
+// 查询配件类型
+export const getPartsModelList = params => {
+	return axios.get(`/sto/stoModel/parts/page`, {params: params});
+};
+// 供应商列表
+export const getSupplierList = params => {
+    return axios.get(`/sto/stoSupplier/query/like`, {params: params})
+};
+// 配件入库
+export const addPartsInStore = params => {
+    return axios.post(`/sto/stoAction/addParts`, params)
+};
+// 联查入库单详情
+export const getDetails = params => {
+    return axios.get(`/sto/stoAccessory/query/inHistory`, {params: params})
+};
+// 采购合同-配件
+export const getStoPurchaseList = params => {
+    return axios.get(`/sto/stoPurchase/modelcategory/A`, {params: params})
+};
+

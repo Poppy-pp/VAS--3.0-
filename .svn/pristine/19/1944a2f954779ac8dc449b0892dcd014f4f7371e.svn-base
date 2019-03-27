@@ -1,0 +1,54 @@
+import Vue from 'vue'
+import Element from 'element-ui'
+import scroll from 'vue-seamless-scroll'
+import Icon from 'vue-svg-icon/Icon.vue'
+import VueAMap from 'vue-amap'
+import '@/assets/iconfont/iconfont.css'//全局引用iconfont
+import '@/theme/element-#41B883/index.css'//全局引用elementui
+import '@/assets/styl/index'
+import '@/mock'
+import VueParticles from 'vue-particles'
+import VueCountUp from 'vue-countupjs'
+
+import App from '@/App'
+import { router } from '@/router'
+import '@/router/routerControl'
+import store from '@/store'
+import $ from 'jquery' //全局引用jquery
+window.$ = $;
+import dayjs from 'dayjs' //全局引用dayjs
+window.dayjs = dayjs;
+import 'lodash'
+
+import i18n from '@/lang'
+
+Vue.component('icon', Icon)
+
+Vue.use(VueParticles)
+Vue.use(VueCountUp)
+Vue.use(scroll)
+Vue.use(Element, {
+  size: 'medium',
+  i18n: (key, value) => i18n.t(key, value)
+})
+
+Vue.use(VueAMap)
+// 初始化vue-amap
+VueAMap.initAMapApiLoader({
+	// 高德的key
+	key: '8120b756a0a5a0cc9a543412fc5b2613',
+	// 插件集合
+	plugin: ['AMap.Geocoder', 'AMap.Geolocation', 'AMap.Autocomplete', 'AMap.PlaceSearch', 'AMap.Scale', 'AMap.OverView', 'AMap.ToolBar', 'AMap.MapType', 'AMap.PolyEditor', 'AMap.CircleEditor'],
+	uiVersion: '1.0' // 版本号
+});
+
+Vue.config.productionTip = false
+
+new Vue({
+  el: '#app',
+  router,
+  store,
+  i18n,
+  components: { App },
+  template: '<App/>'
+})

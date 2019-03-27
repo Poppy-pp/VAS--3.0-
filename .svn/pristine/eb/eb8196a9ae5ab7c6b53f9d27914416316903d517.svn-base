@@ -1,0 +1,215 @@
+import insuranceCountChart from '@/components/insuranceCountChart'
+import { getInsuranceDataCount, getPolicyno} from './service'
+import { mapState } from 'vuex'
+import echarts from 'echarts';
+
+
+export default {
+    name: "insuranceCount",
+    data () {
+        return {
+            dayjsTmp: dayjs,
+            policynos: [],
+            policyno: '',
+            countData: {},
+            todolist: [{task: '[待采购]四川区域的库管提交了要货量，请查看并采购！ ',date:'2018-12-13'},{task: '[待收货]库房向您调拨了一批设备，设备已入库，请注意签收！',date:'2018-12-13'},{task: '[待采购]四川区域的库管提交了要货量，请查看并采购！',date:'2018-12-13'},{task: '[待收货]库房向您调拨了一批设备，设备已入库，请注意签收！ ',date:'2018-12-13'},{task: '[待收货]你的小可爱，突然出现！ ',date:'2018-12-13'},{task: '[待收货]fighting！ ',date:'2018-12-13'}],
+            messagelist:[{task: '由您采购给蒲琳库房的设备DB20181101235已被收货人签收！  ',date:'2018-12-13'},{task: 'XX库房的XXX型号的设备发出库存过高预警，请查看！  ',date:'2018-12-13'},{task: '由您反馈的有关单号为XXXXXXXXX的设备数量有偏差....  ',date:'2018-12-13'},{task: '做不完了',date:'2018-12-13'}],
+            chartColumn: null,
+        }
+    },
+    components: {
+        insuranceCountChart
+    },
+    computed: {
+        ...mapState({
+            corporateinfo: state=> {
+                return state.user.corporateinfo
+            }
+        })
+    },
+    methods: {
+        async getInsuranceDataCount () {
+            try {
+                const params = {
+                    insurancecorpid: this.corporateinfo.id,
+                    policyno: this.policyno
+                }
+                const {data} = await getInsuranceDataCount(params)
+                this.countData = data.data
+            } catch (e) {
+
+            }
+        },
+        async getPolicyno () {
+            try {
+                const params = {
+                    insurancecorpid: this.corporateinfo.id
+                }
+                const {data} = await getPolicyno(params)
+                this.policynos = data.data
+            } catch (e) {
+
+            }
+        },
+        jump(name) {
+            this.$router.push({
+                name,
+                params: {
+                    policyno: this.policyno
+                }
+            })
+        },
+        /*初始化首页图表*/
+        chartColumnFuc() {
+            /*库房统计 start*/
+            this.chartColumnOne = echarts.init(document.getElementById('chartColumnOne'));
+            let yearData = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'],
+                    barData =[820, 932, 901, 934, 1290, 1330, 1320],
+                    lineData = [131, 142, 1344, 145, 445, 546, 647];
+            this.chartColumnOne.setOption({
+                tooltip: {
+                    trigger: 'axis'
+                },
+                legend: {
+                    data:['新报订单','完成订单']
+                },
+                dataZoom: {
+                    show: true,
+                    realtime: false,
+                    startValue:dayjs(new Date()).subtract(7, 'day').format('YYYY-MM-DD'),
+                    // endValue:dayjs(new Date()).subtract(1, 'day').format('YYYY-MM-DD')
+                },
+                xAxis: {
+                    type: 'category',
+                    boundaryGap: true,
+                    data: yearData
+                },
+                yAxis: {
+                    type: 'value'
+                },
+                series: [{
+                        name: '新报订单',
+                        type: 'line',
+                        data: lineData
+                    },
+                    {
+                        name: '完成订单',
+                        type: 'line',
+                        data: barData
+                    }
+               ]
+            });
+
+            /*预警统计 start*/
+            this.chartColumnTwo = echarts.init(document.getElementById('chartColumnTwo'));
+            let xData = [1, 2, 3, 4, 5, 6, 7],
+                    yData = [120, 200, 150, 80, 70, 110, 130];
+            this.chartColumnTwo.setOption({
+                xAxis: {
+                    type: 'category',
+                    data: xData
+                },
+                yAxis: {
+                    type: 'value'
+                },
+                series: [{
+                    data: yData,
+                    type: 'bar'
+                }]
+            });
+
+            /*库房设备量 start*/
+            this.chartColumnThree = echarts.init(document.getElementById('chartColumnThree'));
+            let xstoData = ['在库','在途','维修中','已遗失','已安装','返厂中','已返厂','已报损'],
+                    ystoData = [1230, 2100, 1330, 840, 720, 1140, 1430, 1130];
+            this.chartColumnThree.setOption({
+                xAxis: {
+                    type: 'category',
+                    data: xstoData
+                },
+                yAxis: {
+                    type: 'value'
+                },
+                series: [
+                { // For shadow
+                    type: 'bar',
+                    itemStyle: {
+                        normal: {color: 'rgba(0,0,0,0.05)'}
+                    },
+                    barGap:'-100%',
+                    barCategoryGap:'40%',
+                    data: ystoData,
+                    animation: false
+                },
+                {
+                    type: 'bar',
+                    itemStyle: {
+                        normal: {
+                            color: new echarts.graphic.LinearGradient(
+                                0, 0, 0, 1,
+                                [
+                                    {offset: 0, color: '#83bff6'},
+                                    {offset: 0.5, color: '#188df0'},
+                                    {offset: 1, color: '#188df0'}
+                                ]
+                            )
+                        },
+                        emphasis: {
+                            color: new echarts.graphic.LinearGradient(
+                                0, 0, 0, 1,
+                                [
+                                    {offset: 0, color: '#2378f7'},
+                                    {offset: 0.7, color: '#2378f7'},
+                                    {offset: 1, color: '#83bff6'}
+                                ]
+                            )
+                        }
+                    },
+                    data: ystoData
+                }]
+            });
+
+            /*库存量统计 start*/
+            this.chartColumnFour = echarts.init(document.getElementById('chartColumnFour'));
+            let value1 = 400,value2 = 120,value3 = 122,value4 = 150,value5 = 110;
+            this.chartColumnFour.setOption({
+                    tooltip : {
+                        trigger: 'item',
+                        formatter: "{a} <br/>{b} : {c} ({d}%)"
+                    },
+                    legend: {
+                        orient: 'vertical',
+                        left: 'left',
+                        data: ['直接访问','邮件营销','联盟广告','视频广告','搜索引擎']
+                    },
+                    series : [
+                        {
+                            name: '访问来源',
+                            type: 'pie',
+                            radius : '55%',
+                            center: ['50%', '60%'],
+                            data:[
+                                {value:value1, name:'直接访问'},
+                                {value:value2, name:'邮件营销'},
+                                {value:value3, name:'联盟广告'},
+                                {value:value4, name:'视频广告'},
+                                {value:value5, name:'搜索引擎'}
+                            ],
+                            itemStyle: {
+                                emphasis: {
+                                    shadowBlur: 10,
+                                    shadowOffsetX: 0,
+                                    shadowColor: 'rgba(0, 0, 0, 0.5)'
+                                }
+                            }
+                        }
+                    ]
+            });
+        },
+    },
+    mounted () {
+        this.getInsuranceDataCount();
+        this.getPolicyno();
+        this.chartColumnFuc();//加载图表
+    }
+}

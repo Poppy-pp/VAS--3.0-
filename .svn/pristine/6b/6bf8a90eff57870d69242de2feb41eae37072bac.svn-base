@@ -1,0 +1,146 @@
+<!-- 入口页面 -->
+<template>
+    <section class="main">
+        <transition name="fade-transverse" mode="out-in">
+            <keep-alive :include="cachedViews">
+                <router-view :windowOutHeight="windowOutHeight"></router-view>
+            </keep-alive>
+        </transition>
+    </section>
+</template>
+
+<script>
+    import storage from '@/utils/storage'
+    import axios from 'axios'
+    import { getToken } from '@/utils/auth'
+
+    export default {
+        name: 'AppMain',
+        data () {
+            return {
+                windowOutHeight: 800,
+            }
+        },
+        computed: {
+            cachedViews () {
+                return this.$store.state.tagsView.cachedViews
+            }
+        },
+        methods: {
+            /* 配置axios */
+            axiosCommonHandle () {
+                const token = this.$store.state.user.old_vas_token
+                let user = storage.get('user');
+                // 超时时间
+                axios.defaults.timeout = 30000;
+                // 跨域请求，允许保存cookie
+                axios.defaults.withCredentials = true;
+                /*HTTP request拦截器*/
+                axios.interceptors.request.use((config) => {
+                    config.headers['Authorization'] = 'Bearer ' + getToken();//让每个请求携带Authorization
+                    config.headers['token'] = token;
+                    return config;
+                }, (error) => {
+                    this.$message({
+                        message: '请求失败!' + error,
+                        type: 'error'
+                    });
+                    return Promise.reject(error);
+                });
+                /*HTTP response拦截*/
+                axios.interceptors.response.use(
+                    (response) => {
+                        if (response.data) {
+                            // 状态码9001
+                            if (response.data.code === 9001 && !response.data.data) {
+                                this.$confirm(response.data.desc, '错误', {
+                                    confirmButtonText: '重新登录',
+                                    showCancelButton: false,
+                                    closeOnClickModal: false,
+                                    closeOnPressEscape: false,
+                                    center: true,
+                                    type: 'error'
+                                }).then(() => {
+                                    this.$store.dispatch('logout')
+                                    window.location.reload()
+                                    storage.clear();
+                                }).catch(() => {
+                                    this.$message({
+                                        type: 'info',
+                                        message: '已取消重新登录'
+                                    });
+                                });
+                                return;
+                            }
+                        }
+                        // 状态码 0=成功，1=失败
+                        if (response.data.code && response.data.code !== 0) {
+                            this.$message({
+                                message: response.data.msg,
+                                type: 'error'
+                            });
+                            return Promise.reject(response);
+                        }
+                        // 当返回为false的时候，抛出错误
+                        if (response.data.data === false) {
+                            this.$message({
+                                message: response.data.msg,
+                                type: 'error'
+                            });
+                            return Promise.reject(response);
+                        }
+                        return response;
+                    },
+                    (error) => {
+                        let message = ''
+                        if(error && error.response && error.response.data) {
+                            message = error.response.data.msg || error.response.data.message
+                        }
+                        this.$message({
+                            message: '响应失败：' + message,
+                            type: 'error'
+                        });
+                        return Promise.reject(error);
+                    },
+                );
+                return this;
+            }
+        },
+        created () {
+            this.axiosCommonHandle();
+            //初始化窗体高度
+            this.windowOutHeight = $(window).height();
+            // this.startWorker()
+            window.onresize = () => {
+                this.windowOutHeight = $(window).height();
+            }
+        }
+    }
+</script>
+
+<style lang="stylus" scoped>
+    .main
+        height: calc(100% - 50px);
+        padding: 10px;
+        margin: 5px;
+        overflow: auto;
+        -webkit-box-sizing: border-box;
+        box-sizing: border-box;
+        background-color: #FEFEFE;
+        border: 1px solid #ebeef5;
+        border-radius: 3px;
+        box-shadow: 0 2px 12px 0 rgba(0, 0, 0, .1);
+
+    .fade-transverse-enter
+        opacity 0
+        transform: translateX(-30px)
+
+    .fade-transverse-leave-to
+        opacity 0
+        transform translateX(30px)
+
+    .fade-transverse-leave-active,
+    .fade-transverse-enter-active
+        transition all .5s
+
+</style>

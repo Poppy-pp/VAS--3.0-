@@ -1,0 +1,136 @@
+import { getToken } from '@/utils/auth'
+import { getStoPurchaseList } from '../purchaseContract/service'
+import { commitPutIn } from './service'
+import axios from "axios";
+
+export default {
+    name: "putInStorage",
+    data () {
+        return {
+            filters: {
+                domSearch: [{
+                    select: ['oddNumbers'],
+                    content: ''
+                }], //查询框
+            },
+            dataList: [],
+            loading: false,
+            visible: false,
+            isExcel: false,
+            pagination: {
+                size: 15,
+                total: 0
+            },
+            putInForm: {
+                inType: '',
+                contractNo: '',
+                filePath: ''
+            },
+            fileList: [],
+            accept: '.xlsx, .excel, .txt',
+            token: getToken(),
+            inTypes: [{
+                value: 'IN_PURCHASE',
+                label: '采购入库'
+            }, {
+                value: 'IN_RETURN',
+                label: '返厂入库'
+            }],
+            purchaseList: [],
+            putInRules: {
+                inType: [{required: true, message: '请选择入库类型', trigger: 'change'}],
+                contractNo: [{required: true, message: '请选择采购合同', trigger: 'change'}],
+                filePath: [{required: true, message: '请上传采购文件', trigger: 'blur'}]
+            }
+        }
+    },
+    props: ['windowOutHeight'],
+    methods: {
+        search () {
+
+        },
+        resetForm () {
+
+        },
+        handleSizeChange () {
+
+        },
+        handleCurrentChange () {
+
+        },
+        addSelect () {
+
+        },
+        removeSelect () {
+
+        },
+        // 选择入库方式
+        addPutInStorage (command) {
+            this.visible = true
+            this.fileList = []
+            this.isExcel = command
+        },
+        // 选择改变文件
+        changeFile (file, fileList) {
+            if (fileList.length > 1) {
+                this.fileList = fileList.slice(1)
+            } else {
+                this.fileList = fileList
+            }
+        },
+        removeFile () {
+
+        },
+        // 文件上传成功
+        uploadSuccess (response, file, fileList) {
+            if (response.code === 1) {
+                this.$message.warning(response.msg)
+                this.$refs.upload.clearFiles()
+                return
+            }
+            this.$message.success('上传成功')
+            this.$refs.putInFilePath.clearValidate();
+            this.putInForm.filePath = response.data;
+        },
+        uploadError (err) {
+            const data = JSON.parse(err.message)
+            this.$message.error(data.message)
+        },
+        // 提交新增入库单
+        submit () {
+            this.$refs.putInForm.validate(async valid => {
+                if (valid) {
+                    try {
+                        await commitPutIn(this.putInForm)
+                        this.$router.push({name: 'putInStorageInvoices'})
+                    } catch (e) {
+
+                    }
+                }
+            })
+        },
+        // 手动上传文件
+        submitUpload () {
+            this.$refs.upload.submit();
+        },
+        // 获取采购合同
+        async getStoPurchaseList () {
+            try {
+                const params = {
+                    limit: 10000,
+                    page: 1
+                }
+                const {data} = await getStoPurchaseList(params)
+                this.purchaseList = data.data.records
+            } catch (e) {
+
+            }
+        },
+        download () {
+            window.location.href = "/sto/stoIn/getExcelTemplate";
+        }
+    },
+    mounted () {
+
+    }
+}

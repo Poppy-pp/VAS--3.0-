@@ -1,0 +1,75 @@
+<template>
+    <section class="tab_content-wrapper">
+        <!--工具条-->
+        <el-col :span="24" class="toolbar">
+            <el-form :model="filters" ref="filters" :inline="true" class="flexSearchForm">
+                        <el-form-item prop="employeename" class="sf100">
+                            <el-input v-model="filters.employeename" @keyup.native.enter="handleQuery" placeholder="请输入关键字查询"></el-input>
+                        </el-form-item>
+                        <el-form-item prop="startDate" class="sf100">
+                            <el-date-picker v-model="filters.startDate" type="datetimerange" range-separator="至" start-placeholder="开始日期" end-placeholder="结束日期">
+                            </el-date-picker>
+                        </el-form-item>
+                        <el-form-item>
+                            <el-button type="primary" icon="el-icon-search" @click="handleQuery">查询</el-button>
+                        </el-form-item>
+            </el-form>
+        </el-col>
+        <!--列表-->
+        <el-table border :max-height="windowOutHeight-215" stripe :data="listData" highlight-current-row v-loading="listLoading" style="width: 100%;">
+            <el-table-column type="index" label="#" width="30" align="center">
+            </el-table-column>
+            <el-table-column prop="id" width="80" align="center" label="编号">
+            </el-table-column>
+            <el-table-column prop="system" align="center" width="80" label="操作系统">
+            </el-table-column>
+            <el-table-column prop="actiontype" align="center" width="80" label="操作方式">
+                <template slot-scope="scope">
+                    <el-tag :type="scope.row.actiontype ==='改' ? 'success' : scope.row.actiontype ==='增' ? 'danger' : scope.row.actiontype ==='删' ? 'info' :'warning'">
+                        {{scope.row.actiontype}}
+                    </el-tag>
+                </template>
+            </el-table-column>
+            <el-table-column prop="logtime" align="center" width="160" :formatter="dateFormatter" label="操作时间">
+            </el-table-column>
+            <el-table-column prop="employeename" align="center" width="80" label="操作人">
+            </el-table-column>
+            <el-table-column prop="logdesc" align="center" label="描述">
+            </el-table-column>
+            <el-table-column label="操作" align="center" width="60">
+                <template slot-scope="scope">
+                    <el-button id="button" @click="showDetails(scope.$index, scope.row)" title="详情">
+                        <i class="iconfont icon-xiangqing operate operate-xiangqing"></i>
+                    </el-button>
+                </template>
+            </el-table-column>
+        </el-table>
+
+        <!--工具条-->
+        <el-col :span="24" class="toolbar">
+            <el-pagination @size-change="handleSizeChange" background @current-change="handleCurrentChange" :page-sizes="[15, 50, 80,99]" :page-size="pageSize"
+                           layout="total, sizes, prev, pager, next" :total="total" style="float:right;">
+            </el-pagination>
+        </el-col>
+
+
+        <!--详情界面-->
+        <el-dialog title="操作记录详情" :modal-append-to-body="false" :visible.sync="recordFormVisible" :close-on-click-modal="false">
+            <!--列表-->
+            <el-table border stripe :data="dlistData" highlight-current-row v-loading="dlistLoading" style="width: 100%;">
+                <el-table-column type="index" label="#" width="30" align="center">
+                </el-table-column>
+                <el-table-column prop="columnname" align="center" label="操作字段" width='100'>
+                </el-table-column>
+                <el-table-column prop="actiontable" align="center" label="操作表">
+                </el-table-column>
+                <el-table-column prop="beforevaluedesc" align="center" label="字段前值">
+                </el-table-column>
+                <el-table-column prop="aftervaluedesc" align="center" label="字段后值">
+                </el-table-column>
+            </el-table>
+        </el-dialog>
+    </section>
+</template>
+
+<script src="./index.js"></script>

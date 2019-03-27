@@ -1,0 +1,36 @@
+import { getParentInfoList } from '@/views/sysManage/organizationManage/service'
+import installOrder from './subComponent/installOrder'
+import maintainOrder from './subComponent/maintainOrder'
+
+export default {
+    name: "addInstallOrder",
+    components: {
+        installOrder,
+        maintainOrder
+    },
+    data () {
+        return {
+            type: 'install',
+            corplist: [],// 公司列表
+            corpid: ''
+        }
+    },
+    methods: {
+        /**
+         * 获取公司列表
+         */
+        getCorpnList () {
+            let param = {
+                page: 1,
+                limit: 10000
+            }
+            getParentInfoList(param).then(({data}) => {
+                this.corplist = data.data.records;
+            }, () => {
+            });
+        },
+        changeCorp () {
+
+        },
+    }
+}

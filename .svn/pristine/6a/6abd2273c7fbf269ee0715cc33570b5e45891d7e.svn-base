@@ -1,0 +1,117 @@
+import axios from 'axios';
+import { checkMobile, checkVehicleNumber } from '@/utils/formValidation'
+
+
+export const getEmpAllocation = params => {
+    return axios.get(`/sto/allocation/page`, {params: params})
+};
+// 新增调拨
+export const addAllocation = params => {
+    return axios.post(`/sto/allocation/add`, params)
+};
+// 生成调拨单单号
+export const getAllocationBatchno = params => {
+    return axios.get(`/sto/qrcode/serialnumber/DB`, {params: params});
+};
+// 调拨类型
+export const getActiontype = params => {
+    return axios.get(`/admin/sysDictionaryData/query/byDictValue/like?dictvalue=StoActionType&dictdataname=ALLO_`, {params: params});
+};
+// 设备选择列表
+export const getProductInfoList = params => {
+    return axios.get(`/sto/stoProduct/operate/prod/page`, {params: params});
+};
+// 确认添加设备
+export const addProductAllocation = params => {
+    return axios.post(`/sto/allocation/add/temp`, params);
+};
+// 删除添加设备
+export const removeProductAllocation = params => {
+    return axios.delete(`/sto/allocation/detail/tmp/delete/` + params.batchno + `/` + params.prodid + `/` + params.modelcategory);
+};
+// 查询已添加设备
+export const getChooseProduct = params => {
+    return axios.get(`/sto/allocation/detail/count/` + params.batchno);
+};
+// 查看详情——调拨数量
+export const getChooseProductDetails = params => {
+    return axios.get(`/sto/allocation/detail/record`, {params: params});
+};
+// 新增——调拨数量
+export const getChooseProductDetailsAdd = params => {
+    return axios.get(`/sto/allocation/detail/tmp/record`, {params: params});
+};
+// 查看物流
+export const getViewLogistics = params => {
+    return axios.get(`/sto/stoDelivery/queryLogisticsInfo/` + params.id)
+};
+// 查询配件
+export const getPurchaseCascader = params => {
+    return axios.get(`/sto/stoModel/purchase/cascader/parts`, {params: params})
+};
+// 确认添加配件
+export const addPartsAllocation = params => {
+    return axios.post(`/sto/allocation/add/one/temp`, params)
+};
+// 查询调入库房
+export const getToStorage = params => {
+    return axios.get(`/sto/stoStorage/query/like`, {params: params})
+};
+// 查询物流公司
+export const getDeliveryCorps = params => {
+    return axios.get(`/admin/sysDictionaryData/query`, {params})
+};
+// 查询收发货地址
+export const getDeliveryaddress = params => {
+    return axios.get(`/sto/stoDeliveryaddress/page?storageid=` + params.storageid)
+};
+// 查看详情
+export const getAllocationDetails = params => {
+    return axios.get(`/sto/allocation/detail/` + params.id)
+};
+// 遗失列表
+export const getLostList = params => {
+    return axios.get(`/sto/allocation/lost/page`, {params})
+};
+// 遗失列表详情
+export const getLostListDetails = params => {
+    return axios.get(`/sto/allocation/lost/` + params.id)
+};
+// 生成遗失单号
+export const getLostBatchno = params => {
+    return axios.get(`/sto/qrcode/serialnumber/YS`)
+};
+// 新增遗失
+export const addLost = params => {
+    return axios.post(`/sto/allocation/lost/add`, params)
+};
+
+export const updatePurchaseQty = params => {
+    return axios.post('sto/stoRequest/mod/updateTransferPurchaseqty', params)
+}
+// 新增——查询所有已选设备
+export const getChooseAll = params => {
+    return axios.get(`/sto/allocation/detail/tmp/` + params.batchno );
+};
+
+// 表单验证
+export const setFacilityFormRules = {
+    'actiontype': [{required: true, message: '请选择调拨类型', trigger: 'blur'}],
+    'actiondate': [{required: true, message: '请选择调拨日期', trigger: 'blur'}],
+    'storagename': [{required: true, message: '请选择调出库房', trigger: 'blur'}],
+    'tostoragename': [{required: true, message: '请选择调入库房', trigger: 'blur'}],
+    'delivery.fromaddressname': [{required: true, message: '请选择发货地址', trigger: 'change'}],
+    'delivery.toaddressname': [{required: true, message: '请选择收货地址', trigger: 'change'}],
+    'username': [{required: true, message: '请选择经办人', trigger: 'blur'}],
+    'delivery.deliverytype': [{required: true, message: '请选择发货方式', trigger: 'change'}],
+    'delivery.deliveryno': [{required: true, message: '请输入物流号', trigger: 'blur'}],
+    'delivery.deliverycorp': [{required: true, message: '请选择物流公司', trigger: 'change'}],
+    'delivery.vehicleplate': [
+        {required: true, message: '请输入车牌号', trigger: 'blur'},
+        {validator: checkVehicleNumber, trigger: 'blur'}
+    ],
+    'delivery.contactno': [
+        {required: true, message: '请输入联系电话', trigger: 'blur'},
+        {validator: checkMobile, trigger: 'blur'}
+    ],
+}

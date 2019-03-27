@@ -1,0 +1,245 @@
+<template>
+    <!--<div>-->
+    <!--维修/拆除单-->
+    <!--</div>-->
+    <el-form>
+        <el-row>
+            <el-col :span="24" class="cbstyle">
+                <el-collapse class="bdcoll rpShowimgDialog" ref="rpShowimgDialog" v-model="activeNames">
+                    <el-collapse-item title="请选择车辆" class="lefw10 wzpdt10" name="1">
+                        <el-row :gutter="20">
+                            <el-col :span="8">
+                                <el-form-item label="车架号" prop="vehiclevin">
+                                    <el-autocomplete class="inline-input searchInput" popper-class="my-autocomplete" v-model="vehiclevin"
+                                                     :fetch-suggestions="querySearchVins" custom-item="my-item-zh" placeholder="请输入车牌号/车架号"
+                                                     @select="handleSelectVin">
+                                        <template slot-scope="props">
+                                            <div class="name">{{ props.item.model }}</div>
+                                            <div class="addr">{{ props.item.licenseplatenum }}</div>
+                                            <span class="addr">{{ props.item.vin }}</span>
+                                        </template>
+                                    </el-autocomplete>
+                                </el-form-item>
+                            </el-col>
+                        </el-row>
+                        <el-row class="mt2 pt2 bt1">
+                            <el-col :span="8">
+                                <dl class="dllist">
+                                    <dt>厂牌型号:</dt>
+                                    <dd></dd>
+                                </dl>
+                            </el-col>
+                            <el-col :span="8">
+                                <dl class="dllist">
+                                    <dt>车架号:</dt>
+                                    <dd></dd>
+                                </dl>
+                            </el-col>
+                            <el-col :span="8">
+                                <dl class="dllist">
+                                    <dt>车牌号:</dt>
+                                    <dd></dd>
+                                </dl>
+                            </el-col>
+                            <el-col :span="8">
+                                <dl class="dllist">
+                                    <dt>车辆分类:</dt>
+                                    <dd></dd>
+                                </dl>
+                            </el-col>
+                            <el-col :span="8">
+                                <dl class="dllist">
+                                    <dt>车辆类型:</dt>
+                                    <dd></dd>
+                                </dl>
+                            </el-col>
+                            <el-col :span="8">
+                                <dl class="dllist">
+                                    <dt>车辆颜色:</dt>
+                                    <dd></dd>
+                                </dl>
+                            </el-col>
+                            <el-col :span="8">
+                                <dl class="dllist">
+                                    <dt>车主姓名:</dt>
+                                    <dd></dd>
+                                </dl>
+                            </el-col>
+                            <el-col :span="8">
+                                <dl class="dllist">
+                                    <dt>车主电话:</dt>
+                                    <dd></dd>
+                                </dl>
+                            </el-col>
+                        </el-row>
+                        <el-row :gutter="20" class="bt1" style="margin-top: 10px; padding-top: 10px;">
+                            <el-col :span="8">
+                                <el-cascader
+                                        placeholder="请选择维护类型和原因"
+                                        :options="options"
+                                        v-model="selectedOptions">
+                                </el-cascader>
+                            </el-col>
+                            <el-col :span="8">
+                                <el-input type="textarea" :rows="4" placeholder="请填写故障现象/原因说明"></el-input>
+                            </el-col>
+                            <el-col :span="8">
+                                <el-button>信号检测</el-button>
+                                <el-button>历史订单信息</el-button>
+                            </el-col>
+                        </el-row>
+                    </el-collapse-item>
+                    <el-collapse-item title="选择拆除设备" class="lefw10 wzpdt10" name="2">
+                        <ul>
+                            <li>
+                                <el-checkbox v-model="checked">有线WA，16341313111</el-checkbox> <el-button type="text">查看设备信息</el-button>
+                            </li>
+                            <li>
+                                <el-checkbox v-model="checked">无线WH，46151311585</el-checkbox> <el-button type="text">查看设备信息</el-button>
+                            </li>
+                        </ul>
+                    </el-collapse-item>
+                    <el-collapse-item title="预约维护信息" class="lefw10 wzpdt10" name="3">
+                        <el-row :gutter="20">
+                            <el-col :span="8">
+                                <el-form-item label="维护联系人" prop="vehicleenginenum">
+                                    <el-input type="text" placeholder="请输入安装联系人" v-model="form.vehicleenginenum"></el-input>
+                                </el-form-item>
+                            </el-col>
+                            <el-col :span="8">
+                                <el-form-item label="维护联系方式" prop="vehicleenginenum">
+                                    <el-input type="text" placeholder="请输入安装联系方式" v-model="form.vehicleenginenum"></el-input>
+                                </el-form-item>
+                            </el-col>
+                            <el-col :span="8">
+                                <el-form-item label="预约维护时间" prop="vehicleenginenum">
+                                    <el-date-picker type="date" placeholder="选择初登日期" v-model="form.createdate"
+                                                    value-format="yyyy-MM-dd"
+                                                    style="width: 100%;"></el-date-picker>
+                                </el-form-item>
+                            </el-col>
+                        </el-row>
+                        <el-row :gutter="20">
+                            <el-col :span="16">
+                                <el-form-item label="维护地址">
+                                    <el-select
+                                            v-model="address"
+                                            filterable
+                                            remote
+                                            reserve-keyword
+                                            placeholder="请输入关键词"
+                                            :remote-method="autoInput"
+                                            value-key="name"
+                                            @change="changeAdress"
+                                            @focus="autoInput(address)"
+                                            :loading="loading">
+                                        <el-option
+                                                v-for="(item, index) in addressList"
+                                                :key="index"
+                                                :label="item.name + '-' + item.district"
+                                                :value="item">
+                                        </el-option>
+                                    </el-select>
+                                </el-form-item>
+                            </el-col>
+                        </el-row>
+                        <el-row :gutter="20">
+                            <gdmap @draggerMapMarker="draggerMapMarker" ref="vueAmap"></gdmap>
+                        </el-row>
+                        <el-row :gutter="20">
+                            <el-col :span="8">
+                                <el-form-item label="维护人员" prop="vehicleenginenum">
+                                    <el-input type="text" placeholder="选择维护人员" v-model="form.vehicleenginenum"></el-input>
+                                </el-form-item>
+                            </el-col>
+                        </el-row>
+                        <el-row :gutter="20">
+                            <el-col :span="24">
+                                <el-form-item label="备注" prop="vehicleenginenum">
+                                    <el-input type="textarea" :rows="2" placeholder="请输入派单备注" v-model="form.vehicleenginenum"></el-input>
+                                </el-form-item>
+                            </el-col>
+                        </el-row>
+                        <el-row :gutter="20">
+                            <el-button type="primary" style="float: right; margin: 10px;">提交派单</el-button>
+                        </el-row>
+                    </el-collapse-item>
+                </el-collapse>
+            </el-col>
+        </el-row>
+    </el-form>
+</template>
+
+<script>
+    import { getSearchVinNum } from '../../../insuranceManage/addInsurance/service';
+    import gdmap from '@/views/map/gdmap';
+
+    export default {
+        name: "maintainOrder",
+        data () {
+            return {
+                activeNames: ['1', '2', '3'],
+                form: {},
+                vehiclevin: '',
+                selectedOptions: [],
+                options: [],
+                checked: false,
+                loading: false,
+                address: '',
+                addressList: []
+            }
+        },
+        components: {
+            gdmap
+        },
+        methods: {
+            //根据车架号/车牌号查询
+            querySearchVins (queryString, cb) {
+                let para = {
+                    vin: $.trim(queryString.toUpperCase()) ? $.trim(queryString.toUpperCase()) : "2"
+                };
+                getSearchVinNum(para).then((res) => {
+                    cb(res.data.data)
+                });
+            },
+            //根据车架号/车牌号查询
+            handleSelectVin (item) {
+                this.currentVehicleVin = item.id;
+            },
+            /**
+             * 高德地图API autocomplete
+             * @param query
+             */
+            autoInput (query) {
+                if (query !== '') {
+                    this.loading = true;
+                    let autoComplete = new AMap.Autocomplete({
+                        city: '全国'
+                    });
+                    autoComplete.search(query, (status, result) => {
+                        // 搜索成功时，result即是对应的匹配数据
+                        // console.log(result)
+                        this.addressList = result.tips
+                        this.loading = false
+                    })
+                } else {
+                    this.addressList = [];
+                }
+            },
+            // 选择地图
+            changeAdress (item) {
+                this.address = item.district + item.address + item.name
+                this.$refs.vueAmap.geocoder(this.address, (res) => {
+                    console.log(res)
+                });
+            },
+            draggerMapMarker (address, lnglatXY, type) {
+                this.address = address
+            }
+        }
+    }
+</script>
+
+<style scoped>
+
+</style>

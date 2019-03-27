@@ -1,0 +1,113 @@
+import { getStorageTree, getStockNumList } from './service'
+
+export default {
+    name: "stock",
+    data () {
+        return {
+            filters: {
+                domSearch: [{
+                    select: ['batchno'],
+                    content: ''
+                }], //查询框
+            },
+            stockNumList: [],
+            loading: false,
+            visible: false,
+            distributionVisible: false,
+            expandLoading: false,
+            isExcel: false,
+            pagination: {
+                limit: 15,
+                total: 0,
+                page: 1
+            },
+            putInForm: {
+                inType: '',
+                contractNo: '',
+                filePath: ''
+            },
+            fileList: [],
+            accept: '.xlsx, .excel',
+            inTypes: [{
+                value: 'IN_PURCHASE',
+                label: '采购入库'
+            }, {
+                value: 'IN_RETURN',
+                label: '返厂入库'
+            }],
+            purchaseList: [],
+            putInRules: {
+                inType: [{required: true, message: '请选择入库类型', trigger: 'change'}],
+                contractNo: [{required: true, message: '请选择采购合同', trigger: 'change'}],
+                filePath: [{required: true, message: '请上传采购文件', trigger: 'blur'}]
+            },
+            notext: '',
+            logisticsList: [],
+            putInLoading: false,
+            storageTree: [],
+            defaultProps: {
+                children: 'children',
+                label: 'name'
+            },
+            treeLoading: false
+        }
+    },
+    props: ['windowOutHeight'],
+    methods: {
+        handleSizeChange () {
+
+        },
+        handleCurrentChange () {
+
+        },
+        addSelect () {
+            this.filters.domSearch.push({
+                select: [],
+                content: ''
+            });
+        },
+        removeSelect (index) {
+            this.filters.domSearch.splice(index, 1); //从当前index位置开始，删除一项
+        },
+        resetForm () {
+            this.filters = {
+                domSearch: [{
+                    select: [],
+                    content: ''
+                }]
+            }
+        },
+        get () {
+
+        },
+        handleNodeClick (data) {
+
+        },
+        async getStorageTree () {
+            this.treeLoading = true
+            try {
+                const {data} = await getStorageTree()
+                this.treeLoading = false
+                this.storageTree = data.data
+            } catch (e) {
+                this.treeLoading = false
+                console.log(e)
+            }
+        },
+        async getStockNumList () {
+            try {
+                const {data} = await getStockNumList({
+                    storageId: 1
+                })
+                this.stockNumList = data.data.tableList
+            }catch (e) {
+
+            }
+        }
+    },
+    mounted () {
+        this.getStorageTree()
+        this.getStockNumList()
+    }
+
+}

@@ -1,0 +1,15 @@
+import axios from 'axios';
+
+
+export const getStoPurchaseList = params => {
+	return axios.get(`/sto/stoPurchase/page`, {params: params})
+};
+
+export const addStoPurchase = params => {
+	return axios.post(`/sto/stoPurchase`, params)
+};
+
+// 供应商列表
+export const getSupplierList = params => {
+    return axios.get(`/sto/stoSupplier/page`, {params: params})
+};

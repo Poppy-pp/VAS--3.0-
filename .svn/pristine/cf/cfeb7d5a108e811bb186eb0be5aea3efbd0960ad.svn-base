@@ -1,0 +1,49 @@
+import http from '@/utils/http'
+import Qs from 'qs'
+// Qs.stringify 处理成表单格式，以&形式拼接在url后面
+// params 以？形式拼接在url后面
+
+let baseVAS = '/vasms-web';
+let base = '/auth'
+//登陆
+export function loginbyUser(username, password, remember_me, grant_type) {
+  // return http({
+  //   url:`${base}/oauth/token`,
+  //   method: 'post',
+  //   headers: {
+  //     'Authorization': 'Basic dmFzbXM6dmFzbXM='//登录接口写死的请求头
+  //   },
+  //   params: { username, password, grant_type }
+  // })
+  const data = {
+    username,
+    password,
+    remember_me
+  }
+  return http({
+    url:`${baseVAS}/login`,
+    method: 'post',
+    data:Qs.stringify(data)
+  })
+}
+// 退出登录
+export function logout(accesstoken, refreshtoken) {
+  return http({
+    url: `${base}/authentication/removeToken`,
+    method: 'post',
+    params: { accesstoken, refreshtoken }
+  })
+}
+//查询用户权限，存储导航树
+export function getUserInfo(userToken) {
+  return http({
+    url:`${baseVAS}/api/v1/sys/sysResourceInfo/currentResource`,
+    method: 'get',
+    headers: {
+      // token: userToken,
+      token:'acc2d9e8d65e46bc2c7925a8588902bb'
+    },
+  })
+}
+
+

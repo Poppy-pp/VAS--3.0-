@@ -1,0 +1,164 @@
+import { getPurchaseCascader } from "../../purchaseContract/service";
+import { mapState } from 'vuex'
+import { submit, getHistory } from './service'
+
+const format = list => {
+    const arr = []
+    _.forEach(list, item => {
+        _.forEach(item.children, child => {
+            arr.push(Object.assign({
+                title: item.label,
+                rowspan: item.children.length,
+                isEdit: false,
+                requestqty: '',
+                expectdate: '',
+                remark: '',
+                prodspec: `${item.label}-${child.label}`
+            }, child))
+        })
+    })
+    return arr
+}
+
+export default {
+    name: "wantGoods",
+    data () {
+        return {
+            activeName: 'wantGoods',
+            tableData: [],
+            obj: {},
+            currentDate: new Date().format('yyyy-MM-dd'),
+            form: {
+                storageid: '',
+                // requestmonth: new Date().format('yyyy-MM-dd')
+            },
+            historyList: [],
+            currentHistory: null,
+            loading: false,
+            historyLoading: false
+        };
+    },
+    watch: {
+        tableData: {
+            handler: function (val, oldVal) {
+                this.obj = {}
+            },
+            deep: true
+        },
+    },
+    computed: {
+        ...mapState({
+            storages: state => {
+                return _.filter(state.user.employeeinfo.storages, item => item.storagelevel < 3)
+            }
+        })
+    },
+    methods: {
+        handleClick (tab, event) {
+            this.currentHistory = null
+            if (this.activeName === 'history') {
+                this.getHistory()
+            }
+        },
+        // 获取要货类别
+        async getPurchaseCascader () {
+            try {
+                this.loading = true
+                const {data} = await getPurchaseCascader()
+                this.tableData = format(data.data).reverse()
+                this.loading = false
+            } catch (e) {
+                this.loading = false
+                console.log(e)
+            }
+        },
+        // 合并行，相同title合并
+        objectSpanMethod ({row, column, rowIndex, columnIndex}) {
+            if (columnIndex === 1) {
+                if (this.obj[row.title]) {
+                    return {
+                        rowspan: 0,
+                        colspan: 0
+                    };
+                } else {
+                    this.obj[row.title] = 1
+                    return {
+                        rowspan: row.rowspan,
+                        colspan: 1
+                    }
+                }
+            }
+        },
+        rowClick (row) {
+            this.obj = {}
+            _.forEach(this.tableData, item => {
+                item.isEdit = false
+            })
+            row.isEdit = true
+        },
+        // 提交要货记录
+        submit () {
+            this.$confirm('请您确定已填写好要货清单并提交！', '提示', {
+                confirmButtonText: '确定',
+                cancelButtonText: '取消',
+                type: 'warning'
+            }).then(async () => {
+                this.form.stoRequestlist = _.filter(this.tableData, item => {
+                    return item.requestqty && item.expectdate
+                })
+                if (!this.form.stoRequestlist.length) {
+                    this.$message.warning('至少一个要货数量和要货日期不为空')
+                    return
+                }
+                try {
+                    await submit(this.form)
+                    this.$message.success('提交要货成功')
+                    this.getPurchaseCascader()
+                    this.activeName = 'history'
+                    this.getHistory();
+                } catch (e) {
+                    console.log(e)
+                }
+            }).catch(() => {
+            });
+        },
+        // 获取历史要货记录
+        async getHistory () {
+            try {
+                this.historyLoading = true
+                const {data} = await getHistory(this.form.storageid)
+                this.historyList = data.data
+                this.historyLoading = false
+            } catch (e) {
+                this.historyLoading = false
+                console.log(e)
+            }
+        },
+        // 查看历史要货记录详情
+        viewHistory (row) {
+            this.currentHistory = row.stoRequestlist
+        },
+        changeStorage (id) {
+            if (this.activeName === 'history') {
+                this.form.storageid = id
+                this.getHistory();
+            }
+        },
+        dataFormatter (row) {
+            if (!row.expectdate) {
+                return ''
+            }
+            return new Date(row.expectdate).format('yyyy-MM-dd')
+        }
+    },
+    mounted () {
+        this.getPurchaseCascader()
+        if (!this.storages) {
+            this.$message.warning('当前账号不是库管，不能要货')
+            this.$router.push('/stockManage/stockInquiry')
+        }
+        if (this.storages.length) {
+            this.form.storageid = this.storages[0].id
+        }
+    }
+}

@@ -1,0 +1,38 @@
+<template>
+    <el-tabs v-model="activeName" type="card" @tab-click="handleClick">
+        <el-tab-pane label="模板绑定" name="first">
+            <templateBinding :windowOutHeight="windowOutHeight"></templateBinding>
+        </el-tab-pane>
+        <el-tab-pane label="模板列表" name="second">
+            <templateList :windowOutHeight="windowOutHeight"></templateList>
+        </el-tab-pane>
+    </el-tabs>
+</template>
+
+<script>
+    import templateList from './templateList/index.vue'
+    import templateBinding from './templateBinding/index.vue'
+
+    export default {
+        name: 'insuranceTemplate',
+        props: ['windowOutHeight'],
+        data () {
+            return {
+                activeName: 'first'
+            }
+        },
+        methods: {
+            handleClick () {
+
+            }
+        },
+        components: {
+            templateList,
+            templateBinding
+        }
+    }
+</script>
+
+<style lang="stylus" scoped>
+
+</style>

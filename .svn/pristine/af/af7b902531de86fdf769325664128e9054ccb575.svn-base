@@ -1,0 +1,844 @@
+    import util from 'utils/tools';
+    import async from 'async';
+    import gdmap3 from '@/views/map/gdmap';
+    import { getProductInfoList } from './service';
+   
+    export default {
+        props: ['windowOutHeight'],
+        components: {
+            gdmap3,
+        },
+        data() {
+            return {
+                util: util,
+                //搜索 筛选信息
+                filters: {
+                    domSearch: [{
+                        select: ['orderno'],
+                        content: ''
+                    }], //查询框
+                    timeScope: '',
+                },
+                corplist: [], //所属公司
+                corpLoading: false, //
+                userDataList: [],//当前处理人
+                empLoading: false, //
+                statusDataList:['申请','施工接单','施工','审核/派单','审核'],//当前节点
+                insuDataList:[{value:'1',label:'是'},{value:'0',label:'否'}],//保险
+                serviceDataList:[],//维修原因
+                reaLoding:false,
+                aftersaletypeList:[{value:'1',label:'新装拆除'},{value:'2',label:'售后拆除'}],//拆除类型
+                //车辆信息修改表单
+                vehicleEditFormInfos: {
+                    receivingbankid: '',
+                    cartype: 1,
+                    buycarmanprice: 1
+                },
+                //新装数量
+                fromNum: {
+                    num0: 0,
+                    num1: 0,
+                    num2: 0,
+                    num3: 0,
+                    num4: 0,
+                    num5: 0,
+                },
+                expandLoading: false,
+                userDataList: [],
+                //车牌颜色
+                carPsalerData: [{
+                    name: "黄绿双拼色"
+                }, {
+                    name: "黑色"
+                }, {
+                    name: "黄色"
+                }, {
+                    name: "蓝色"
+                }, {
+                    name: "白色"
+                }, {
+                    name: "浅变绿色色"
+                }],
+                //车主信息
+                ownEditFormInfos: {},
+                //修改订单tabs切换
+                editFormdialogActiveName: '1',
+                //修改订单弹窗
+                editFormDialogTableVisible: false,
+                //保险出单弹窗是否显示
+                successDialogTableVisible: false,
+                //查看照片 弹窗
+                showDialogVisibleImg: false,
+                //查看照片
+                dialogActiveNameImg: '1',
+                //拒绝理由弹窗备注
+                rejectDialogVisible: false,
+                //备注弹窗标题
+                rejectTitle: "拒绝理由",
+                //显示子类图片弹窗
+                dialogVisible: false,
+                //显示图片url
+                dialogImageUrl: '',
+                //是否显示派单弹窗
+                clerkOrderDialogTableVisible: false,
+                //是否显示安装弹窗
+                equipmentDialogTableVisible: false,
+                //是否显示订单详情弹出
+                formDialogTableVisible: false,
+                //默认显示订单详情弹出
+                dialogActiveName: '1',
+                //当前状态
+                stepState: 0,
+                //公司下拉数据对象数据初始化
+                copName: [],
+                //公司下拉loading初始化
+                copLoading: false,
+                //列表详情操作默认显示那个
+                activeName: '1',
+                //操作记录
+                opHistoryData: [],
+                historyListLoading: false,
+                //处理表格列表数据
+                todo: [],
+                //当前新装状态值
+                curStateData: {},
+                isExpandeds: true,
+                //新装弹窗详情显示
+                dialogFormData: {
+                    vehicleInfo: {
+                        model: '',
+                        color: '',
+                        licenseplatenum: '',
+                        vin: '',
+                        price: '',
+                        yearsofservice: '',
+                        receivingbank: {},
+                        ownerInfo: {
+                            name: '',
+                            idcard: '',
+                            mobile: ''
+                        }
+                    },
+                    assigntoGroup: {
+                        groupname: ''
+                    },
+                    assigntoEmployeeInfo: {
+                        employeename: ''
+                    },
+                    afterSaleDetails: [],
+                    corporateInfo: {},
+                    declarEmployee: {}
+                },
+                //新装弹窗详情显示
+                editFormData: {
+                    vehicleInfo: {
+                        model: '',
+                        color: '',
+                        licenseplatenum: '',
+                        vin: '',
+                        price: '',
+                        yearsofservice: '',
+                        receivingbank: {},
+                        ownerInfo: {
+                            name: '',
+                            idcard: '',
+                            mobile: ''
+                        }
+                    },
+                    assigntoGroup: {
+                        groupname: ''
+                    },
+                    assigntoEmployeeInfo: {
+                        employeename: ''
+                    },
+                    afterSaleDetails: [],
+                    corporateInfo: {},
+                    declarEmployee: {}
+                },
+                //拒绝备注
+                rejectRemarks: '',
+                //拒绝boolean
+                rejectResult: false,
+                //拒绝类型单子
+                sumbitType: '',
+                //静态数据详情展现
+                ruleFormStatic: {
+                    vehicleInfo: {
+                        model: '',
+                        color: '',
+                        licenseplatenum: '',
+                        vin: '',
+                        price: '',
+                        yearsofservice: '',
+                        receivingbank: {},
+                        ownerInfo: {
+                            name: '',
+                            idcard: '',
+                            mobile: ''
+                        }
+                    },
+                    assigntoGroup: {
+                        groupname: ''
+                    },
+                    assigntoEmployeeInfo: {
+                        employeename: ''
+                    },
+                    afterSaleDetails: [],
+                    corporateInfo: {},
+                    declarEmployee: {}
+                },
+                copsUerLoading: false,
+                //受理银行数组
+                salerData: [],
+                //loading受理银行下拉
+                receLoading: false,
+                //当前流程任务id
+                curTaskId: '',
+                viewer: '',
+                total: 0,
+                currentPage: 0,
+                //拒绝理由提交加载
+                addLoading: false,
+                //是否是弹窗详情 不是为1 是为2
+                clickState: 1,
+                listLoading: false,
+                pageSize: 15,
+                delorder: {
+                    orderReasonDialogVisible: false,
+                    reson: '',
+                    delOrderLoading: false,
+                    processInstanceId: '',
+                }
+            }
+        },
+        methods: {
+            // 查看安装人员轨迹
+                    showDraw(index,row){
+                        window.open('http://mqtt.wwvas.com:9201/Map/UserHistoryRoute?id=' + row.flowData.work_user_id);
+                    },
+             /*所属公司——下拉*/
+                    corpChange(r) {
+                        if(!r || this.corplist.length > 0) return;
+                        let para = {
+                            showCount: 30
+                        }
+                        this.corpLoading = true;
+                        getCorpNameList(para).then((res) => {
+                            this.corplist = res.data.data.records;
+                            this.corpLoading = false;
+                        });
+                    },
+                    // 所属公司，模糊查询
+                    corpChangeSelect(query) {
+                        let para = {
+                            showCount: 30,
+                            corpname: query,
+                        }
+                        this.corpLoading = true;
+                        getCorpNameList(para).then((res) => {
+                            this.corplist = res.data.data.records;
+                            this.corpLoading = false;
+                        });
+                    },
+                    /*报单人、当前处理人——下拉*/
+                    empChange(r) {
+                        if(!r || this.userDataList.length > 0) return;
+                        this.userDataList = [];
+                        let para = {
+                            showCount: 30
+                        }
+                        this.empLoading = true;
+                        getDeptManagerInfoList(para).then((res) => {
+                            this.userDataList = res.data.data.records;
+                            this.empLoading = false;
+                        });
+                    },
+                    // 报单人，当前处理人-模糊查询
+                    empChangeSelect(query) {
+                        this.userDataList = [];
+                        let para = {
+                            showCount: 30,
+                            employeename: query,
+                        }
+                        this.empLoading = true;
+                        getDeptManagerInfoList(para).then((res) => {
+                            this.userDataList = res.data.data.records;
+                            this.empLoading = false;
+                        });
+                    },
+                    /*安装人——下拉*/
+                    leaderChange(r) {
+                        this.userDataList = [];
+                        if(!r || this.userDataList.length > 0) return;
+                        let para = {
+                            showCount: 30,
+                        }
+                        this.empLoading = true;
+                        getPdInstallUserList(para).then((res) => {
+                this.userDataList = res.data.data.records;
+                                this.empLoading = false;
+                });
+                    },
+                    // 安装人，模糊查询
+                    leaderChangeSelect(query) {
+                        this.userDataList = [];
+                        let para = {
+                            showCount: 30,
+                            employeename: query,
+                        }
+                        this.empLoading = true;
+                        getPdInstallUserList(para).then((res) => {
+                            this.userDataList = res.data.data.records;
+                            this.empLoading = false;
+                        });
+                    },
+                    /*拆除原因——下拉*/
+                    reasonChange(r) {
+                        if(!r || this.serviceDataList.length > 0) return;
+                        let para = {
+                            showCount: 30
+                        }
+                        this.reaLoading = true;
+                        getRemoveInfo(para).then((res) => {
+                            this.serviceDataList = res.data.data.records;
+                            this.reaLoading = false;
+                        });
+                    },
+                    // 维修原因，模糊查询
+                    reasonChangeSelect(query) {
+                        let para = {
+                            showCount: 30,
+                            faultcode: query,
+                        }
+                        this.reaLoading = true;
+                        getRemoveInfo(para).then((res) => {
+                            this.serviceDataList = res.data.data.records;
+                            this.reaLoading = false;
+                        });
+                    },
+            //施工接单通过审核
+            passConstructionOrder(index, row, type) {
+                let addformpara = {
+                    taskId: row.id,
+                    properties: {
+                        result: true
+                    }
+                };
+                if(type == 0) {
+                    addformpara.properties.result = true;
+                    addApprovaperVindicate_removeCl(addformpara).then((res) => {
+                        if(res.data.result.code == 0) {
+                            //初始化待办数量
+                            this.$store.dispatch('initFormNum');
+                            this.getTodo();
+                        }
+                    });
+                }
+                if(type == 1) {
+                    addformpara.properties.result = false;
+                    addApprovaperVindicate_removeCl(addformpara).then((res) => {
+                        if(res.data.result.code == 0) {
+                            //初始化待办数量
+                            this.$store.dispatch('initFormNum');
+                            this.getTodo();
+                        }
+                    });
+                }
+            },
+            //输入关键字查询员工
+            remoteGsMethod(query) {
+                if(query !== '') {
+                    let para = {
+                        employeename: query
+                    };
+                    this.loading = true;
+                    getDeptManagerInfoList(para).then((res) => {
+                        this.userDataList = res.data.data.records;
+                        this.copsUerLoading = false;
+                    });
+                } else {
+                    let para = {
+                        showCount: 15
+                    };
+                    getDeptManagerInfoList(para).then((res) => {
+                        this.userDataList = res.data.data.records;
+                        this.copsUerLoading = false;
+                    });
+                }
+            },
+            comfirDelOrder() {
+                let para = {
+                    id: this.delorder.processInstanceId,
+                    reson: this.delorder.reson
+                }
+                this.delorder.delOrderLoading = true;
+                deleteProcess(para).then((res) => {
+                    this.delorder.delOrderLoading = false;
+                    if(res.data.result.code == 0) {
+                        this.delorder.orderReasonDialogVisible = false;
+                        this.getTodo();
+                    }
+                });
+            },
+            //废除订单
+            deleteOrder(index, row) {
+                this.delorder.processInstanceId = row.processInstanceId;
+                this.delorder.orderReasonDialogVisible = true;
+            },
+            //完成派单操作
+            successSendForm(index, row) {
+                this.clerkOrderDialogTableVisible = true;
+                this.clickState = 3;
+                this.getFormData(row);
+            },
+            //完成安装操作
+            successWorkForm(index, row) {
+                this.equipmentDialogTableVisible = true;
+                this.clickState = 3;
+                this.getFormData(row);
+            },
+            //修改订单信息
+            editFormInfo(index, row) {
+                this.editFormDialogTableVisible = true;
+                this.clickState = 4;
+                this.getFormData(row);
+            },
+            //初始化修改订单信息
+            initEditFormInfo(data) {
+                // this.editFormData = data;
+                // this.ownEditFormInfos = data.ownerInfo;
+                // this.ownEditFormInfos.carmantype = 1;
+                // this.vehicleEditFormInfos = data.vehicleInfo;
+                // this.vehicleEditFormInfos.hastheftinsurance = parseInt(data.vehicleInfo.hastheftinsurance);
+                // if(data.vehicleInfo.receivingbank){
+                //     this.vehicleEditFormInfos.receivingbankid = data.vehicleInfo.receivingbank.corpname;
+                // }
+                // this.vehicleEditFormInfos.cartype = 1;
+                // this.vehicleEditFormInfos.buycarmanprice = 1;
+            },
+            //操作显示子类弹窗
+            changeDialogImg(file) {
+                this.dialogImageUrl = file.url;
+                this.dialogVisible = true;
+            },
+            //操作公司下拉查询
+            changeCop(r) {
+                if(!r || this.copName.length > 0) return;
+                this.copLoading = true;
+                let para = {
+                    showCount: 151
+                }
+                getCorpNameList(para).then((res) => {
+                    this.copName = res.data.data.records;
+                    this.copLoading = false;
+                });
+            },
+            //操作公司下拉 点击返回value值
+            changeVal(item) {},
+            //受理银行查询
+            receivinList(r) {
+                if(!r || this.salerData.length > 0) return;
+                let para = {
+                    corptype: 'BANK'
+                };
+                this.receLoading = true;
+                searchCorpNameList(para).then((res) => {
+                    this.salerData = res.data.data.records;
+                    this.receLoading = false;
+                });
+            },
+            /*提供车辆颜色选择建议*/
+            querySearchColor(queryString, cb) {
+                let tempColor = [{
+                            value: "红色"
+                        },
+                        {
+                            value: "白色"
+                        },
+                        {
+                            value: "黑色"
+                        },
+                        {
+                            value: "蓝色"
+                        },
+                        {
+                            value: "银色"
+                        },
+                        {
+                            value: "绿色"
+                        },
+                        {
+                            value: "棕色"
+                        },
+                        {
+                            value: "珍珠白"
+                        },
+                        {
+                            value: "深海蓝"
+                        },
+                        {
+                            value: "火焰红"
+                        },
+                        {
+                            value: "钛空金"
+                        },
+                        {
+                            value: "月光银"
+                        },
+                        {
+                            value: "象牙白"
+                        },
+                        {
+                            value: "水晶紫"
+                        },
+                        {
+                            value: "碧玉黑"
+                        },
+                    ],
+                    restaurants = this.tempColor,
+                    results = queryString ? tempColor.filter(this.createFilter(queryString)) : tempColor;
+                // 调用 callback 返回建议列表的数据
+                cb(results);
+            },
+            //改变新装状态获取对应数据列表
+            changeStateHandle(v) {
+                if(v == 0) {
+                    this.curStateData = {};
+                }
+                if(v == 1) {
+                    this.curStateData = {
+                        taskDefinitionKey: "apply"
+                    };
+                }
+                if(v == 2) {
+                    this.curStateData = {
+                        taskDefinitionKey: "node_verify"
+                    };
+                }
+                if(v == 3) {
+                    this.curStateData = {
+                        taskDefinitionKey: "node_work"
+                    };
+                }
+                if(v == 4) {
+                    this.curStateData = {
+                        taskDefinitionKey: "verify"
+                    };
+                }
+                if(v == 5) {
+                    this.curStateData = {
+                        taskDefinitionKey: "node_insurance"
+                    };
+                }
+                this.getTodo();
+            },
+            //当且列表数据展开查看详情
+            expandHandle(row, expandeds) {
+                if(!this.isExpandeds) {
+                    this.isExpandeds = true;
+                    return;
+                }
+                if(expandeds.length != 0 && this.curTaskId != row.id) {
+                    this.clickState = 1;
+                    this.expandLoading = true;
+                    this.getOperationRecord(row);
+                    this.getFormData(row);
+                };
+                if(expandeds.length > 1) {
+                    this.isExpandeds = false;
+                    this.$refs.todeTable.toggleRowExpansion(expandeds[0], false);
+                };
+            },
+            getOperationRecord(row) {
+                let para = {
+                    id: row.executionId
+                }
+                this.historyListLoading = true;
+                getOperationRecord(para).then((res) => {
+                    this.historyListLoading = false;
+                    if(res.data.result.code == 0) {
+                        this.opHistoryData = res.data.data;
+                    }
+                });
+            },
+            //切换当前页
+            handleCurrentChange(val) {
+                this.currentPage = val;
+                this.getTodo();
+            },
+            //切换每页显示数量
+            handleSizeChange(val) {
+                this.pageSize = val;
+                this.getTodo();
+            },
+            //格式化后台传来的时间戳
+            dateFormatter(row, col) {
+                return util.formatDate.format(new Date(row.createTime), 'yyyy-MM-dd hh:mm:ss');
+            },
+            taskFormatter(row, col) {
+                let task_vars = row.task_vars;
+                if(task_vars) {
+                    return(task_vars.result ? "通过" : "拒绝") + (task_vars.remark ? '-备注说明：' + task_vars.remark : "");
+                } else {
+                    return "";
+                }
+            },
+            //完成保险出单
+            successFornm(index, row) {
+                this.successDialogTableVisible = true;
+                this.clickState = 3;
+                this.getFormData(row);
+            },
+            //提交拒绝理由
+            addRefuseHandling() {
+                let addformpara = {
+                    taskId: this.curTaskId,
+                    properties: {}
+                };
+                addformpara.properties = {
+                    result: this.rejectResult,
+                    remark: this.rejectRemarks
+                }
+                this.addLoading = true;
+                //提交审核结果
+                addApprovaperSendVindicateRmove(addformpara).then((res) => {
+                    this.addLoading = false;
+                    if(res.data.result.code == 0) {
+                        if(addformpara.properties.result) {
+                            this.$message({
+                                message: '审核成功！',
+                                type: 'success'
+                            });
+                        } else {
+                            this.$message({
+                                message: '拒绝成功！',
+                                type: 'success'
+                            });
+                        }
+                        //初始化待办数量
+                        this.$store.dispatch('initFormNum');
+                        this.getTodo();
+                    }
+                }).catch((error) => {
+                    this.addLoading = false;
+                });
+                this.rejectRemarks = '';
+                this.rejectDialogVisible = false;
+            },
+            //拒绝理由弹窗显示 并且记录相关信息
+            refuseHandling(index, row, type) {
+                this.sumbitType = type;
+                this.curTaskId = row.id;
+                if(type == 1) {
+                    this.rejectTitle = "通过备注";
+                    this.rejectResult = true;
+                } else {
+                    this.rejectTitle = "拒绝理由";
+                    this.rejectResult = false;
+                }
+                this.rejectDialogVisible = true;
+            },
+            //获取我的待办列表列表
+            getTodo() {
+                let para = {
+                    currentPage: this.currentPage,
+                    showCount: this.pageSize,
+                    orderno       : this.filters.orderno,
+                                     vehicle_licenseplatenum:this.filters.vehicle_licenseplatenum,
+                                     vin:this.filters.vin,
+                                     ownername:this.filters.ownername,
+                                     corpid:this.filters.corpid,
+                                     apply_user_id:this.filters.apply_user_id,
+                                     name:this.filters.name,
+                                     assignee:this.filters.assignee,
+                                     work_user_id:this.filters.work_user_id,
+                                     vehicle_hastheftinsurance:this.filters.vehicle_hastheftinsurance,
+                                     aftersaletype:this.filters.aftersaletype,
+                                     faultcode:this.filters.faultcode,
+                    startTime: this.filters.startDate ? (this.filters.startDate[0] ? util.formatDate.format(new Date(this.filters.startDate[0]), 'yyyy-MM-dd hh:mm:ss') : '') : '',
+                    endTime: this.filters.startDate ? (this.filters.startDate[1] ? util.formatDate.format(new Date(this.filters.startDate[1]), 'yyyy-MM-dd hh:mm:ss') : '') : '',
+                    type: 2,
+                    all: true
+                };
+                para = Object.assign(para, this.curStateData);
+                this.listLoading = true;
+                getTodoInfoList(para).then((res) => {
+                    this.listLoading = false;
+                    if(res.data.result.code == 0) {
+                        this.total = res.data.data.totalResult
+                        this.todo = res.data.data.records;
+                        if (para.taskDefinitionKey == '' || para.taskDefinitionKey == undefined) {
+                                                this.fromNum.num0 = res.data.data.totalResult;
+                                        }
+                        this.initFormNum();
+                    }
+                }).catch((error) => {
+                    this.listLoading = false;
+                });
+            },
+            //根据任务id获取表单信息
+            getFormData(obj) {
+                if(!obj) return;
+                //获取填写的任务变量值
+                let pa = {
+                    taskId: obj.id
+                };
+                this.curTaskId = obj.id;
+                nanobar.go(60);
+                getvariablesSeaviceTaskInfoList(pa).then((res) => {
+                    let _this = this,
+                        data = res.data.data;
+                    nanobar.go(100);
+                    this.expandLoading = false;
+                    if(!data.vehicleInfo) {
+                        data.vehicleInfo = _this.ruleFormStatic.vehicleInfo;
+                    }
+                    if(!data.vehicleInfo.receivingbank) {
+                        data.vehicleInfo.receivingbank = _this.ruleFormStatic.vehicleInfo.receivingbank;
+                    }
+                    if(!data.assigntoGroup) {
+                        data.assigntoGroup = _this.ruleFormStatic.assigntoGroup;
+                    }
+                    if(this.clickState == 1) this.ruleFormStatic = data;
+                    if(this.clickState == 2) this.dialogFormData = data;
+                    if(this.clickState == 3) this.$refs.dialogChild.getCustoHistoryInfo(data);
+                    if(this.clickState == 4) this.initEditFormInfo(data);
+                }).catch((error) => {
+                    nanobar.go(100);
+                    this.expandLoading = false;
+                });
+            },
+            //查看详情关闭弹窗
+            formdetailColse() {
+                nanobar.go(100);
+            },
+            //查看图片窗口关闭
+            showDialogVisibleImgClose() {},
+            //查看设备安装照片
+            showInstallImg(index, row) {
+                this.showDialogVisibleImg = true;
+                this.clickState = 1;
+                this.resetFieldsRuleForm();
+                this.getFormData(row);
+                //初始化图片查看器
+                    $("div.showimgDialog").on("click",".image",function(e){
+                        $("div.showimgDialog").viewer("destroy");
+                        $("div.showimgDialog").viewer({zIndex:999999999});
+                    });
+            },
+            handleEditRow(row, e, col) {
+                this.handleEdit(0, row);
+            },
+            editCuserForm(index, row) {
+                this.$store.state.formObj = row;
+                this.$router.push('/formProcess');
+            },
+            //显示审核该报单界面
+            handleEdit(index, row) {
+                if(row.taskDefinitionKey.indexOf("remove_apply") != -1) {
+                    row.step = 1;
+                    this.$store.state.formObj = row;
+                }
+                if(row.taskDefinitionKey.indexOf("node_verify") != -1) {
+                    row.step = 2;
+                    this.$store.state.formObj = row;
+                }
+                if(row.taskDefinitionKey.indexOf("node_work_receive") != -1) {
+                    row.step = 3;
+                    this.$store.state.formObj = row;
+                }
+                if(row.taskDefinitionKey.indexOf("node_work") != -1 && row.taskDefinitionKey.indexOf("node_work_receive") == -1) {
+                    row.step = 4;
+                    this.$store.state.formObj = row;
+                }
+                if(row.taskDefinitionKey.indexOf("work_verify") != -1) {
+                    row.step = 5;
+                    this.$store.state.formObj = row;
+                }
+                this.$router.push("/dismantle/1");
+            },
+            //清空查询表单
+            resetForm(formName) {
+                this.$refs[formName].resetFields();
+            },
+            //关闭子类弹窗
+            closeDialog(type, n) {
+                if(type == 1) {
+                    this.clerkOrderDialogTableVisible = false;
+                }
+                if(type == 2) {
+                    this.equipmentDialogTableVisible = false;
+                }
+                if(type == 3) {
+                    this.successDialogTableVisible = false;
+                }
+                if(n != 0) this.getTodo();
+            },
+            //初始化新装各个状态总数  待优化
+            initFormNum() {
+                var user = sessionStorage.getItem('user');
+                user = JSON.parse(user);
+                let para = {
+                    type: 2
+                };
+                getFormCount(para).then((res) => {
+                    let node = res.data.data;
+                    this.fromNum.num1 = (node.proc_vindicate_remove_apply + node.apply) ? (node.proc_vindicate_remove_apply + node.apply) : 
+                        node.proc_vindicate_remove_apply ? node.proc_vindicate_remove_apply : 
+                        node.apply ? node.apply : 0;
+                    this.fromNum.num2 =  (node.proc_vindicate_remove_node_verify + node.node_verify) ? (node.proc_vindicate_remove_node_verify + node.node_verify) : 
+                        node.proc_vindicate_remove_node_verify ? node.proc_vindicate_remove_node_verify : 
+                        node.node_verify ? node.node_verify : 0;
+                    this.fromNum.num3 = (node.proc_vindicate_remove_node_work + node.node_work) ? (node.proc_vindicate_remove_node_work + node.node_work) :
+                        node.proc_vindicate_remove_node_work ? node.proc_vindicate_remove_node_work : 
+                        node.node_work ? node.node_work : 0;
+                    this.fromNum.num4 = (node.proc_vindicate_remove_work_verify + node.proc_vindicate_remove_node_verify) ? (node.proc_vindicate_remove_work_verify + node.proc_vindicate_remove_node_verify) : 
+                        node.proc_vindicate_remove_work_verify ? node.proc_vindicate_remove_work_verify : 
+                        node.proc_vindicate_remove_node_verify ? node.proc_vindicate_remove_node_verify : 0;
+                    // this.fromNum.num1 = (node.proc_vindicate_remove_apply || node.apply) ? (node.proc_vindicate_remove_apply || node.apply) : 0;
+                    // this.fromNum.num2 = (node.proc_vindicate_remove_node_verify || node.node_verify) ? (node.proc_vindicate_remove_node_verify || node.node_verify) : 0;
+                    // this.fromNum.num3 = (node.proc_vindicate_remove_node_work || node.node_work) ? (node.proc_vindicate_remove_node_work || node.node_work) : 0;
+                    // this.fromNum.num4 = (node.proc_vindicate_remove_work_verify + node.proc_vindicate_remove_node_verify) ? (node.proc_vindicate_remove_work_verify + node.proc_vindicate_remove_node_verify) : 0;
+                    // this.fromNum.num0 = (this.fromNum.num1 + this.fromNum.num2 + this.fromNum.num3 + this.fromNum.num4) ? (this.fromNum.num1 + this.fromNum.num2 + this.fromNum.num3 + this.fromNum.num4) : 0;
+                });
+            },
+            //初始化ruleFormStatic
+            resetFieldsRuleForm() {
+                this.ruleFormStatic = {
+                    vehicleInfo: {
+                        model: '',
+                        color: '',
+                        licenseplatenum: '',
+                        vin: '',
+                        price: '',
+                        yearsofservice: '',
+                        receivingbank: {},
+                        ownerInfo: {
+                            name: '',
+                            idcard: '',
+                            mobile: ''
+                        }
+                    },
+                    afterSaleDetails: [],
+                    corporateInfo: {},
+                    declarEmployee: {}
+                }
+            },
+            // 添加查询条件
+            addSelect () {
+                this.filters.domSearch.push({
+                    select: [],
+                    content: ''
+                });
+            },
+            // 移除查询条件
+            removeSelect (index) {
+                this.filters.domSearch.splice(index, 1); //从当前index位置开始，删除一项
+            },
+        },
+        //初始化数据
+        created() {
+            this.initFormNum();
+            this.getTodo();
+        }
+    }

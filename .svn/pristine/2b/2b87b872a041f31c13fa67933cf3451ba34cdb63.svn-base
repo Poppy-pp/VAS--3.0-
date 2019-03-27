@@ -1,0 +1,1193 @@
+import axios from 'axios';
+
+let base = '/vasms-web';
+const deptList = {
+    "result": {"code": 0, "desc": "success"},
+    "data": {
+        "showCount": 15,
+        "totalPage": 17,
+        "totalResult": 247,
+        "currentPage": 1,
+        "_viewName": null,
+        "_order": null,
+        "_sort": null,
+        "queryMap": {"isenable": "1"},
+        "records": [{
+            "parentname": "嘟嘟嘟",
+            "corpid": 1,
+            "deptcontactno": "18865501233",
+            "deptshortname": "hs",
+            "deptcode": "10502",
+            "createdate": 1500566400000,
+            "deptname": "会所",
+            "isenable": "1",
+            "deptaddress": "四川",
+            "createby": "6666",
+            "R": 1,
+            "parentdeptcode": "10665",
+            "updatedate": 1528857760000,
+            "updateby": "100387",
+            "deptmanagername": "王俊",
+            "corpname": "万网公司",
+            "id": 10502,
+            "deptmanagerid": 10267,
+            "showorder": 0
+        }, {
+            "isenable": "1",
+            "R": 2,
+            "parentdeptcode": "0",
+            "corpid": 1,
+            "updatedate": 1517275926000,
+            "updateby": "100073",
+            "deptshortname": "zjb",
+            "deptcode": "4",
+            "corpname": "万网公司",
+            "id": 4,
+            "deptname": "总经办",
+            "showorder": 1
+        }, {
+            "isenable": "1",
+            "R": 3,
+            "parentdeptcode": "0",
+            "corpid": 1,
+            "updatedate": 1517275955000,
+            "updateby": "100073",
+            "deptshortname": "xzrsb",
+            "deptcode": "60",
+            "corpname": "万网公司",
+            "id": 60,
+            "deptname": "行政人事部",
+            "showorder": 2
+        }, {
+            "corpid": 1,
+            "deptcontactno": "18428359457",
+            "deptshortname": "cwb",
+            "deptcode": "54",
+            "deptname": "财务部",
+            "isenable": "1",
+            "deptaddress": "河北,石家庄,长安区",
+            "R": 4,
+            "parentdeptcode": "0",
+            "updatedate": 1503158400000,
+            "updateby": "100062",
+            "deptmanagername": "蒲之琳",
+            "corpname": "万网公司",
+            "id": 54,
+            "deptmanagerid": 1000187,
+            "showorder": 3
+        }, {
+            "corpid": 1,
+            "deptcontactno": "2690078",
+            "deptshortname": "jsfwb",
+            "deptcode": "58",
+            "deptname": "技术服务部",
+            "isenable": "1",
+            "deptaddress": "黑龙江,齐齐哈尔,昂昂溪区",
+            "R": 5,
+            "parentdeptcode": "0",
+            "updatedate": 1503158400000,
+            "updateby": "100062",
+            "deptmanagername": "黄莉",
+            "corpname": "万网公司",
+            "id": 58,
+            "deptmanagerid": 69,
+            "showorder": 9
+        }, {
+            "isenable": "1",
+            "R": 6,
+            "parentdeptcode": "0",
+            "corpid": 1,
+            "deptshortname": "xxkjb",
+            "deptcode": "57",
+            "corpname": "万网公司",
+            "id": 57,
+            "deptname": "信息科技部",
+            "showorder": 9
+        }, {
+            "isenable": "1",
+            "R": 7,
+            "parentdeptcode": "0",
+            "corpid": 1,
+            "deptshortname": "shjkb",
+            "deptcode": "55",
+            "deptmanagername": "仲小燕",
+            "corpname": "万网公司",
+            "id": 55,
+            "deptmanagerid": 70,
+            "deptname": "售后监控部",
+            "showorder": 9
+        }, {
+            "isenable": "1",
+            "R": 8,
+            "parentdeptcode": "0",
+            "corpid": 1,
+            "deptshortname": "ywb",
+            "deptcode": "53",
+            "deptmanagername": "文学",
+            "corpname": "万网公司",
+            "id": 53,
+            "deptmanagerid": 1357,
+            "deptname": "业务部",
+            "showorder": 9
+        }],
+        "currentPages": 1,
+        "firstIndex": 0
+    },
+    "validResult": null
+};
+
+const groupInfoList = {
+    "result": {"code": 0, "desc": "success"},
+    "data": {
+        "showCount": 15,
+        "totalPage": 2,
+        "totalResult": 23,
+        "currentPage": 1,
+        "_viewName": null,
+        "_order": null,
+        "_sort": null,
+        "queryMap": {},
+        "records": [{
+            "croupnum": 20,
+            "leadername": "小燕六",
+            "emps": [{"isenable": "1", "R": 1, "id": 1000321, "employeename": "小燕十八(18500776158)"}, {
+                "isenable": "1",
+                "R": 1,
+                "id": 1000322,
+                "employeename": "涵六(17785437180)"
+            }, {"isenable": "1", "R": 1, "id": 1000312, "employeename": "小燕十六(18500776156)"}, {
+                "isenable": "1",
+                "R": 1,
+                "id": 1000330,
+                "employeename": "小燕二十(18500776160)"
+            }, {"isenable": "1", "R": 1, "id": 1000263, "employeename": "小燕三(13880046523)"}, {
+                "isenable": "1",
+                "R": 1,
+                "id": 1000282,
+                "employeename": "小燕六(13880046526)"
+            }, {"isenable": "1", "R": 1, "id": 1000353, "employeename": "小燕二十二(18500776162)"}, {
+                "isenable": "1",
+                "R": 1,
+                "id": 1000407,
+                "employeename": "草帽(17380055910)"
+            }, {"isenable": "1", "R": 1, "id": 1000408, "employeename": "李中莉测试一(15184326761)"}, {
+                "isenable": "1",
+                "R": 1,
+                "id": 1000410,
+                "employeename": "有问题二(17785434684)"
+            }, {"isenable": "1", "R": 1, "id": 1000430, "employeename": "周华平(13198317760)"}, {
+                "isenable": "1",
+                "R": 1,
+                "id": 1000417,
+                "employeename": "廖义甫(13096336986)"
+            }, {"isenable": "1", "R": 1, "id": 1000323, "employeename": "小燕十九(18500776159)"}, {
+                "isenable": "1",
+                "R": 1,
+                "id": 1000415,
+                "employeename": "红薯一(17600000001)"
+            }, {"isenable": "1", "R": 1, "id": 1000305, "employeename": "涵一(17785437185)"}, {
+                "isenable": "1",
+                "R": 1,
+                "id": 1000306,
+                "employeename": "涵二(17785437184)"
+            }, {"isenable": "1", "R": 1, "id": 1000308, "employeename": "涵三(17785437183)"}, {
+                "isenable": "1",
+                "R": 1,
+                "id": 1000311,
+                "employeename": "涵四(17785437182)"
+            }, {"isenable": "1", "R": 1, "id": 1000414, "employeename": "红薯(17600000000)"}],
+            "deptid": 58,
+            "mobile": "13880046526",
+            "createdate": 1509350548000,
+            "groupleaderid": "1000282",
+            "groupname": "测试组",
+            "groupcode": "10090",
+            "deptname": "技术服务部",
+            "createby": "100073",
+            "R": 1,
+            "grouptype": "安装组",
+            "updatedate": 1513765551000,
+            "updateby": "1864",
+            "isdelete": "0",
+            "ID": 10090,
+            "corpname": "万网公司"
+        }, {
+            "croupnum": 4,
+            "leadername": "刘苹",
+            "emps": [{"isenable": "1", "R": 1, "id": 1000001, "employeename": "王鹏(18380487546)"}, {
+                "isenable": "1",
+                "R": 1,
+                "id": 137,
+                "employeename": "黄健亚(13709030954)"
+            }, {"isenable": "1", "R": 1, "id": 136, "employeename": "周庆娇(13084455665)"}, {
+                "isenable": "1",
+                "R": 1,
+                "id": 1356,
+                "employeename": "刘苹(18669166066)"
+            }],
+            "deptid": 10459,
+            "mobile": "18669166066",
+            "createdate": 1496592000000,
+            "groupleaderid": "1356",
+            "groupname": "美术组",
+            "groupcode": "111",
+            "deptname": "业务部",
+            "createby": "6666",
+            "R": 2,
+            "grouptype": "安装组",
+            "updatedate": 1513766688000,
+            "updateby": "1864",
+            "isdelete": "0",
+            "ID": 10020,
+            "corpname": "华联机械"
+        }, {
+            "croupnum": 24,
+            "leadername": "测二",
+            "emps": [{"isenable": "1", "R": 1, "id": 1000296, "employeename": "杜海洋(18512856063)"}, {
+                "isenable": "1",
+                "R": 1,
+                "id": 1000291,
+                "employeename": "小燕九(13880046529)"
+            }, {"isenable": "1", "R": 1, "id": 1000310, "employeename": "小燕十五(18500776155)"}, {
+                "isenable": "1",
+                "R": 1,
+                "id": 1000301,
+                "employeename": "小燕十一(18500776151)"
+            }, {"isenable": "1", "R": 1, "id": 1000302, "employeename": "小燕十二(18500776152)"}, {
+                "isenable": "1",
+                "R": 1,
+                "id": 1000307,
+                "employeename": "小燕十四(18500776154)"
+            }, {"isenable": "1", "R": 1, "id": 1000007, "employeename": "谭鹏(15928850172)"}, {
+                "isenable": "1",
+                "R": 1,
+                "id": 1000313,
+                "employeename": "涵五(17785437181)"
+            }, {"isenable": "1", "R": 1, "id": 1000178, "employeename": "小燕(17628042102)"}, {
+                "isenable": "1",
+                "R": 1,
+                "id": 1000324,
+                "employeename": "测一(13013013000)"
+            }, {"isenable": "1", "R": 1, "id": 1000002, "employeename": "梁伟(15008494987)"}, {
+                "isenable": "1",
+                "R": 1,
+                "id": 1000325,
+                "employeename": "新测试一(13800138001)"
+            }, {"isenable": "1", "R": 1, "id": 1000331, "employeename": "伟哥(15008494986)"}, {
+                "isenable": "1",
+                "R": 1,
+                "id": 1000332,
+                "employeename": "小燕二十一(18500776161)"
+            }, {"isenable": "1", "R": 1, "id": 1000343, "employeename": "任攀(18200129251)"}, {
+                "isenable": "1",
+                "R": 1,
+                "id": 1000440,
+                "employeename": "测二(17396239185)"
+            }, {"isenable": "1", "R": 1, "id": 1000451, "employeename": "心烦(12343532141)"}, {
+                "isenable": "1",
+                "R": 1,
+                "id": 1000122,
+                "employeename": "李测试(11111111111)"
+            }, {"isenable": "1", "R": 1, "id": 133, "employeename": "徐海林(18628979827)"}, {
+                "isenable": "1",
+                "R": 1,
+                "id": 1000157,
+                "employeename": "测试五(13547311346)"
+            }, {"isenable": "1", "R": 1, "id": 1000203, "employeename": "小燕二(13880046521)"}, {
+                "isenable": "1",
+                "R": 1,
+                "id": 1000261,
+                "employeename": "小燕四(13880046524)"
+            }, {"isenable": "1", "R": 1, "id": 1000300, "employeename": "小燕十(18500776153)"}, {
+                "isenable": "1",
+                "R": 1,
+                "id": 1864,
+                "employeename": "测试五(18865505898)"
+            }],
+            "deptid": 58,
+            "mobile": "17396239185",
+            "createdate": 1494950400000,
+            "groupleaderid": "1000440",
+            "groupname": "测试安装组",
+            "groupcode": "code_TEST_INSTALL",
+            "deptname": "技术服务部",
+            "createby": "6666",
+            "R": 3,
+            "grouptype": "安装组",
+            "updatedate": 1527326890000,
+            "updateby": "100251",
+            "isdelete": "0",
+            "ID": 10000,
+            "corpname": "万网公司"
+        }, {
+            "croupnum": 2,
+            "leadername": "李婷",
+            "emps": [{"isenable": "1", "R": 1, "id": 661, "employeename": "李婷(18985103155)"}, {
+                "isenable": "1",
+                "R": 1,
+                "id": 1000180,
+                "employeename": "小燕子(17628012101)"
+            }],
+            "deptid": 58,
+            "mobile": "18985103155",
+            "createdate": 1493740800000,
+            "groupleaderid": "661",
+            "groupname": "贵州业务内勤组",
+            "groupcode": "332",
+            "deptname": "技术服务部",
+            "createby": "6666",
+            "R": 4,
+            "grouptype": "安装组",
+            "updatedate": 1502294400000,
+            "updateby": "100073",
+            "isdelete": "0",
+            "ID": 332,
+            "corpname": "万网公司"
+        }, {
+            "croupnum": 6,
+            "leadername": "小燕二",
+            "emps": [{"isenable": "1", "R": 1, "id": 74, "employeename": "黄莉(13808040404)"}, {
+                "isenable": "1",
+                "R": 1,
+                "id": 1000203,
+                "employeename": "小燕二(13880046521)"
+            }, {"isenable": "1", "R": 1, "id": 1000450, "employeename": "不开心二(15948978989)"}, {
+                "isenable": "1",
+                "R": 1,
+                "id": 676,
+                "employeename": "李小芳(15519156210)"
+            }, {"isenable": "1", "R": 1, "id": 1339, "employeename": "詹梅江(13985037662)"}, {
+                "isenable": "1",
+                "R": 1,
+                "id": 1576,
+                "employeename": "耿玉凤(18585847427)"
+            }],
+            "deptid": 55,
+            "mobile": "13880046521",
+            "createdate": 1493805585000,
+            "groupleaderid": "1000203",
+            "groupname": "贵州售后组",
+            "groupcode": "331",
+            "deptname": "售后监控部",
+            "createby": "6666",
+            "R": 5,
+            "grouptype": "监控组",
+            "updatedate": 1505455863000,
+            "updateby": "1864",
+            "isdelete": "0",
+            "ID": 331,
+            "corpname": "万网公司"
+        }, {
+            "croupnum": 36,
+            "leadername": "洪孝辉",
+            "emps": [{"isenable": "1", "R": 1, "id": 1000189, "employeename": "小明(13547311350)"}, {
+                "isenable": "1",
+                "R": 1,
+                "id": 1000207,
+                "employeename": "广联达(14523688541)"
+            }, {"isenable": "1", "R": 1, "id": 665, "employeename": "洪孝辉(13996809020)"}, {
+                "isenable": "1",
+                "R": 1,
+                "id": 669,
+                "employeename": "李宁(18285064256)"
+            }, {"isenable": "1", "R": 1, "id": 679, "employeename": "肖实(18285555025)"}, {
+                "isenable": "1",
+                "R": 1,
+                "id": 1582,
+                "employeename": "黄帅(13984299803)"
+            }, {"isenable": "1", "R": 1, "id": 1340, "employeename": "张月忠(13648500094)"}, {
+                "isenable": "1",
+                "R": 1,
+                "id": 10238,
+                "employeename": "张钊(18396979167)"
+            }, {"isenable": "1", "R": 1, "id": 10239, "employeename": "袁松(18585161282)"}, {
+                "isenable": "1",
+                "R": 1,
+                "id": 10240,
+                "employeename": "王震(13595438219)"
+            }, {"isenable": "1", "R": 1, "id": 10241, "employeename": "陈进(15108541854)"}, {
+                "isenable": "1",
+                "R": 1,
+                "id": 10242,
+                "employeename": "李雪鹏(18985077813)"
+            }, {"isenable": "1", "R": 1, "id": 10244, "employeename": "刘其保(13035551230)"}, {
+                "isenable": "1",
+                "R": 1,
+                "id": 10246,
+                "employeename": "马勇(15085146601)"
+            }, {"isenable": "1", "R": 1, "id": 10248, "employeename": "喻国勇(18311737399)"}, {
+                "isenable": "1",
+                "R": 1,
+                "id": 10249,
+                "employeename": "王春辉(18285677716)"
+            }, {"isenable": "1", "R": 1, "id": 10250, "employeename": "侯万京(13765691098)"}, {
+                "isenable": "1",
+                "R": 1,
+                "id": 10251,
+                "employeename": "马旭(13378569777)"
+            }, {"isenable": "1", "R": 1, "id": 10252, "employeename": "邹廷雄(17708569732)"}, {
+                "isenable": "1",
+                "R": 1,
+                "id": 674,
+                "employeename": "丁龙彬(18285217240)"
+            }, {"isenable": "1", "R": 1, "id": 10254, "employeename": "张立(13158159568)"}, {
+                "isenable": "1",
+                "R": 1,
+                "id": 10255,
+                "employeename": "王崇(13595559909)"
+            }, {"isenable": "1", "R": 1, "id": 10258, "employeename": "安红新(18985813500)"}, {
+                "isenable": "1",
+                "R": 1,
+                "id": 10259,
+                "employeename": "王应许(18508553351)"
+            }, {"isenable": "1", "R": 1, "id": 10260, "employeename": "苏李军(15085281187)"}, {
+                "isenable": "1",
+                "R": 1,
+                "id": 10261,
+                "employeename": "李建(18212220285)"
+            }, {"isenable": "1", "R": 1, "id": 10262, "employeename": "时伟东(15185631170)"}, {
+                "isenable": "1",
+                "R": 1,
+                "id": 10263,
+                "employeename": "徐世明(13698529973)"
+            }, {"isenable": "1", "R": 1, "id": 10264, "employeename": "柳海兴(15519956667)"}, {
+                "isenable": "1",
+                "R": 1,
+                "id": 10265,
+                "employeename": "王小孟(18785912563)"
+            }, {"isenable": "1", "R": 1, "id": 10269, "employeename": "卢红力(15121552768)"}, {
+                "isenable": "1",
+                "R": 1,
+                "id": 10270,
+                "employeename": "彭波(13708595226)"
+            }, {"isenable": "1", "R": 1, "id": 10271, "employeename": "吴美宏(18785010990)"}, {
+                "isenable": "1",
+                "R": 1,
+                "id": 10272,
+                "employeename": "黎庆波(18798449757)"
+            }, {"isenable": "1", "R": 1, "id": 10273, "employeename": "杨浩(15086529681)"}, {
+                "isenable": "1",
+                "R": 1,
+                "id": 10274,
+                "employeename": "李鹏(15086120586)"
+            }],
+            "deptid": 58,
+            "mobile": "13996809020",
+            "createdate": 1493654400000,
+            "groupleaderid": "665",
+            "groupname": "贵州技术二组",
+            "groupcode": "319",
+            "deptname": "技术服务部",
+            "createby": "6666",
+            "R": 6,
+            "grouptype": "安装组",
+            "updatedate": 1527322466000,
+            "updateby": "100073",
+            "isdelete": "0",
+            "ID": 319,
+            "corpname": "万网公司"
+        }, {
+            "croupnum": 4,
+            "leadername": "李顶顶顶",
+            "emps": [{"isenable": "1", "R": 1, "id": 10206, "employeename": "李建松(18985644546)"}, {
+                "isenable": "1",
+                "R": 1,
+                "id": 1000132,
+                "employeename": "李顶顶顶(18865505886)"
+            }, {"isenable": "1", "R": 1, "id": 664, "employeename": "何俊杰(18302691701)"}, {
+                "isenable": "1",
+                "R": 1,
+                "id": 677,
+                "employeename": "李伟(15585112226)"
+            }],
+            "deptid": 58,
+            "mobile": "18865505886",
+            "createdate": 1493717453000,
+            "groupleaderid": "1000132",
+            "groupname": "贵州销售组",
+            "groupcode": "316",
+            "deptname": "技术服务部",
+            "createby": "6666",
+            "R": 7,
+            "grouptype": "安装组",
+            "updatedate": 1513766744000,
+            "updateby": "1864",
+            "isdelete": "0",
+            "ID": 316,
+            "corpname": "万网公司"
+        }, {
+            "croupnum": 7,
+            "leadername": "汤刘驹",
+            "emps": [{"isenable": "1", "R": 1, "id": 65, "employeename": "苏舒(15609010701)"}, {
+                "isenable": "1",
+                "R": 1,
+                "id": 495,
+                "employeename": "王瑜(13881396689)"
+            }, {"isenable": "1", "R": 1, "id": 223, "employeename": "汤刘驹(15202884455)"}, {
+                "isenable": "1",
+                "R": 1,
+                "id": 248,
+                "employeename": "李斌(13550828259)"
+            }, {"isenable": "1", "R": 1, "id": 1812, "employeename": "周国军(18140004322)"}, {
+                "isenable": "1",
+                "R": 1,
+                "id": 1813,
+                "employeename": "李爽(18880468802)"
+            }, {"isenable": "1", "R": 1, "id": 1588, "employeename": "彭希垒(18982110313)"}],
+            "deptid": 53,
+            "mobile": "15202884455",
+            "createdate": 1493717453000,
+            "groupleaderid": "223",
+            "groupname": "成都销售组",
+            "groupcode": "290",
+            "deptname": "业务部",
+            "createby": "6666",
+            "R": 8,
+            "grouptype": "业务组",
+            "updatedate": 1503819897000,
+            "updateby": "1864",
+            "isdelete": "0",
+            "ID": 290,
+            "corpname": "万网公司"
+        }, {
+            "croupnum": 6,
+            "leadername": "李测试",
+            "emps": [{"isenable": "1", "R": 1, "id": 69, "employeename": "黄莉(18780515621)"}, {
+                "isenable": "1",
+                "R": 1,
+                "id": 1000443,
+                "employeename": "测五(17396239188)"
+            }, {"isenable": "1", "R": 1, "id": 1000122, "employeename": "李测试(11111111111)"}, {
+                "isenable": "1",
+                "R": 1,
+                "id": 236,
+                "employeename": "刘慧(15828163440)"
+            }, {"isenable": "1", "R": 1, "id": 1745, "employeename": "范敏(13880670672)"}, {
+                "isenable": "1",
+                "R": 1,
+                "id": 1804,
+                "employeename": "王静(18200418598)"
+            }],
+            "deptid": 53,
+            "mobile": "11111111111",
+            "createdate": 1493717453000,
+            "groupleaderid": "1000122",
+            "groupname": "保险组",
+            "groupcode": "289",
+            "deptname": "业务部",
+            "createby": "6666",
+            "R": 9,
+            "grouptype": "业务组",
+            "updatedate": 1503820050000,
+            "updateby": "1864",
+            "isdelete": "0",
+            "ID": 289,
+            "corpname": "万网公司"
+        }, {
+            "croupnum": 40,
+            "leadername": "小燕二",
+            "emps": [{"isenable": "1", "R": 1, "id": 10316, "employeename": "朱博  (13887341325)"}, {
+                "isenable": "1",
+                "R": 1,
+                "id": 10318,
+                "employeename": "杨晓宝(18788272003)"
+            }, {"isenable": "1", "R": 1, "id": 1000203, "employeename": "小燕二(13880046521)"}, {
+                "isenable": "1",
+                "R": 1,
+                "id": 1000080,
+                "employeename": "陈阳武(15891890828)"
+            }, {"isenable": "1", "R": 1, "id": 138, "employeename": "王卫(13881863191)"}, {
+                "isenable": "1",
+                "R": 1,
+                "id": 1000080,
+                "employeename": "陈阳武(15891890828)"
+            }, {"isenable": "1", "R": 1, "id": 158, "employeename": "张明(13980545381)"}, {
+                "isenable": "1",
+                "R": 1,
+                "id": 10103,
+                "employeename": "吴晏飞(14787854083)"
+            }, {"isenable": "1", "R": 1, "id": 10104, "employeename": "顾涛(15812083797)"}, {
+                "isenable": "1",
+                "R": 1,
+                "id": 10105,
+                "employeename": "潘洪军(15198587372)"
+            }, {"isenable": "1", "R": 1, "id": 10106, "employeename": "朱茂林(15912869869)"}, {
+                "isenable": "1",
+                "R": 1,
+                "id": 10107,
+                "employeename": "张旭行(15987787796)"
+            }, {"isenable": "1", "R": 1, "id": 10108, "employeename": "周显威(13887696422)"}, {
+                "isenable": "1",
+                "R": 1,
+                "id": 10109,
+                "employeename": "韩进龙(18687764433)"
+            }, {"isenable": "1", "R": 1, "id": 10110, "employeename": "巫剑培(18987640017)"}, {
+                "isenable": "1",
+                "R": 1,
+                "id": 10111,
+                "employeename": "吴国通(13802973106)"
+            }, {"isenable": "1", "R": 1, "id": 10112, "employeename": "王昌昆(13700669835)"}, {
+                "isenable": "1",
+                "R": 1,
+                "id": 10113,
+                "employeename": "孙燕涛(13887480724)"
+            }, {"isenable": "1", "R": 1, "id": 10114, "employeename": "庞荆(18313767414)"}, {
+                "isenable": "1",
+                "R": 1,
+                "id": 10115,
+                "employeename": "姬羽(18087578588)"
+            }, {"isenable": "1", "R": 1, "id": 10116, "employeename": "何继松(15752492925)"}, {
+                "isenable": "1",
+                "R": 1,
+                "id": 10117,
+                "employeename": "胡代华(13888435924)"
+            }, {"isenable": "1", "R": 1, "id": 10118, "employeename": "刘子毅(13759370036)"}, {
+                "isenable": "1",
+                "R": 1,
+                "id": 10119,
+                "employeename": "罗其富(18806943961)"
+            }, {"isenable": "1", "R": 1, "id": 10120, "employeename": "刘伟军(13577079982)"}, {
+                "isenable": "1",
+                "R": 1,
+                "id": 10121,
+                "employeename": "张增贵(15334411599)"
+            }, {"isenable": "1", "R": 1, "id": 10122, "employeename": "李小卫(18987235929)"}, {
+                "isenable": "1",
+                "R": 1,
+                "id": 10123,
+                "employeename": "陈守肖(15925126564)"
+            }, {"isenable": "1", "R": 1, "id": 10124, "employeename": "曾国宏(18122751362)"}, {
+                "isenable": "1",
+                "R": 1,
+                "id": 10125,
+                "employeename": "曾献荣(15925391539)"
+            }, {"isenable": "1", "R": 1, "id": 10126, "employeename": "刘宇君(18213160842)"}, {
+                "isenable": "1",
+                "R": 1,
+                "id": 10127,
+                "employeename": "银光云(15925239445)"
+            }, {"isenable": "1", "R": 1, "id": 10128, "employeename": "刘琴(13987977331)"}, {
+                "isenable": "1",
+                "R": 1,
+                "id": 10129,
+                "employeename": "任杰(18213338046)"
+            }, {"isenable": "1", "R": 1, "id": 10130, "employeename": "段豪(15184872975)"}, {
+                "isenable": "1",
+                "R": 1,
+                "id": 10131,
+                "employeename": "林文剑(18087875031)"
+            }, {"isenable": "1", "R": 1, "id": 10132, "employeename": "李根松(15969219388)"}, {
+                "isenable": "1",
+                "R": 1,
+                "id": 10133,
+                "employeename": "苏重教(15087262567)"
+            }, {"isenable": "1", "R": 1, "id": 10134, "employeename": "马银秋(13988251223)"}, {
+                "isenable": "1",
+                "R": 1,
+                "id": 10135,
+                "employeename": "张勇(13988309033)"
+            }],
+            "deptid": 58,
+            "mobile": "13880046521",
+            "createdate": 1493717453000,
+            "groupleaderid": "1000203",
+            "groupname": "云南技术组",
+            "groupcode": "283",
+            "deptname": "技术服务部",
+            "createby": "6666",
+            "R": 10,
+            "grouptype": "安装组",
+            "updatedate": 1505455903000,
+            "updateby": "1864",
+            "isdelete": "0",
+            "ID": 283,
+            "corpname": "万网公司"
+        }, {
+            "croupnum": 16,
+            "leadername": "小燕二",
+            "emps": [{"isenable": "1", "R": 1, "id": 1000159, "employeename": "测试黄海彬(13618067632)"}, {
+                "isenable": "1",
+                "R": 1,
+                "id": 1000203,
+                "employeename": "小燕二(13880046521)"
+            }, {"isenable": "1", "R": 1, "id": 1000070, "employeename": "姬如千(15249113700)"}, {
+                "isenable": "1",
+                "R": 1,
+                "id": 155,
+                "employeename": "吴家勇(13659140792)"
+            }, {"isenable": "1", "R": 1, "id": 10085, "employeename": "白松(15691932619)"}, {
+                "isenable": "1",
+                "R": 1,
+                "id": 10087,
+                "employeename": "李少杰(18729331550)"
+            }, {"isenable": "1", "R": 1, "id": 10088, "employeename": "郭坤朋(15719156399)"}, {
+                "isenable": "1",
+                "R": 1,
+                "id": 10089,
+                "employeename": "李永峰(18700877047)"
+            }, {"isenable": "1", "R": 1, "id": 10091, "employeename": "索景超(18191232633)"}, {
+                "isenable": "1",
+                "R": 1,
+                "id": 10092,
+                "employeename": "王平新号(13891109553)"
+            }, {"isenable": "1", "R": 1, "id": 10095, "employeename": "陆强(13072905763)"}, {
+                "isenable": "1",
+                "R": 1,
+                "id": 10097,
+                "employeename": "王富涛(18710651021)"
+            }, {"isenable": "1", "R": 1, "id": 10098, "employeename": "张少帅(13571275541)"}, {
+                "isenable": "1",
+                "R": 1,
+                "id": 10099,
+                "employeename": "闫伟(15691298884)"
+            }, {"isenable": "1", "R": 1, "id": 10100, "employeename": "李亚秋(18700627158)"}, {
+                "isenable": "1",
+                "R": 1,
+                "id": 10101,
+                "employeename": "朱延利(18609136292)"
+            }],
+            "deptid": 58,
+            "mobile": "13880046521",
+            "createdate": 1493717453000,
+            "groupleaderid": "1000203",
+            "groupname": "陕西技术组",
+            "groupcode": "282",
+            "deptname": "技术服务部",
+            "createby": "6666",
+            "R": 11,
+            "grouptype": "安装组",
+            "updatedate": 1505457415000,
+            "updateby": "1864",
+            "isdelete": "0",
+            "ID": 282,
+            "corpname": "万网公司"
+        }, {
+            "croupnum": 43,
+            "leadername": "谢彝文",
+            "emps": [{"isenable": "1", "R": 1, "id": 10310, "employeename": "李锡文(13617889861)"}, {
+                "isenable": "1",
+                "R": 1,
+                "id": 10329,
+                "employeename": "刘明顺(18980800646)"
+            }, {"isenable": "1", "R": 1, "id": 1000057, "employeename": "蒙建稳(18677871827)"}, {
+                "isenable": "1",
+                "R": 1,
+                "id": 10164,
+                "employeename": "罗涛(13291669769)"
+            }, {"isenable": "0", "R": 1, "id": 1000053, "employeename": "肖强春(15778122136)"}, {
+                "isenable": "1",
+                "R": 1,
+                "id": 1000067,
+                "employeename": "黄德添(18077430128)"
+            }, {"isenable": "1", "R": 1, "id": 1000072, "employeename": "刘丕文(13558153522)"}, {
+                "isenable": "1",
+                "R": 1,
+                "id": 226,
+                "employeename": "文成亮(15007663928)"
+            }, {"isenable": "1", "R": 1, "id": 227, "employeename": "程宏伟(13758982115)"}, {
+                "isenable": "1",
+                "R": 1,
+                "id": 242,
+                "employeename": "谢彝文(13627513469)"
+            }, {"isenable": "1", "R": 1, "id": 1000006, "employeename": "母金川()"}, {
+                "isenable": "1",
+                "R": 1,
+                "id": 10004,
+                "employeename": "杨沛东(15277412100)"
+            }, {"isenable": "1", "R": 1, "id": 10005, "employeename": "蓝祯(13878529700)"}, {
+                "isenable": "1",
+                "R": 1,
+                "id": 10006,
+                "employeename": "孙礼(18377660046)"
+            }, {"isenable": "1", "R": 1, "id": 10007, "employeename": "游春智(13481638020)"}, {
+                "isenable": "1",
+                "R": 1,
+                "id": 10008,
+                "employeename": "卢全如(13367769922)"
+            }, {"isenable": "1", "R": 1, "id": 10009, "employeename": "赵春孟(15878883632)"}, {
+                "isenable": "1",
+                "R": 1,
+                "id": 10010,
+                "employeename": "肖宏太(18777383030)"
+            }, {"isenable": "1", "R": 1, "id": 10011, "employeename": "梁爽(18578900880)"}, {
+                "isenable": "1",
+                "R": 1,
+                "id": 10012,
+                "employeename": "张石仙(18977442261)"
+            }, {"isenable": "1", "R": 1, "id": 10013, "employeename": "施扬绘(18825769348)"}, {
+                "isenable": "1",
+                "R": 1,
+                "id": 10015,
+                "employeename": "罗奋旱(15878442202)"
+            }, {"isenable": "1", "R": 1, "id": 10017, "employeename": "王立权(18178151013)"}, {
+                "isenable": "1",
+                "R": 1,
+                "id": 10019,
+                "employeename": "吴杰堂(13687816456)"
+            }, {"isenable": "1", "R": 1, "id": 10020, "employeename": "庞海龙(15677703138)"}, {
+                "isenable": "1",
+                "R": 1,
+                "id": 10021,
+                "employeename": "郑厚孟(15878876585)"
+            }, {"isenable": "1", "R": 1, "id": 10022, "employeename": "唐超(13978057827)"}, {
+                "isenable": "1",
+                "R": 1,
+                "id": 10023,
+                "employeename": "陈立祥(13517611457)"
+            }, {"isenable": "1", "R": 1, "id": 10024, "employeename": "苏之军(18074776708)"}, {
+                "isenable": "1",
+                "R": 1,
+                "id": 10025,
+                "employeename": "蒋泽辉(15578628781)"
+            }, {"isenable": "1", "R": 1, "id": 10026, "employeename": "黄榜(18867000432)"}, {
+                "isenable": "1",
+                "R": 1,
+                "id": 10027,
+                "employeename": "张闹(18878905586)"
+            }, {"isenable": "1", "R": 1, "id": 10028, "employeename": "李崇光(18978120204)"}, {
+                "isenable": "1",
+                "R": 1,
+                "id": 10030,
+                "employeename": "曾华健(13737462951)"
+            }, {"isenable": "1", "R": 1, "id": 10031, "employeename": "林子健(13768054561)"}, {
+                "isenable": "1",
+                "R": 1,
+                "id": 10032,
+                "employeename": "雷生(15607711478)"
+            }, {"isenable": "1", "R": 1, "id": 10033, "employeename": "杨宝雷(18775859020)"}, {
+                "isenable": "1",
+                "R": 1,
+                "id": 10034,
+                "employeename": "李少军(13768549318)"
+            }, {"isenable": "1", "R": 1, "id": 10035, "employeename": "张永峰(15077217166)"}, {
+                "isenable": "1",
+                "R": 1,
+                "id": 10036,
+                "employeename": "陈丕泉(18607798885)"
+            }, {"isenable": "1", "R": 1, "id": 10037, "employeename": "叶小辉(18677756557)"}, {
+                "isenable": "1",
+                "R": 1,
+                "id": 10038,
+                "employeename": "梁金龙(15277481817)"
+            }, {"isenable": "1", "R": 1, "id": 10039, "employeename": "胡泽泉(18078581066)"}],
+            "deptid": 58,
+            "mobile": "13627513469",
+            "createdate": 1493717453000,
+            "groupleaderid": "242",
+            "groupname": "广西技术组",
+            "groupcode": "280",
+            "deptname": "技术服务部",
+            "createby": "6666",
+            "R": 12,
+            "grouptype": "安装组",
+            "isdelete": "0",
+            "ID": 280,
+            "corpname": "万网公司"
+        }, {
+            "croupnum": 7,
+            "leadername": "谢彝武",
+            "emps": [{"isenable": "1", "R": 1, "id": 228, "employeename": "谢彝武(18898908500)"}, {
+                "isenable": "1",
+                "R": 1,
+                "id": 249,
+                "employeename": "李宇辉(18218244104)"
+            }, {"isenable": "1", "R": 1, "id": 10042, "employeename": "李能绪(15219214834)"}, {
+                "isenable": "1",
+                "R": 1,
+                "id": 10043,
+                "employeename": "周祖伯(13822572138)"
+            }, {"isenable": "1", "R": 1, "id": 10044, "employeename": "陈永康(15986229178)"}, {
+                "isenable": "1",
+                "R": 1,
+                "id": 10045,
+                "employeename": "柯升东(13790907999)"
+            }, {"isenable": "1", "R": 1, "id": 10046, "employeename": "何荣有(13412809775)"}],
+            "deptid": 58,
+            "mobile": "18898908500",
+            "createdate": 1493717453000,
+            "groupleaderid": "228",
+            "groupname": "广东技术组",
+            "groupcode": "279",
+            "deptname": "技术服务部",
+            "createby": "6666",
+            "R": 13,
+            "grouptype": "安装组",
+            "updatedate": 1510801473000,
+            "updateby": "1864",
+            "isdelete": "0",
+            "ID": 279,
+            "corpname": "万网公司"
+        }, {
+            "croupnum": 13,
+            "leadername": "胡礼俊",
+            "emps": [{"isenable": "1", "R": 1, "id": 1000081, "employeename": "赵佳男(13700408933)"}, {
+                "isenable": "1",
+                "R": 1,
+                "id": 157,
+                "employeename": "胡礼俊(18889807672)"
+            }, {"isenable": "1", "R": 1, "id": 229, "employeename": "刘德栩(15008000397)"}, {
+                "isenable": "1",
+                "R": 1,
+                "id": 10049,
+                "employeename": "雷乃进(13976957122)"
+            }, {"isenable": "1", "R": 1, "id": 10050, "employeename": "马端明(18689998000)"}, {
+                "isenable": "1",
+                "R": 1,
+                "id": 10051,
+                "employeename": "肖泽军(15108930522)"
+            }, {"isenable": "1", "R": 1, "id": 10052, "employeename": "刘德(13016253615)"}, {
+                "isenable": "1",
+                "R": 1,
+                "id": 10053,
+                "employeename": "赵佳男(18141361414)"
+            }, {"isenable": "1", "R": 1, "id": 10054, "employeename": "王招广(18789555352)"}, {
+                "isenable": "1",
+                "R": 1,
+                "id": 10055,
+                "employeename": "张焘(15208905773)"
+            }, {"isenable": "1", "R": 1, "id": 10056, "employeename": "韩瑞光(13215778678)"}, {
+                "isenable": "1",
+                "R": 1,
+                "id": 10057,
+                "employeename": "王基坚(18789371842)"
+            }, {"isenable": "1", "R": 1, "id": 10058, "employeename": "郭方文(13976838717)"}],
+            "deptid": 58,
+            "mobile": "18889807672",
+            "createdate": 1493717453000,
+            "groupleaderid": "157",
+            "groupname": "海南技术组",
+            "groupcode": "278",
+            "deptname": "技术服务部",
+            "createby": "6666",
+            "R": 14,
+            "grouptype": "安装组",
+            "isdelete": "0",
+            "ID": 278,
+            "corpname": "万网公司"
+        }, {
+            "croupnum": 30,
+            "leadername": "张锰",
+            "emps": [{"isenable": "1", "R": 1, "id": 1000123, "employeename": "测试四(13547311345)"}, {
+                "isenable": "1",
+                "R": 1,
+                "id": 10301,
+                "employeename": "樊宁(15328912817)"
+            }, {"isenable": "1", "R": 1, "id": 10302, "employeename": "周杰(18280979988)"}, {
+                "isenable": "1",
+                "R": 1,
+                "id": 10306,
+                "employeename": "马铁旦(18508172346(2))"
+            }, {"isenable": "1", "R": 1, "id": 10307, "employeename": "李旭波(15882677872)"}, {
+                "isenable": "1",
+                "R": 1,
+                "id": 1000071,
+                "employeename": "田兴海(18181380553)"
+            }, {"isenable": "1", "R": 1, "id": 1000112, "employeename": "测试三(13547311300)"}, {
+                "isenable": "1",
+                "R": 1,
+                "id": 153,
+                "employeename": "张锰(13658001660)"
+            }, {"isenable": "1", "R": 1, "id": 222, "employeename": "余杨波(18328705603)"}, {
+                "isenable": "1",
+                "R": 1,
+                "id": 240,
+                "employeename": "杨川(15982164242)"
+            }, {"isenable": "1", "R": 1, "id": 244, "employeename": "李功科(18380233228)"}, {
+                "isenable": "1",
+                "R": 1,
+                "id": 10065,
+                "employeename": "吴俊(18084893637)"
+            }, {"isenable": "1", "R": 1, "id": 10066, "employeename": "蒋兴均(18086911024)"}, {
+                "isenable": "1",
+                "R": 1,
+                "id": 10067,
+                "employeename": "彭用(15883429058)"
+            }, {"isenable": "1", "R": 1, "id": 10068, "employeename": "龙江(15681665731)"}, {
+                "isenable": "1",
+                "R": 1,
+                "id": 10069,
+                "employeename": "蒋耀威(15881898327)"
+            }, {"isenable": "1", "R": 1, "id": 10070, "employeename": "吴延候(15308396688)"}, {
+                "isenable": "1",
+                "R": 1,
+                "id": 10071,
+                "employeename": "罗辉(13982510773)"
+            }, {"isenable": "1", "R": 1, "id": 10072, "employeename": "梁钜千(18188397525)"}, {
+                "isenable": "1",
+                "R": 1,
+                "id": 10073,
+                "employeename": "张少普(13541448089)"
+            }, {"isenable": "1", "R": 1, "id": 10074, "employeename": "李亮(13981266413)"}, {
+                "isenable": "1",
+                "R": 1,
+                "id": 10075,
+                "employeename": "陈远文(15984067628)"
+            }, {"isenable": "1", "R": 1, "id": 10076, "employeename": "官家乐(13419308344)"}, {
+                "isenable": "1",
+                "R": 1,
+                "id": 10077,
+                "employeename": "李明(13219273829)"
+            }, {"isenable": "1", "R": 1, "id": 10078, "employeename": "徐国军(13388305097)"}, {
+                "isenable": "1",
+                "R": 1,
+                "id": 10079,
+                "employeename": "王寿华(15882658178)"
+            }, {"isenable": "1", "R": 1, "id": 10080, "employeename": "王海明(18608248635)"}, {
+                "isenable": "1",
+                "R": 1,
+                "id": 10081,
+                "employeename": "陈鹏(17711235616)"
+            }, {"isenable": "1", "R": 1, "id": 10082, "employeename": "王海(18123413183)"}, {
+                "isenable": "1",
+                "R": 1,
+                "id": 10083,
+                "employeename": "郑太刚(18081411108)"
+            }],
+            "deptid": 58,
+            "mobile": "13658001660",
+            "createdate": 1493717453000,
+            "groupleaderid": "153",
+            "groupname": "四川技术二组",
+            "groupcode": "277",
+            "deptname": "技术服务部",
+            "createby": "6666",
+            "R": 15,
+            "grouptype": "安装组",
+            "isdelete": "0",
+            "ID": 277,
+            "corpname": "万网公司"
+        }],
+        "currentPages": 1,
+        "firstIndex": 0
+    },
+    "validResult": null
+}
+
+const positionInfoList = {"result":{"code":0,"desc":"success"},"data":{"showCount":15,"totalPage":4,"totalResult":54,"currentPage":2,"_viewName":null,"_order":null,"_sort":null,"queryMap":{},"records":[{"R":16,"corpid":10440,"positiondesc":"6666","updatedate":1498233600000,"positionid":10052,"updateby":"6666","positionname":"讲师444","ID":10052,"isdelete":"0","corpname":"众慧融资租赁(海南公司)","pocoid":3},{"R":17,"positionid":10048,"positionname":"讲师","ID":10048,"pocoid":2},{"createby":"6666","R":18,"positiondesc":"wwwwwwwww","updatedate":1497196800000,"updateby":"6666","positionname":"数据工程师","createdate":1496678400000,"ID":10020,"isdelete":"0"},{"R":19,"positiondesc":"黄","updatedate":1496160000000,"updateby":"6666","positionname":"招聘专员","ID":364,"isdelete":"0"},{"R":20,"corpid":1,"updatedate":1503158400000,"positionid":363,"updateby":"1864","positionname":"四川区域客服主管","ID":363,"isdelete":"0","corpname":"万网公司","pocoid":81},{"R":21,"updatedate":1499270400000,"updateby":"6666","positionname":"负责人","ID":362,"isdelete":"0"},{"R":22,"updatedate":1495900800000,"updateby":"6666","positionname":"信息科技部经理","ID":359,"isdelete":"0"},{"R":23,"updatedate":1499270400000,"updateby":"6666","positionname":"客服经理","ID":352,"isdelete":"0"},{"R":24,"positionname":"技术总工","ID":343,"isdelete":"0"},{"R":25,"positionname":"内勤文员","ID":322,"isdelete":"0"},{"R":26,"positionname":"售后监控部经理","ID":321,"isdelete":"0"},{"R":27,"positionname":"专职技术员","ID":320,"isdelete":"0"},{"R":28,"positionname":"区域负责人","ID":319,"isdelete":"0"},{"R":29,"positionname":"资管文员","ID":318,"isdelete":"0"},{"R":30,"positionname":"技术服务部经理","ID":303,"isdelete":"0"}],"currentPages":2,"firstIndex":15},"validResult":null}
+
+const getCorporateInfo = params => {
+    return axios.get(`${base}/api/v1/org/corporateInfo/query/vw`, {
+        params
+    });
+};
+
+/*部门搜索模糊查询接口*/
+const getDepartmentInfoList = params => {
+    // return axios.get(`${base}/api/v1/org/departmentInfo/query/vw`, {
+    //     params: params
+    // });
+    return new Promise((resolve) => {
+        setTimeout(() => {
+            resolve(deptList)
+        }, 200)
+    })
+};
+
+const getGroupInfoList = params => {
+    // return axios.get(`${base}/api/v1/org/groupInfo/query/vw`, {
+    //     params: params
+    // });
+    return new Promise((resolve) => {
+        setTimeout(() => {
+            resolve(groupInfoList)
+        }, 200)
+    })
+};
+
+const getPositionInfoList = params => {
+    // return axios.get(`${base}/api/v1/org/positionInfo/query/vw`, {
+    //     params: params
+    // });
+    return new Promise((resolve) => {
+        setTimeout(() => {
+            resolve(positionInfoList)
+        }, 200)
+    })
+};
+
+// 获取父级公司名称列表
+const getParentInfoList = params => {
+    return axios.get(`${base}/api/v1/org/corporateInfo`, {
+        params: params
+    });
+};
+
+//获取公司类型列表
+const getCorpType = params => {
+    return axios.get(`${base}/api/v1/sys/sysDictionaryData?dicvalue=CorpType`, {
+        params: params
+    });
+};
+
+// 查询详细公司
+const getAllCorpList = params => {
+    return axios.get(`${base}/api/v1/org/corporateInfo/query/IDAndName`, {
+        params: params
+    });
+};
+
+//数据检测接口
+const getCheckoutOfDeptInfo = params => {
+    return axios.get(`${base}/api/v1/org/departmentInfo/checkout`, {
+        params: params
+    });
+};
+
+const getDeptManagerInfoList = params => {
+    return axios.get(`${base}/api/v1/org/employeeInfo/?showCount=10000`, {
+        params: params
+    });
+};
+
+// 查询详细部门
+const getAllDeptList = params => {
+    return axios.get(`${base}/api/v1/org/departmentInfo/query/IDAndName`, {
+        params: params
+    });
+};
+
+//数据检测接口
+const getCheckoutOfGroupInfo = params => {
+    return axios.get(`${base}/api/v1/org/groupInfo/checkout/` + params.para + '/' + params.value);
+};
+
+//分组类型列表查询
+const groupClass = params => {
+    return axios.get(`${base}/api/v1/sys/sysDictionaryData/dictvalue/` + params.dictvalue, params)
+};
+
+// 获取员工
+const getEmpsGroupList = params => {
+    return axios.get(`${base}/api/v1/org/employeeInfo/getIDandName`, {
+        params: params
+    });
+};
+
+//获取客户和银行列表
+const getCorpList = params => {
+    return axios.get(`${base}/api/v1/org/corporateInfo?flag=万网公司&showCount=1000`, {
+        params: params
+    });
+};
+
+const getCheckoutOfPosInfo = params => {
+    return axios.get(`${base}/api/v1/org/positionInfo/checkout/` + params.para + '/' + params.value);
+};
+
+export {
+    getCorporateInfo,
+    getDepartmentInfoList,
+    getGroupInfoList,
+    getPositionInfoList,
+    getParentInfoList,
+    getCorpType,
+    getAllCorpList,
+    getCheckoutOfDeptInfo,
+    getDeptManagerInfoList,
+    getAllDeptList,
+    getCheckoutOfGroupInfo,
+    groupClass,
+    getEmpsGroupList,
+    getCorpList,
+    getCheckoutOfPosInfo
+}

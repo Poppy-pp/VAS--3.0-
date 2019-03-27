@@ -1,0 +1,504 @@
+<template>
+    <div class="order-process-box">
+        <div style="height: 500px; width: 200px; min-width: 200px; margin-top: 10px">
+            <el-steps direction="vertical" :active="4">
+                <el-step title="新建安装单"></el-step>
+                <el-step title="接单"></el-step>
+                <el-step title="施工安装"></el-step>
+                <el-step title="保险出单"></el-step>
+                <el-step title="订单完成/复核"></el-step>
+            </el-steps>
+        </div>
+        <div style="flex-grow: 1;">
+            <el-collapse v-model="activeNames" class="bdcoll rpShowimgDialog" ref="rpShowimgDialog">
+                <el-collapse-item class="lefw10 wzpdt10" name="1" title="差异信息">
+                    <p class="difference-info">
+                        现场车牌号与派单车牌号不一致，请确认正确的信息
+                    </p>
+                    <div>
+                        <el-checkbox v-model="selectVehicle">现场车牌号：川A12345</el-checkbox>
+                        <el-checkbox v-model="selectVehicle">派单车牌号：川A12345</el-checkbox>
+                        <el-button type="primary" size="mini">确定</el-button>
+                    </div>
+                </el-collapse-item>
+                <el-collapse-item name="2" class="lefw10 wzpdt10">
+                    <template slot="title">
+                        <p style="width: 100%; overflow: hidden">
+                            安装信息 <el-button style="float: right; margin-right: 10px; margin-top: 3px;" type="primary" size="mini" @click.stop="reviewOrder">保存</el-button>
+                        </p>
+                    </template>
+                    <el-row class="mt5" v-for="(item,index) in busiImpdetails" :key="index">
+                        <el-row>
+                            <div class="install-title">
+                                {{item.stoPackinfoDto.promodelspecname+'设备'+item.stoPackinfoDto.promodelname}}
+                            </div>
+                            <span style="margin-left: 30px;">
+                                <el-tag v-if="item.pass" type="success"><i class="el-icon-success"></i> 检测通过</el-tag>
+                                <el-tag v-else type="danger"><i class="el-icon-error"></i> 检测未通过</el-tag>
+                            </span>
+                        </el-row>
+                        <el-col :span="24" v-if="item.isActive == 0">
+                            <dl class="dllist">
+                                <dd style="color:red;">无效设备</dd>
+                            </dl>
+                        </el-col>
+                        <el-col :span="8">
+                            <dl class="dllist">
+                                <dt>安装位置:</dt>
+                                <dd>{{ item.installpositioncodename }}</dd>
+                            </dl>
+                        </el-col>
+                        <el-col :span="8">
+                            <dl class="dllist">
+                                <dt>安装时状态：</dt>
+                                <dd v-if="item.onlinestatus">{{ item.onlinestatus == 0 ? "未上线" : "在线" }}</dd>
+                                <dd v-else>未上线</dd>
+                            </dl>
+                        </el-col>
+                        <el-col :span="8">
+                            <dl class="dllist">
+                                <dt>设备ID:</dt>
+                                <dd>{{ item.stoPackinfoDto.prodnum }}</dd>
+                            </dl>
+                        </el-col>
+                        <el-col :span="8">
+                            <dl class="dllist">
+                                <dt>设备类型:</dt>
+                                <dd>{{ item.stoPackinfoDto.promodelspecname }}</dd>
+                            </dl>
+                        </el-col>
+                        <el-col :span="8">
+                            <dl class="dllist">
+                                <dt>设备型号:</dt>
+                                <dd>{{ item.stoPackinfoDto.promodelname }}</dd>
+                            </dl>
+                        </el-col>
+                        <el-col :span="8">
+                            <dl class="dllist">
+                                <dt>SIM卡号:</dt>
+                                <dd>{{ item.stoPackinfoDto.simnum }}</dd>
+                            </dl>
+                        </el-col>
+                        <el-col :span="8">
+                            <dl class="dllist">
+                                <dt>iccid:</dt>
+                                <dd>{{ item.stoPackinfoDto.simid }}</dd>
+                            </dl>
+                        </el-col>
+                        <el-col :span="8">
+                            <dl class="dllist">
+                                <dt>卡类型:</dt>
+                                <dd>{{ item.stoPackinfoDto.simmodelname }}</dd>
+                            </dl>
+                        </el-col>
+                        <el-col :span="8">
+                            <dl class="dllist">
+                                <dt>设备实时状态：</dt>
+                                <dd v-if="item.curonlinestatus">{{ item.curonlinestatus }}</dd>
+                            </dl>
+                        </el-col>
+                        <el-col :span="8">
+                            <dl class="dllist">
+                                <dt>最后一次通讯时间：</dt>
+                                <dd v-if="item.recvtime">{{ item.recvtime }}</dd>
+                            </dl>
+                        </el-col>
+                        <el-col :span="16">
+                            <dl class="dllist">
+                                <dt>实时位置信息：</dt>
+                                <dd>
+                                    {{ item.curaddress ? item.curaddress : '-' }}
+                                    <el-button size='mini' icon="el-icon-refresh" @click="cldeviceIsOnstateItem(item)">刷新</el-button>
+                                </dd>
+                            </dl>
+                        </el-col>
+                        <el-col :span="24">
+                            <el-row>
+                                <el-col class="photosh sgphtosh" style="margin-right: 10px;" v-for="(val,index) in item.busiPictures" :key="index">
+                                    <el-card :body-style="{ padding: '0px !important' }" class="devptosty">
+                                        <el-upload name="file" class="avatar-uploader" action="/admin/atta/upload/picture" :show-file-list="false"
+                                                   :headers="{Authorization: 'Bearer '+ token}"
+                                                   :accept="accept" :before-upload="util.beforeAvatarUpload" :on-success="uploadSuccessInvoice">
+                                            <img v-if="val.piclink"
+                                                 :src="$store.state.IMG_URL+val.piclink" class="avatar">
+                                            <i v-else class="el-icon-plus avatar-uploader-icon"></i>
+                                        </el-upload>
+                                        <div class="btsty">
+                                            <span class="fl">{{ val.picdesc }}</span>
+                                            <div class="bottom clearfix text_al fr" v-if="val.piclink">
+                                                <i title="删除照片" class="iconfont icon-p-delet operate operate-p-delet"></i>
+                                            </div>
+                                        </div>
+                                    </el-card>
+                                </el-col>
+                            </el-row>
+                            <!--<dl class="dllist lh55_mb10">-->
+                            <!--<dd>-->
+                            <!--<div class="imgMd mr4 mt5" v-for="(val,index) in item.busiPictures">-->
+                            <!--<img :title="val.picdesc" class="image" :src="$store.state.ORIGINAL_URL+val.piclink">-->
+                            <!--<span>{{ val.picdesc }}</span>-->
+                            <!--</div>-->
+                            <!--</dd>-->
+                            <!--</dl>-->
+                        </el-col>
+                    </el-row>
+                    <hr>
+                    <el-row>
+                        <el-col :span="24">
+                            <dl class="dllist">
+                                <dt>安装产品：</dt>
+                                <dd>
+                                    <el-table
+                                            :data="productList">
+                                        <el-table-column
+                                                prop="packcode"
+                                                label="产品编号"
+                                                width="180">
+                                        </el-table-column>
+                                        <el-table-column
+                                                prop="packdesc"
+                                                label="产品名称"
+                                                width="180">
+                                        </el-table-column>
+                                        <el-table-column
+                                                prop="packcontent"
+                                                label="内容">
+                                        </el-table-column>
+                                    </el-table>
+                                </dd>
+                            </dl>
+                        </el-col>
+                    </el-row>
+                    <el-row class="mt5">
+                        <el-col :span="24">
+                            <p>车辆照片</p>
+                            <el-row>
+                                <el-col class="photosh sgphtosh" style="margin-right: 10px;" v-for="(val,index) in busiPictures" :key="index">
+                                    <el-card :body-style="{ padding: '0px !important' }" class="devptosty">
+                                        <el-upload name="file" class="avatar-uploader" action="/admin/atta/upload/picture" :show-file-list="false"
+                                                   :headers="{Authorization: 'Bearer '+ token}"
+                                                   :accept="accept" :before-upload="util.beforeAvatarUpload" :on-success="uploadSuccessInvoice">
+                                            <img v-if="val.piclink"
+                                                 :src="$store.state.IMG_URL+val.piclink" class="avatar">
+                                            <i v-else class="el-icon-plus avatar-uploader-icon"></i>
+                                        </el-upload>
+                                        <div class="btsty">
+                                            <span class="fl">{{ val.picdesc }}</span>
+                                            <div class="bottom clearfix text_al fr" v-if="val.piclink">
+                                                <i title="删除照片" class="iconfont icon-p-delet operate operate-p-delet"></i>
+                                            </div>
+                                        </div>
+                                    </el-card>
+                                </el-col>
+                            </el-row>
+                            <!--<dl class="dllist lh55_mb10">-->
+                            <!--<dt>车辆照片：</dt>-->
+                            <!--<dd>-->
+                            <!--<div class="imgMd mr4 mt5" v-for="(item,index) in busiPictures" :key="index">-->
+                            <!--<img :title="item.picdesc" class="image" :src="$store.state.IMG_URL+item.piclink">-->
+                            <!--<span>{{ item.picdesc }}</span>-->
+                            <!--</div>-->
+                            <!--</dd>-->
+                            <!--</dl>-->
+                        </el-col>
+                        <el-col :span="8">
+                            <dl class="dllist lh55_mb10">
+                                <dt>接单时间：</dt>
+                                <dd>{{dateFormatter(installDetail.assigndate)}}</dd>
+                            </dl>
+                        </el-col>
+                        <el-col :span="8">
+                            <dl class="dllist lh55_mb10">
+                                <dt>安装人员：</dt>
+                                <dd>{{installDetail.impby}}</dd>
+                            </dl>
+                        </el-col>
+                        <el-col :span="8">
+                            <dl class="dllist lh55_mb10">
+                                <dt>开始安装时间：</dt>
+                                <dd>{{dateFormatter(installDetail.impapplydate)}}</dd>
+                            </dl>
+                        </el-col>
+                        <el-col :span="8">
+                            <dl class="dllist lh55_mb10">
+                                <dt>完成安装时间：</dt>
+                                <dd>{{dateFormatter(installDetail.impactualenddate)}}</dd>
+                            </dl>
+                        </el-col>
+                        <el-col :span="8">
+                            <dl class="dllist lh55_mb10">
+                                <dt>开始安装时地址：</dt>
+                                <dd>{{installDetail.impaddress}}</dd>
+                            </dl>
+                        </el-col>
+                        <el-col :span="8">
+                            <dl class="dllist lh55_mb10">
+                                <dt>完成安装时地址：</dt>
+                                <dd>{{installDetail.impaddress}}</dd>
+                            </dl>
+                        </el-col>
+                        <el-col :span="8">
+                            <dl class="dllist lh55_mb10">
+                                <dt>安装备注信息：</dt>
+                                <dd>{{installDetail.impremark}}</dd>
+                            </dl>
+                        </el-col>
+                        <el-col :span="8">
+                            <dl class="dllist lh55_mb10">
+                                <dt>
+                                    <el-tag>差旅费50元</el-tag>
+                                </dt>
+                            </dl>
+                        </el-col>
+                    </el-row>
+                </el-collapse-item>
+                <el-collapse-item name="3" class="lefw10 wzpdt10" title="车主车辆信息">
+                    <el-row class="mt2 pt2">
+                        <el-col :span="8">
+                            <dl class="dllist">
+                                <dt>车主姓名:</dt>
+                                <dd>{{vehicleInfo.ownername}}</dd>
+                            </dl>
+                        </el-col>
+                        <el-col :span="8">
+                            <dl class="dllist">
+                                <dt>车主电话:</dt>
+                                <dd>{{vehicleInfo.mobile}}</dd>
+                            </dl>
+                        </el-col>
+                        <el-col :span="8">
+                            <dl class="dllist">
+                                <dt>车主身份证:</dt>
+                                <dd>{{vehicleInfo.idcard}}</dd>
+                            </dl>
+                        </el-col>
+                        <el-col :span="8">
+                            <dl class="dllist">
+                                <dt>车架号:</dt>
+                                <dd>{{vehicleInfo.vin}}</dd>
+                            </dl>
+                        </el-col>
+                        <el-col :span="8">
+                            <dl class="dllist">
+                                <dt>厂牌型号:</dt>
+                                <dd>{{vehicleInfo.model}}</dd>
+                            </dl>
+                        </el-col>
+                        <el-col :span="8">
+                            <dl class="dllist">
+                                <dt>车牌号:</dt>
+                                <dd>{{vehicleInfo.licenseplatenum}}</dd>
+                            </dl>
+                        </el-col>
+                        <el-col :span="8">
+                            <dl class="dllist">
+                                <dt>车辆购置价:</dt>
+                                <dd>{{vehicleInfo.price}}</dd>
+                            </dl>
+                        </el-col>
+                        <el-col :span="8">
+                            <dl class="dllist">
+                                <dt>第一受益人:</dt>
+                                <dd>{{vehicleInfo.beneficiary}}</dd>
+                            </dl>
+                        </el-col>
+                        <el-col :span="8">
+                            <dl class="dllist">
+                                <dt>车辆分类:</dt>
+                                <dd>{{vehiclecategoryList[vehicleInfo.vehiclecategory]}}</dd>
+                            </dl>
+                        </el-col>
+                        <el-col :span="8">
+                            <dl class="dllist">
+                                <dt>车辆类型:</dt>
+                                <dd>{{vehicleInfo.vehicletypename}}</dd>
+                            </dl>
+                        </el-col>
+                        <el-col :span="8">
+                            <dl class="dllist">
+                                <dt>车辆颜色:</dt>
+                                <dd>{{vehicleInfo.colorname}}</dd>
+                            </dl>
+                        </el-col>
+                        <el-col :span="8">
+                            <dl class="dllist">
+                                <dt>能源类型:</dt>
+                                <dd>{{vehiclepowerList[vehicleInfo.vehiclepower]}}</dd>
+                            </dl>
+                        </el-col>
+                        <el-col :span="24">
+                            <dl class="dllist">
+                                <dt>联系地址:</dt>
+                                <dd>{{vehicleInfo.addresshome}}</dd>
+                            </dl>
+                        </el-col>
+                    </el-row>
+                </el-collapse-item>
+                <el-collapse-item name="4" class="lefw10 wzpdt10" title="派单信息">
+                    <el-row class="mt2 pt2">
+                        <el-col :span="8">
+                            <dl class="dllist">
+                                <dt>派单公司:</dt>
+                                <dd v-if="installDetail.corporateinfo">{{installDetail.corporateinfo.corpname}}</dd>
+                            </dl>
+                        </el-col>
+                        <el-col :span="8">
+                            <dl class="dllist">
+                                <dt>订单来源:</dt>
+                                <dd>{{installDetail.declarefrom}}</dd>
+                            </dl>
+                        </el-col>
+                        <el-col :span="8">
+                            <dl class="dllist">
+                                <dt>新装单号:</dt>
+                                <dd>{{installDetail.orderno}}</dd>
+                            </dl>
+                        </el-col>
+                        <el-col :span="8">
+                            <dl class="dllist">
+                                <dt>安装联系人:</dt>
+                                <dd>{{installDetail.contactname}}</dd>
+                            </dl>
+                        </el-col>
+                        <el-col :span="8">
+                            <dl class="dllist">
+                                <dt>安装联系方式:</dt>
+                                <dd>{{installDetail.contactmobile}}</dd>
+                            </dl>
+                        </el-col>
+                        <el-col :span="8">
+                            <dl class="dllist">
+                                <dt>预约安装时间:</dt>
+                                <dd>{{installDetail.impapplydate}}</dd>
+                            </dl>
+                        </el-col>
+                        <el-col :span="24">
+                            <dl class="dllist">
+                                <dt>安装地址:</dt>
+                                <dd>{{installDetail.impaddress}}</dd>
+                            </dl>
+                        </el-col>
+                        <el-col :span="8">
+                            <dl class="dllist">
+                                <dt>安装人员:</dt>
+                                <dd>{{installDetail.impbyname}}</dd>
+                            </dl>
+                        </el-col>
+                        <el-col :span="8">
+                            <dl class="dllist">
+                                <dt>派单人:</dt>
+                                <dd>{{installDetail.assignbyname}}</dd>
+                            </dl>
+                        </el-col>
+                        <el-col :span="8">
+                            <dl class="dllist">
+                                <dt>派单时间:</dt>
+                                <dd>{{dateFormatter(installDetail.assigndate)}}</dd>
+                            </dl>
+                        </el-col>
+                    </el-row>
+                </el-collapse-item>
+                <el-collapse-item name="5" class="lefw10 wzpdt10" title="备注信息">
+                    <el-table
+                            :data="tableData"
+                            border
+                            style="width: 100%">
+                        <el-table-column
+                                prop="date"
+                                label="备注节点"
+                                width="180">
+                        </el-table-column>
+                        <el-table-column
+                                prop="name"
+                                label="备注内容"
+                                width="180">
+                        </el-table-column>
+                        <el-table-column
+                                prop="address"
+                                label="备注人">
+                        </el-table-column>
+                        <el-table-column
+                                prop="address"
+                                label="备注时间">
+                        </el-table-column>
+                    </el-table>
+                </el-collapse-item>
+            </el-collapse>
+        </div>
+    </div>
+</template>
+
+<script src="./index.js">
+
+</script>
+
+<style lang="stylus">
+    @import '../../../assets/styl/customerDeclaration.styl';
+    green-bg = #41B883
+    blue-bg = #409eff
+
+    .order-process-box {
+        padding: 10px;
+        display flex
+    }
+
+    .width.el-autocomplete
+        width: 100%
+
+    .cust-title
+        line-height 40px
+        padding-left 15px
+        &:before
+            content: "";
+            padding: 0 2px;
+            height: 20px;
+            background: green-bg;
+            float left;
+            margin-top 10px;
+            margin-right 10px;
+
+    .location-refresh
+        font-weight bold;
+        margin-left 10px;
+        cursor pointer
+        font-size 18px;
+
+    .hint-message
+        text-align: center;
+        div:first-of-type
+            height: 1px;
+            background: #ccc;
+            margin-bottom: 30px;
+        div:last-of-type
+            margin-top: 30px;
+        div:nth-child(2)
+            color #787878
+            font-size 16px;
+
+    .install-title
+        color white
+        margin-bottom 10px;
+        background blue-bg
+        height 36px;
+        line-height 36px;
+        padding 0 10px;
+        font-size 15px;
+        display inline-block
+        /*float left*/
+        position relative
+        &::after
+            content: ''
+            width: 0;
+            height: 0;
+            display block
+            position absolute
+            border: 18px solid transparent;
+            border-left-color: blue-bg;
+            border-right-width: 0;
+            right -18px
+            top 0
+
+    .difference-info
+        margin 10px;
+        color: red
+</style>

@@ -1,0 +1,691 @@
+import util from 'utils/tools';
+import async from 'async';
+import {  
+    cldeviceIsOnstate,
+    getOperationRecord,
+    getNodesCount,
+    getModelProds,
+    setStartFormRules,
+    getTodoInfoList,
+    startRemove,
+    finishRemove,
+    deleteProcess,
+    returnProccess,
+    getInstallProds,
+    getMoreInfo,
+    getRecordsInfo,
+    cancelInsurance,
+    getInsTemplate
+} from './service';
+import { getVehList } from "@/views/basicManage/ownerVehicleManage/service";
+import { getAllColorList, getCarModel } from '@/views/basicManage/ownerVehicleManage/service'
+import { getParentInfoList } from '@/views/sysManage/organizationManage/service'
+import { getToken } from '@/utils/auth'
+
+ export default {
+        props:['windowOutHeight'],
+        data() {
+            return {
+                util:util,
+                Dayjs:dayjs,
+                token: getToken(),
+                //搜索 筛选信息
+                filters: {
+                    domSearch: [{
+                        select: ['orderno'],
+                        content: ''
+                    }], //查询框
+                    timeScope: '',
+                },
+                // 完成拆除弹窗
+                finishInstallDialogVisible:false,
+                rowFinishData:[],//存储当前行的数据
+                installStep:'1',//第一步第二步，步骤状态
+                startForm:{//第一步
+                    vin:'',
+                    licenseplatenum:'',
+                    vehicletype:'',
+                    vehiclePic:'',
+                },
+                isRemove:[],//
+                removeProds:[],//拆出设备组
+                startFormRules:setStartFormRules,
+                sameVin:true,//判断车架号是否一致
+                vehlist:[],//车辆类型
+                prodCatagorys:[],//当前单的设备类别组
+                signalInfo:{},//信号检测
+                vehiclecategoryList: {//车辆分类列表
+                    1: '新车',
+                    2: '二手车',
+                    3: '资管追回'
+                },
+                vehiclepowerList: {//能源类型1=汽油，2=柴油，3=纯电，4=混动
+                    1: '汽油',
+                    2: '柴油',
+                    3: '纯电',
+                    4: '混动'
+                },
+                prodIndex:0,//下标
+                codeloading:false,
+                InstallPositionArray: [],//设备拆除位置
+                endForm:{//第二步
+                    impremark:'',//施工备注
+                },
+                endFormRules:{
+                    installpositioncode:[{required:true,message:"请选择设备拆除位置",trigger: 'blur'}],
+                    busiPictures :[{required:true,message:"请上传设备图片",trigger: 'blur'}],
+                },
+                todo:[],//列表数据
+                total: 0,
+                pageSize:15,
+                currentPage: 1,
+                listLoading: false,
+                nodesList:[],//节点数量
+                stepState: 0,//当前tab页状态
+                //新装数量
+                fromNum:{ num0:0, num1:0, num2:0,
+                    num3:0, num4:0, num5:0},
+                curStateData:{id0:0, id1:0, id2:0, id3:0, id4:0, id5:0},//当前新装节点状态值
+                flowNodeId:'',//状态值传参
+                delorder:{//废单、退单
+                    orderReasonDialogVisible:false,
+                    reson:'',
+                    delOrderLoading:false,
+                    title:'',
+                    taskid:'',
+                    processInstanceId:0
+                },
+                expandLoading:false,//表格详情
+                historyListLoading:false,
+                opHistoryData:[],//操作记录
+                activeName:'1',
+                isExpandeds:true,
+                accept:"jpg,png,jpeg",
+
+                //保单退保
+                operationData: [],//操作记录
+                moreDetailsData: [], //其他详情
+                formDialogTableVisible: false, //是否显示订单详情弹出
+                bxDialogVisible: false,//打印保单
+                iframeSrc: '',//模板地址
+            }    
+        },
+        methods: {
+            // -------------------------------------------------------------------施工节点---------------------------------------------------------------------------------
+            // 车辆图片上传成功
+            uploadSuccessInvoice (res, file) {
+                this.startForm.vehiclePic = res.data;
+            },
+            // 施工安装图片上传成功
+            successInvoiceOne(res, file) {
+                this.prodCatagorys[this.prodIndex].busiPictures[0].piclink = res.data;
+            },
+            successInvoiceTwo(res, file) {
+                this.prodCatagorys[this.prodIndex].busiPictures[1].piclink = res.data;
+            },
+            // 开始拆除—确认消息
+            startRemove(row){
+                this.$confirm('确定当前订单开始拆除？', '提示', {
+                  confirmButtonText: '确定',
+                  cancelButtonText: '取消',
+                  type: 'warning'
+                }).then(() => {
+                    startRemove({id:row.id}).then((res) => {
+                    this.$message.success('开始拆除成功，订单状态变更为施工中！');
+                    this.getTodo()
+                  })
+                }).catch(() => {});
+            },
+            // 完成拆除操作按钮—点击
+            finishRemove(row){
+                this.intStartForm('');
+                this.finishInstallDialogVisible = true;
+                this.rowFinishData = row;
+            },
+            // 开始拆除下一步
+            nextStep(row){
+                 if (this.sameVin) {
+                    this.$refs.startForm.validate(async valid => {
+                        if (valid) {
+                            this.installStep = '2';
+                            this.getModelspec(row.id);//获取当前订单的设备类别
+                        }
+                    })
+                }else{
+                    this.$message.error('车架号与派单信息不一致！请确认！');
+                }
+            },
+            // 完成拆除上一步
+            previousStep(){
+                this.installStep = '1';
+            },
+            // 开始拆除-取消按钮
+            cancelInstall(){
+                this.finishInstallDialogVisible = false;
+                this.intStartForm('');
+            },
+            // 完成拆除-关闭弹窗
+            closeFinish(){
+                this.installStep = '1';
+                this.intStartForm('');
+            },
+            // 开始
+            startConfirm(){
+                this.startInstallDialogVisible = false;
+                this.finishInstallDialogVisible = true;
+            },
+            // 校验车架号
+            checkVin(val){
+                if (val.length == 17) {//车架号数量正确时
+                    if (val == this.rowFinishData.rpvehicleinfo.vin ) {//车架号与派单信息一致
+                        this.startForm.vin = val;
+                        this.startForm.licenseplatenum = this.rowFinishData.rpvehicleinfo.licenseplatenum;
+                        this.startForm.vehicletypename = this.rowFinishData.rpvehicleinfo.vehicletypename;
+                        this.sameVin = true;//标识
+                    }else{
+                        this.$message.error('车架号与派单信息不一致！请确认！');
+                        this.startForm.licenseplatenum = '';
+                        this.startForm.vehicletypename = '';
+                        this.sameVin = false;//标识
+                    }
+                }else if(val.length == 0){
+                    this.intStartForm('');
+                }
+            },
+            // 点击拆除此设备
+            demolitionEquip(item,index){
+                this.isRemove[index] = true;
+                this.removeProds.splice(index,0,item);
+                this.$set(this.isRemove,index,true);//触发视图更新
+            },
+            // 撤销拆除
+            cancelEquip(index){
+                this.isRemove[index] = false;
+                this.removeProds.splice(index, 1)
+                this.$set(this.isRemove,index,false);//触发视图更新
+            },
+            // 完成拆除
+            confirmFinishInstall(){
+                // 获取库房数组
+                let storages = this.$store.getters.userInfo.employeeinfo.storages.map((item, index) => {
+                    return item.id;
+                })
+                this.$refs.endForm.validate(async valid => {
+                    if (valid) {
+                        let para = {
+                            id:this.rowFinishData.id,//报单id
+                            taskid:this.rowFinishData.taskid,
+                            busiImpdetails: this.removeProds,
+                            busiVehicleinfo: this.startForm,
+                            impremark: this.endForm.impremark,
+                            storageids: storages
+                        }
+                        finishRemove(para).then((res) =>{
+                            this.$message.success('您已完成拆除！');
+                            this.finishInstallDialogVisible = false;
+                            this.getTodo();
+                        })
+                    }
+                })
+            },
+
+
+
+
+
+
+
+
+            //---------------------------------------------------------------------------废除订单   退回订单    -----------------------------------------------------------------
+            deleteOrder(index,row){
+                this.delorder.processInstanceId = row.id;
+                this.delorder.title='废除订单';
+                this.delorder.taskid=row.taskid
+                this.delorder.orderReasonDialogVisible = true;
+                this.delorder.reson = '';
+            },
+            passConstructionOrder(index,row){
+                this.delorder.processInstanceId = row.id;
+                this.delorder.title='退回订单';
+                this.delorder.taskid=row.taskid
+                this.delorder.orderReasonDialogVisible = true;
+                this.delorder.reson = '';
+            },
+            // 确认废单/退单
+            comfirDelOrder(title){
+                if(title=='废除订单'){
+                    let para = {
+                        id:this.delorder.processInstanceId,
+                        cancelremark:this.delorder.reson,
+                        taskid:this.delorder.taskid
+                    }
+                    this.delorder.delOrderLoading = true;
+                    deleteProcess(para).then((res) => {
+                        this.delorder.delOrderLoading = false;
+                        this.delorder.orderReasonDialogVisible = false;
+                        this.$message.success('废除成功！')
+                        this.getNodes();
+                    });
+                }else if(title=='退回订单'){
+                    let para = {
+                        id:this.delorder.processInstanceId,
+                        returnremark:this.delorder.reson,
+                        taskid:this.delorder.taskid
+                    }
+                    this.delorder.delOrderLoading = true;
+                    returnProccess(para).then((res) => {
+                        this.delorder.delOrderLoading = false;
+                        this.delorder.orderReasonDialogVisible = false;
+                        this.$message.success('退回成功！')
+                        this.getNodes();
+                    });
+                }else if(title=='退保'){
+                    this.delorder.delOrderLoading = true;
+                    let para = {
+                        id:this.delorder.processInstanceId,
+                        Impremark:this.delorder.reson,
+                        taskid:this.delorder.taskid
+                    }
+                    cancelInsurance(para).then((res) => {
+                        this.delorder.delOrderLoading = false;
+                        this.delorder.orderReasonDialogVisible = false;
+                        this.$message.success('退保成功！')
+                        this.getNodes();
+                    });
+                    
+                }
+            },
+
+
+
+            //-----------------------------------------------------------------------列表数据展开查看详情---------------------------------------------------------
+            expandHandle(row, expandeds){
+                if(!this.isExpandeds){
+                    this.isExpandeds = true;
+                    return;
+                }
+                if(expandeds.length != 0){//有数据时
+                    this.getOperation(row);
+                };
+                if(expandeds.length > 1) {
+                    this.isExpandeds = false;
+                    this.$refs.todeTable.toggleRowExpansion(expandeds[0],false);
+                };
+            },
+            // 操作记录
+            getOperation(row){
+                let para = {
+                    id:row.executionId
+                }
+                this.expandLoading = true;
+                getOperationRecord(para).then((res) => {
+                    console.log(res,'res')
+                    this.expandLoading = false;
+                    this.opHistoryData = res.data.data;
+                }).catch((err)=>{
+                    this.expandLoading = false;
+                });
+            },
+
+
+
+
+
+            // ---------------------------------------------操作-----------------------------------
+            // 派单
+            dispatchOrder(row){
+                this.$router.push(
+                    { path: '/orderManage/orderProcess', 
+                    query: { id: row.id, taskid: row.taskid , flow: '1' }}
+                )
+            },
+            // 转派
+            transferOrder(row){
+                this.$router.push(
+                    { path: '/orderManage/orderProcess', 
+                    query: { id: row.id, taskid: row.taskid , flow: '2' }}
+                )
+            },
+            // 详情
+            detailsOrder(row){
+                this.$router.push(
+                    { path: '/orderManage/orderCompletion', 
+                    query: { id: row.id }}
+                )
+            },
+
+
+            
+        // -----------------------------------------------列表----------------------------------------
+            //改变新装状态获取对应数据列表
+            changeStateHandle(v){
+                if(v == 0) this.flowNodeId = this.curStateData.id0; //全部
+                if(v == 1) this.flowNodeId = this.curStateData.id1;//派单
+                if(v == 2) this.flowNodeId = this.curStateData.id2;//接单
+                if(v == 3) this.flowNodeId = this.curStateData.id3;//施工
+                if(v == 4) this.flowNodeId = this.curStateData.id4;//保险出单
+                if(v == 5) this.flowNodeId = this.curStateData.id5;//订单完成
+                
+                this.getTodo();
+            },
+            // 获取节点数量
+            getNodes(){
+                this.listLoading = true;
+                getNodesCount().then((res) => {
+                    this.nodesList = res.data.data;
+                    this.nodesList.forEach((item,index) => {
+                        if (item.name == '全部') {
+                            this.fromNum.num0 = item.num;
+                            this.curStateData.id0 = item.id;
+                        }
+                        if (item.name == '派单') {
+                            this.fromNum.num1 = item.num;
+                            this.curStateData.id1 = item.id;
+                        }
+                        if(item.name == '接单'){
+                            this.fromNum.num2 = item.num;
+                            this.curStateData.id2 = item.id;
+                        }
+                        if(item.name == '施工'){
+                            this.fromNum.num3 = item.num;
+                            this.curStateData.id3 = item.id;
+                        }
+                        if(item.name == '保险退保'){
+                            this.fromNum.num4 = item.num;
+                            this.curStateData.id4 = item.id;
+                        }
+                        if(item.name == '订单完成'){
+                            this.fromNum.num5 = item.num;
+                            this.curStateData.id5 = item.id;
+                        }
+                    });
+                    this.getTodo();
+                });
+            },
+            //获取列表
+            getTodo() {
+                this.listLoading = true;
+                let para = {
+                    page   : this.currentPage,
+                    limit   : this.pageSize,
+                    domSearch   : this.filters.domSearch,
+                    startTime     : this.filters.timeScope?(this.filters.timeScope[0]?util.formatDate.format(new Date(this.filters.timeScope[0]), 'yyyy-MM-dd'):''):'',
+                    endTime        : this.filters.timeScope?(this.filters.timeScope[1]?util.formatDate.format(new Date(this.filters.timeScope[1]), 'yyyy-MM-dd'):''):'',
+                    flowNodeId  :this.flowNodeId,
+                    type:'remove'
+                };
+                para = Object.assign(para);
+                getTodoInfoList(para).then((res) => {
+                    this.listLoading = false;
+                    this.total = res.data.data.total;
+                    this.todo  = res.data.data.records;
+                    if (this.todo == null) this.todo  = [];
+                }).catch((error) => {
+                    this.listLoading = false;
+                });
+            },
+            //切换当前页
+            handleCurrentChange(val) {
+                this.currentPage = val;
+                this.getTodo();
+            },
+            //切换每页显示数量
+            handleSizeChange(val) {
+                this.pageSize = val;
+                this.getTodo();
+            },
+           
+            //清空查询表单
+            resetForm(formName) {
+                this.$refs[formName].resetFields();
+            },
+           
+            // 添加查询条件
+            addSelect () {
+                this.filters.domSearch.push({
+                    select: [],
+                    content: ''
+                });
+            },
+            // 移除查询条件
+            removeSelect (index) {
+                this.filters.domSearch.splice(index, 1); //从当前index位置开始，删除一项
+            },
+            //格式化后台传来的时间戳
+            dateFormatter(row,col){
+                return util.formatDate.format(new Date(row.impapplydate), 'yyyy-MM-dd hh:mm');
+            },
+        // ----------------------------------------------下拉框------------------------------
+        // 获取车辆类型
+        vehChange (r) {
+            const params = {
+                page: 1,
+                limit: 10000,
+                isactive: 1
+            }
+            getVehList(params).then((res) => {
+                this.vehlist = res.data.data;
+            });
+        },
+        // 完成拆除-获取拆除设备
+        getModelspec(dataId){
+            getInstallProds({id:dataId}).then((res) =>{
+                this.prodCatagorys = res.data.data.busiImpdetails;
+            });
+        },
+        // 设备状态
+        async getSignalInfo (productNum) {
+            try {
+                this.signalInfo = {
+                    curonlinestatus: '',//设备实时状态
+                    locationmode: '',//定位方式
+                    gps_satellite_count: '',//卫星或基站数量
+                    signalqulity: '',//卫星或基站信号强度
+                    curaddress: '',//定位地址
+                    onlineStatus: ''//上线质量
+                }
+                const params = {
+                    id: productNum
+                }
+                const {data} = await cldeviceIsOnstate(params)
+                const realdata = data.data.realdata
+                let curonlinestatus = ''
+                let signalqulity = ''
+                let onlineStatus = ''
+                switch (realdata.istate) {
+                    case 0:
+                        curonlinestatus = "行驶";
+                        break;
+                    case 1:
+                        curonlinestatus = "离线";
+                        break;
+                    case 2:
+                        curonlinestatus = "停车";
+                        break;
+                    case 3:
+                        curonlinestatus = "报警";
+                        break;
+                    case 4:
+                        curonlinestatus = "无效定位";
+                        break;
+                    case 5:
+                        curonlinestatus = "未定位";
+                        break;
+                }
+
+                switch (realdata.signalqulity) {
+                    case 0:
+                        signalqulity = "未知";
+                        onlineStatus = '差'
+                        break;
+                    case 1:
+                        signalqulity = "无信号";
+                        onlineStatus = '差'
+                        break;
+                    case 2:
+                        signalqulity = "信号较弱";
+                        onlineStatus = '差'
+                        break;
+                    case 3:
+                        signalqulity = "信号良好/中";
+                        onlineStatus = '中'
+                        break;
+                    case 4:
+                        signalqulity = "信号强";
+                        onlineStatus = '优'
+                        break;
+                }
+                this.signalInfo.curonlinestatus = curonlinestatus
+                this.signalInfo.onlineStatus = onlineStatus
+                this.signalInfo.locationmode = realdata.locationmode
+                this.signalInfo.gps_satellite_count = realdata.gps_satellite_count
+                this.signalInfo.signalqulity = signalqulity
+                const geocoder = new AMap.Geocoder({
+                    radius: 1000 //范围，默认：500
+                });
+                geocoder.getAddress([realdata.lng, realdata.lat], (status, result) => {
+                    if (status === 'complete' && result.info === 'OK') {
+                        //获得了有效的地址信息:
+                        this.signalInfo.curaddress = result.regeocode.formattedAddress
+                    } else {
+                        //获取地址失败
+                    }
+                });
+                console.log(this.signalInfo,"this.signalInfo")
+            } catch (e) {
+                console.log(e)
+            }
+        },
+
+        // 初始化拆除信息
+       intStartForm(vinVal){
+           this.isRemove = [];
+            this.removeProds = [];
+            this.sameVin = true;
+            this.startForm = {
+                vin:vinVal,
+                licenseplatenum:'',
+                vehicletype:'',
+                vehiclePic:'',
+            },
+            this.endForm = {//第二步
+                impremark:'',//备注
+            }
+        },
+        
+
+        //---------------------------------保单退保---------------------------------
+
+        //详情查看
+        formDetailHandle (message, idinfo) {
+            this.formDialogTableVisible = true;
+            let para = {
+                id: idinfo,
+            }
+            getMoreInfo(para).then((res) => {
+                this.moreDetailsData = res.data.data;
+                this.initViewer();//图片加载器
+            });
+
+            // 操作详情
+            let paraTwo = {
+                insuranceid: idinfo,
+            }
+            getRecordsInfo(paraTwo).then((res) => {
+                this.operationData = res.data.records;
+            });
+        },
+        // 初始化 图片加载器
+        initViewer () {
+            if (this.viewer)
+                this.viewer.destroy()
+            const el = this.$refs['rpShowimgDialog'].$el
+            this.$nextTick(() => {
+                this.viewer = new Viewer(el)
+            });
+        },
+        // 电子保单
+        electronicPrint (templateinfo, idinfo) {
+            if (templateinfo == null) {
+                this.$message({
+                    message: '该保险公司暂无模板！请至【保单模板】中添加',
+                    type: 'error'
+                });
+                return;
+            }
+            let para = {
+                id: templateinfo,
+            }
+            getInsTemplate(para).then((res) => {
+                this.bxDialogVisible = true;
+                // 请求详情数据
+                let paraTwo = {
+                    id: idinfo,
+                }
+                getMoreInfo(paraTwo).then((result) => {
+                    const data = result.data.data;//页面详细数据
+                    let templateurl = res.data.data.templateurl;//模板url
+                    const param = {
+                        policyno: data.policyno,
+                        serialnum: data.serialnum,
+                        effectivedate: data.effectivedate,
+                        expiredate: data.expiredate,
+                        indemnitylimit: data.indemnitylimit,
+                        vehicleowner: data.vehicleowner,
+                        vehicleowneridcard: data.vehicleowneridcard,
+                        vehicleownercontact: data.vehicleownercontact,
+                        vehicleplate: data.vehicleplate,
+                        vehiclemodel: data.vehiclemodel,
+                        createdate: data.createdate,
+                        vehicleenginenum: data.vehicleenginenum,
+                        vehiclevin: data.vehiclevin,
+                        price: data.price,
+                        beneficiary: data.beneficiary,
+                        equipmentinstalldate: data.equipmentinstalldate,
+                        equipmentnum: data.equipmentnum,
+                        insurancecorpname: data.insurancecorpname
+                    }
+                    this.iframeSrc = this.parseParams((this.baseUrl + templateurl), param)
+                });
+            });
+        },
+        //关闭当前电子保单
+        closeDialog () {
+            this.bxDialogVisible = false;
+        },
+        //时间转换1
+        dateFormatter: function (row, col) {
+            if (row.issuedate == "" || row.issuedate == undefined) return;
+            return util.formatDate.format(new Date(row.issuedate), 'yyyy-MM-dd');
+        },
+        //时间转换2
+        dateFormatterSecond: function (row, col) {
+            if (row.effectivedate == "" || row.effectivedate == undefined) return;
+            return util.formatDate.format(new Date(row.effectivedate), 'yyyy-MM-dd');
+        },
+        //时间转换3
+        dateFormatterThird: function (row, col) {
+            if (row.createdate == "" || row.createdate == undefined) return;
+            return util.formatDate.format(new Date(row.createdate), 'yyyy-MM-dd hh:mm:ss');
+        },
+        //时间转换4
+        dateFormatterForth: function (row, col) {
+            if (row.updatedate == "" || row.updatedate == undefined) return;
+            return util.formatDate.format(new Date(row.updatedate), 'yyyy-MM-dd hh:mm:ss');
+        },
+        //退保---操作
+        surrender(row,currentId){
+            console.log(row,currentId,"surrender,currentId");
+            this.delorder.processInstanceId = row.id;
+            this.delorder.title='退保';
+            this.delorder.taskid=row.taskid
+            this.delorder.orderReasonDialogVisible = true;
+            this.delorder.reson = '';
+        }
+
+    },
+        //初始化数据
+        created(){
+            this.getNodes();
+        },
+    }

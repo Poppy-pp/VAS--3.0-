@@ -1,0 +1,47 @@
+import axios from 'axios';
+import Qs from 'qs';
+
+let base = '/vasms-web';
+let api = '/api';
+
+// 接口管理接口
+const getInterfaceList = params => {
+    return axios.get(`${base}/api/v1/sys/interfacesInfo/query`, {
+        params: params
+    })
+};
+
+const addInterface = params => {
+    return axios.post(`${base}/api/v1/sys/interfacesInfo`, params)
+};
+
+const modifyInterface = params => {
+    return axios.put(`${base}/api/v1/sys/interfacesInfo/` + params.id, params)
+};
+
+const removeInterface = params => {
+    return axios.post(`${base}/api/v1/sys/interfacesInfo/batch`, Qs.stringify(params))
+};
+
+/* 接口管理模糊查询接口*/
+const getSelectInterfaceList = params => {
+    return axios.get(`${base}/api/v1/sys/interfacesInfo/query/like`, {
+        params: params
+    });
+};
+
+// 参数接口
+const getInterfaceParaList = params => {
+    return axios.get(`${base}/api/v1/sys/interfacesInfo/queryParam`, {
+        params: params
+    })
+};
+
+export {
+    getInterfaceList,
+    addInterface,
+    modifyInterface,
+    removeInterface,
+    getSelectInterfaceList,
+    getInterfaceParaList
+}

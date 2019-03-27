@@ -1,0 +1,518 @@
+<!-- 登录页 -->
+<template>
+  <div class="login-page">
+        <!-- 点线 -->
+        <vue-particles
+          color="#3FB783"
+          :particleOpacity="0.7"
+          :particlesNumber="60"
+          shapeType="circle"
+          :particleSize="4"
+          linesColor="#3FB783"
+          :linesWidth="1"
+          :lineLinked="true"
+          :lineOpacity="0.5"
+          :linesDistance="150"
+          :moveSpeed="2"
+          :hoverEffect="true"
+          hoverMode="grab"
+          :clickEffect="true"
+          clickMode="push"
+          class="lizi"
+        >
+        </vue-particles>
+
+
+    <el-tooltip class="aboutus" effect="dark" content="关于我们" placement="bottom">
+      <a href="http://www.wwgps.com.cn/" target="_blank" style="color:#000000;"><i class="iconfont icon-pinglun3"></i></a>
+    </el-tooltip>
+
+    <div class="login-wrap">
+      <el-col :class="translateLeft" :span="10">
+
+        <div v-if="notforget">
+          <div class="logo">
+            <img src="../../assets/images/logo.png" width="70px" height="70px" alt="万网鑫成科技">
+            <div class="title">
+              <a>
+                <span>{{$t('login.edenPart1')}}</span><span class="subtitle">&nbsp;{{$t('login.edenPart2')}}</span>
+              </a>
+            </div>
+          </div>
+
+        <!-- 登陆页 -->
+          <div class="login-form">
+            <el-form :model="ruleForm" :rules="rules" ref="ruleForm">
+              <el-form-item prop="username">
+                <el-input :placeholder="$t('login.userplaceholder')" v-model="ruleForm.username" autofocus="autofocus" @keyup.native.13="handleLogin('ruleForm')"></el-input>
+              </el-form-item>
+              <el-form-item prop="password">
+                <el-input :placeholder="$t('login.pwdplaceholder')" :type="passwordType" v-model="ruleForm.password" @keyup.native.13="handleLogin('ruleForm')">
+                  <i class="el-icon-view el-input__icon" slot="suffix" @click="showPassword"></i>
+                </el-input>
+              </el-form-item>
+              <el-form-item class="btn">
+                <el-button :loading="loading" type="primary" @click="handleLogin('ruleForm')">{{$t('login.btn')}}</el-button>
+              </el-form-item>
+            </el-form>
+          </div>
+
+          <div class="login-footer">
+            <el-col :span="12">
+              <el-checkbox v-model="remember" name="type">{{$t('login.remember')}}</el-checkbox>
+            </el-col>
+            <el-col class="forgetpwd" :span="12">
+              <span @click="wrapSwitch(false)">{{$t('login.forgetpwd')}}</span>
+            </el-col>
+          </div>
+        </div>
+
+        <!-- 忘记密码 -->
+        <div v-else>
+          <div class="title forgetwrap-title">
+            <a>
+              <span>VAS</span><span class="subtitle">&nbsp;车联网</span>
+            </a>
+          </div>
+          <div class="forget-form">
+            <el-form :model="forgetForm" ref="forgetRuleForm">
+              <el-form-item>
+                <el-input :placeholder="$t('login.forget_tel')" v-model="forgetForm.tel" @keyup.native="checkMoblie"></el-input>
+              </el-form-item>
+              <el-form-item>
+                <el-input :placeholder="$t('login.forget_code')" v-model="forgetForm.code">
+                  <el-button slot="append" @click="clickCode" :disabled="isDisabled">{{!isGetCode?'获取验证码':djTime+'秒'}}</el-button>
+                </el-input>
+              </el-form-item>
+              <el-form-item>
+                <el-input :placeholder="$t('login.forget_passwrd')" v-model="forgetForm.newPassword" :disabled="isDisabled">
+                </el-input>
+              </el-form-item>
+              <el-form-item>
+                <el-input :placeholder="$t('login.confirm_passwrd')" v-model="forgetForm.confirmPassword" :disabled="isDisabled">
+                </el-input>
+              </el-form-item>
+              <el-form-item class="btn">
+                <el-row :gutter="20">
+                  <el-col :span="12">
+                    <el-button @click="wrapSwitch(true)" type="primary">{{$t('login.forget_back')}}</el-button>
+                  </el-col>
+                  <el-col :span="12">
+                    <el-button @click="forgetHandle" type="primary" :disabled="isDisabled">{{$t('login.forget_btn')}}</el-button>
+                  </el-col>
+                </el-row>
+              </el-form-item>
+            </el-form>
+          </div>
+        </div>
+
+      </el-col>
+
+      <el-col :class="translateRight" :span="14">
+        <div class="wallpaper"></div>
+      </el-col>
+    </div>
+  </div>
+</template>
+
+<script>
+import { getToken } from '@/utils/auth'
+import langselect from '@/components/langselect'
+import storage from '@/utils/storage'
+import { checkMobileExit, getMobileCode, forgetPwd } from '../../api/main.js';
+
+const useRegexp = {
+  exist: /\S+/
+}
+
+export default {
+  name: 'login',
+  components: {
+    langselect
+  },
+  mounted() {
+    this.$notify({
+      title: '登陆提示',
+      dangerouslyUseHTMLString: true,
+      message: '<strong style="color:#41b883;">欢迎登陆车联网资产安全管理系统！</strong><br/><span>用户名为您注册时使用的手机号</span>',
+      position: 'top-left',
+      duration: 0
+    })
+  },
+  data() {
+    const validobj = {
+      username: [
+        { ruleName: 'exist', error: this.$t('login.valid.userexist') }
+      ],
+      password: [{ ruleName: 'exist', error: this.$t('login.valid.pwdexist') }]
+    }
+
+    const _typeof = val =>
+      Object.prototype.toString
+        .call(val)
+        .replace(/^\S+\s/, '')
+        .replace(/]$/, '')
+        .toLocaleLowerCase()
+
+    const validfn = (rule, value, callback) => {
+      const _validobj = validobj[rule.field.replace(/^\S+(?=\.)\./g, '')]
+      for (let i = 0; i < _validobj.length; i++) {
+        let _rule = useRegexp[_validobj[i].ruleName]
+        if (_typeof(_rule) === 'regexp') {
+          if (!_rule.test(value)) {
+            return callback(new Error(_validobj[i].error))
+          }
+        } else if (_typeof(_rule) === 'function') {
+          if (_rule(value, _validobj[i].params)) {
+            return callback(new Error(_validobj[i].error))
+          }
+        }
+      }
+      callback()
+    }
+
+    return {
+      passwordType: "password",
+      isDisabled:true,//忘记密码——禁用
+      lang: this.$store.state.app.language,
+      ruleForm: {
+        username: storage.get('loginUser').username || '',
+        password: storage.get('loginUser').password || ''
+      },
+      rules: {
+        username: [{ validator: validfn, trigger: 'blur', required: true }],
+        password: [{ validator: validfn, trigger: 'blur', required: true }]
+      },
+      remember: true,
+      loading: false,
+      switchLeft: false,
+      switchRight: false,
+      notforget: true,
+      forgetForm: {
+        tel: '',
+        code:'',
+        newPassword: '',
+        confirmPassword: ''
+      },
+      djTime: 60,
+      isGetCode: false,
+    }
+  },
+  computed: {
+    translateLeft() {
+      return {
+        'translate-left': true,
+        'login-col': true,
+        'switch-left': this.switchLeft
+      }
+    },
+    translateRight() {
+      return {
+        'translate-right': true,
+        'login-col': true,
+        'switch-right': this.switchLeft
+      }
+    }
+  },
+  methods: {
+    // 登录
+    handleLogin(formName) {
+      this.loading = true
+      this.$refs[formName].validate(async valid => {
+        if (valid) {
+          try {
+            let { username, password } = this.ruleForm
+            this.remember ? storage.set('loginUser', this.ruleForm) : storage.remove('loginUser', this.ruleForm)//记住密码，存储相关
+
+              const response = await this.$store.dispatch('loginbyUser', {//登陆
+                username: username.trim(),
+                password: password.trim(),
+                remember_me: true,
+                grant_type: 'password'
+              })
+
+              await this.$store.dispatch('loginOldVas',{
+                  username,
+                  password
+              })
+              if (response.access_token) {
+                  this.$store.state.userLogin = true;//员工登陆为true
+                  this.$notify.closeAll()
+                  this.$router.push({ path: '/' })
+                  this.loading = false;
+            } else {
+              this.$message({
+                message: '登录失败！' + response.msg,
+                type: 'error'
+              })
+              this.loading = false
+            }
+          } catch (error) {//接口请求失败
+            this.loading = false
+              this.$message({
+                  message: error.response.data.error_description || error.response.data.error,
+                  type: 'error'
+              })
+            // throw new Error(error)
+          }
+        } else {
+          this.loading = false
+          this.$message.error(this.$t('login.validfaild'))
+        }
+      })
+    },
+    // 忘记密码——返回
+    wrapSwitch(state) {
+      this.switchLeft = !this.switchLeft
+      this.switchRight = !this.switchRight
+      setTimeout(() => {
+        this.notforget = state
+        this.$refs['ruleForm'].resetFields()
+      }, 300)
+    },
+    // 忘记密码——确认
+    forgetHandle() {
+          if (this.forgetForm.newPassword != this.forgetForm.confirmPassword) {//密码和确认密码不一致时
+                this.$message({
+                    message: '确认密码与新密码不一致！请修改！' ,
+                    type: 'error'
+                })
+                this.forgetForm.confirmPassword = '';
+                return;
+          }
+          let para = {
+              mobile: this.forgetForm.tel,
+              newpassword : this.forgetForm.newPassword,
+              code: this.forgetForm.code
+          };
+          forgetPwd(para).then((res) => {
+            console.log(res)
+              if (res.data.code == 0) {
+                  this.$message({
+                    message: '密码找回成功！',
+                    type: 'success'
+                  });
+                  this.wrapSwitch(true)//回到登陆页面
+                  this.ruleForm.password = '';
+              } else {
+                  this.$message({
+                    message: '密码找回失败！' + res.data.msg,
+                    type: 'error'
+                  })
+              }
+          }).catch( (error) => {
+            this.$message({
+                message: error.response.data.msg || '接口维护中，请稍后再试',
+                type: 'error'
+            });
+        });
+    },
+    // 点击验证码，开始倒计时
+    clickCode(){
+      if(this.isGetCode) return;
+      if (this.forgetForm.tel == '') {
+        this.$message({
+          message:'请输入手机号码！' ,
+          type: 'error'
+        });
+        return;
+      }
+      this.interval = setInterval(() => {
+        if(this.djTime == 0) {
+          clearInterval(this.interval);
+          this.djTime = 60;
+          this.isGetCode = false;
+        } else {
+          this.djTime--;
+        }
+      }, 1000);
+      this.isGetCode = true;
+      this.getCode();
+    },
+    //检查用户是否存在
+    checkMoblie() {
+      if (this.forgetForm.tel.length == 11) {
+        let para = {tel:this.forgetForm.tel}
+        checkMobileExit(para).then((res) => {
+            if(res.data.code == 0) {//存在时
+              this.isDisabled = false;//不禁用
+            } else {//不存在时
+              this.$message({
+                message: res.data.msg,
+                type: 'error'
+              });
+              this.isDisabled = true;//禁用
+            }
+        }).catch( (error) => {
+            this.$message({
+                message: error.response.data.msg || '接口维护中，请稍后再试',
+                type: 'error'
+            });
+            this.isDisabled = true;//禁用
+        });
+      }
+    },
+    //获取手机验证码
+    getCode() {
+        let para = {tel:this.forgetForm.tel}
+        getMobileCode(para).then((res) => {
+            if(res.data.data) {
+              this.$message({
+                message: '短信验证码发送成功！',
+                type: 'success'
+              });
+            } else {
+              this.$message({
+                message: res.data.msg,
+                type: 'error'
+              });
+              this.isGetCode = false;//不进行倒计时
+            }
+          });
+      },
+      // 查看密码
+      showPassword() {
+        this.passwordType == "" ? (this.passwordType = "password") : (this.passwordType = "");
+      },
+
+
+  }
+}
+</script>
+
+<style lang="stylus">
+.forget-form,
+.login-form
+  .el-form-item__content
+    line-height 40px
+  .el-input__inner
+    padding-top: 2px;
+    height 40px
+    line-height 40px
+
+.btn button
+    width: 100%
+    padding 12px 20px
+</style>
+
+<style lang="stylus" scoped>
+@import "../../assets/styl/variables.styl"
+.lizi
+  width 100%
+  height 100%
+  position relative
+
+.login-col
+  height 100%
+
+.login-page
+  display flex
+  justify-content center
+  align-items center
+  position absolute
+  height 100%
+  width 100%
+  min-width 1000px
+  .lang
+    position absolute
+    right 59px
+    top 24px
+  .aboutus
+    position absolute
+    right 29px
+    top 25px
+    i
+      vertical-align middle
+      cursor pointer
+      font-size 2.5rem
+      color #515151
+      transition color .28s
+      &:hover
+        color #41b883
+  .translate-left
+  .translate-right
+    will-change auto
+    transform translateX(0px)
+    transition transform .6s ease-in-out
+  .switch-left
+    transform translateX(525px)
+  .switch-right
+    transform translateX(-375px)
+
+.login-wrap
+  overflow hidden
+  width 900px
+  height 400px
+  background white
+  border-radius 4px
+  transform translateY(-10px)
+  box-shadow 0 1px 3px 0 rgba(0, 0, 0, .12), 0 0 3px 0 rgba(0, 0, 0, .04)
+  position absolute
+
+  .logo
+    padding-top 26px
+    text-align center
+
+  .title
+    font-weight bold
+    color main-color
+    padding-top 8px
+    font-size 22px
+
+    a
+      cursor cell
+    a:before
+      content '['
+      opacity 0
+      margin-right 10px
+      transform translateX(-10px)
+      transition transform .2s, opacity .2s
+
+    a:after
+      content ']'
+      opacity 0
+      margin-left 10px
+      transform translateX(10px)
+      transition transform .2s, opacity .2s
+
+    a:hover:before
+    a:hover:after
+      opacity 1
+      transform translateX(0)
+
+    .subtitle
+      color sub-color
+
+  .forgetwrap-title
+    padding-top 30px
+    padding-left 15px
+
+  .forget-form
+    padding 20px 30px 30px
+    padding-bottom 0
+
+  .login-form
+    padding 30px
+    padding-bottom 0
+
+  .login-footer
+    padding 0 30px
+    .forgetpwd
+      text-align right
+      span
+        cursor pointer
+        font-size 14px
+        font-weight 500
+        color #606266
+
+  .wallpaper
+    width 100%
+    height 100%
+    background url('../../assets/images/login_bg1.jpg')
+    background-size cover
+    position relative
+
+  .el-icon-view.el-input__icon
+    cursor pointer
+</style>
+

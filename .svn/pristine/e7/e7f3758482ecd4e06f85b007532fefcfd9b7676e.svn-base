@@ -1,0 +1,239 @@
+import axios from 'axios';
+import Qs from 'qs';
+
+let base = '/vasms-web';
+let api = '/api';
+
+const getOwnerInfoList = params => {
+	return axios.get(`admin/ownerInfo/query`, {params: params});
+};
+const addOwnerInfo = params => {
+	return axios.post(`admin/ownerInfo/add`, params);
+};
+const modifyOwnerInfo = params => {
+	return axios.put(`admin/ownerInfo/mod` , params);
+};
+// 详情
+const getOwnerInfoDetail = params => {
+    return axios.get(`admin/ownerInfo/query/` + params.id );
+};
+// 修改车辆信息 / 车主解绑、更换车主
+const modifyVehInfo = params => {
+    return axios.put(`admin/vehicleInfo/mod`, params);
+};
+// 删除车辆信息
+const removeVehInfo = params => {
+    return axios.delete(`admin/vehicleInfo/del?`+ Qs.stringify(params));
+};
+// 查询车辆
+const getVehInfoList = params => {
+    return axios.get(`admin/vehicleInfo/query`, {params: params});
+};
+// 下拉车型
+const getCarModel = params => {
+    return axios.get(`admin/vehicleInfo/query/carModel`, {params:params})
+};
+// 获取车型颜色接口
+const getAllColorList = params => {
+    return axios.get(`admin/carModel/query/vehicleColor`, {params: params});
+};
+// 所属客户
+const getCorpList = params => {
+    return axios.get(`admin/vehicleInfo/query/getAllCorpName`, {params:params})
+};
+// 受理银行
+const getCorpBank = params => {
+    return axios.get(`admin/corporateinfo/acceptBanks`, {params:params})
+};
+// 车类型-车牌颜色
+const getVehList = params => {
+    return axios.get(`admin/vehicleInfo/query/vehicleplatecolor`, {params:params})
+};
+// 验证车架号
+const checkVehVin = params => {
+    return axios.get(`admin/ownerInfo/query/vehicleIsOwned`, {params:params})
+};
+// 车主添加绑定车辆
+const ownerBandVeh = params => {
+    return axios.put(`admin/vehicleInfo/mod/band`, Qs.stringify(params));
+};
+
+
+
+
+
+
+
+
+
+
+
+
+// 获取当前车主车辆信息
+const getMoreInfoList = params => {
+    return axios.get(`${base}/api/v1/car/vehicleInfo/query/detail`, {
+        params: params
+    });
+};
+
+//查询车架号
+const getVehicleSearchInfoList = params => {
+	return axios.get(`${base}/api/v1/car/vehicleInfo/`, {
+		params: params
+	});
+};
+//车辆信息管理接口
+const getVehicleInfoList = params => {
+	return axios.get(`${base}/api/v1/car/vehicleInfo/query/vw`, {
+		params: params
+	});
+};
+/*车主搜索模糊查询接口*/
+const getSelectListOwner = params => {
+	return axios.get(`${base}/api/v1/car/ownerInfo/query/like`, {
+		params: params
+	});
+};
+// 绑定车辆信息
+// const getVehInfoList = params => {
+// 	return axios.get(`${base}/api/v1/car/vehicleInfo/query/like`, {
+// 		params: params
+// 	});
+// };
+const modifyVehicleInfo = params => {
+	return axios.put(`${base}/api/v1/car/vehicleInfo/` + params.id, params);
+};
+//根据员工userid获取员工姓名
+const getNamebyUserid = params => {
+	return axios.get(`${base}/api/v1/org/employeeInfo/getNameByUserid`, {
+		params: params
+	});
+};
+//数据检测接口
+const getCheckoutOfOwner = params => {
+	return axios.get(`${base}/api/v1/car/ownerInfo/checkout/` + params.para + '/' + params.value);
+};
+
+const addVehicleInfo = params => {
+    return axios.post(`${base}/api/v1/car/vehicleInfo`, params);
+};
+
+
+const removeVehicleInfo = params => {
+    return axios.post(`${base}/api/v1/car/vehicleInfo/batch`, Qs.stringify(params));
+};
+//获取车类型列表——新接口
+// const getVehList = params => {
+//     return axios.get(`${base}/api/v1/car/vehicleplatecolor/query`);
+// };
+//获取客户和银行列表
+// const getCorpList = params => {
+//     return axios.get(`${base}/api/v1/org/corporateInfo?flag=万网公司&showCount=1000`, {
+//         params: params
+//     });
+// };
+
+//根据车辆查询设备
+const getProductsInfoListOfVehicle = params => {
+    return axios.get(`${base}/api/v1/car/vehicleInfo/query/products/` + params.vehicleid, params);
+};
+
+//根据车辆更多信息 （车辆，车主，设备）
+/*车辆搜索模糊查询接口*/
+const getSelectListVeh = params => {
+    return axios.get(`${base}/api/v1/car/vehicleInfo/query/like`, {
+        params: params
+    });
+};
+// 查询绑定设备和卡信息接口
+const getVehicleProd = params => {
+    return axios.get(`${base}/api/v1/device/packInfo/query/like`, {
+        params: params
+    });
+};
+// 绑定设备接口
+const bandVehicleProd = params => {
+    return axios.post(`${base}/api/v1/car/vehicleInfo/add/band`, params);
+};
+// 解绑设备接口
+const unBandVehicleProd = params => {
+    return axios.post(`${base}/api/v1/car/vehicleInfo/Unbundling`, params);
+};
+//获取库房名称列表
+const getStoNameList = params => {
+    return axios.get(`${base}/api/v1/sto/storageInfo`, {
+        params: params
+    });
+};
+//车型查询
+const getModelListInfo1 = params => {
+    return axios.get(`${base}/api/v1/unify/unify/like`, {
+        params: params
+    })
+};
+//车型查询
+const getModelListInfo = params => {
+    return axios.get(`${base}/api/v1/unify/unify`, {
+        params: params
+    })
+};
+const getCheckoutOfVehicleInfo = params => {
+    return axios.get(`${base}/api/v1/car/vehicleInfo/checkout/` + params.para + '/' + params.value);
+};
+
+//选中车型触发
+const selectedType = params => {
+    return axios.get(`${base}/api/v1/car/VehicleconfigInfo/addVariable`, {
+        params: params
+    })
+};
+//车辆标签显示
+const getCorporatelevel_level = params => {
+    return axios.get(`${base}/api/v1/tag/corporatelevel/level`, {
+        params: params
+    });
+};
+//获取公司名称列表
+const getCorpNameList = params => {
+    return axios.get(`${base}/api/v1/org/corporateInfo/getAllCorpName`, {
+        params: params
+    });
+};
+
+export{ 
+    getOwnerInfoList,    
+    addOwnerInfo,
+    modifyOwnerInfo,
+    getVehicleSearchInfoList,
+    getVehicleInfoList,
+    getSelectListOwner,
+    getVehInfoList,
+    modifyVehicleInfo,
+    getNamebyUserid,
+    getCheckoutOfOwner,
+    getMoreInfoList,
+    addVehicleInfo, 
+    removeVehicleInfo,
+    getVehList, 
+    getCorpList,
+    getProductsInfoListOfVehicle, 
+    getSelectListVeh, 
+    getVehicleProd, 
+    bandVehicleProd,  
+    unBandVehicleProd, 
+    getStoNameList, 
+    getModelListInfo, 
+    getModelListInfo1,
+    getCheckoutOfVehicleInfo, 
+    selectedType,
+    getCorporatelevel_level,
+    getCorpNameList,
+    getCarModel,
+    getAllColorList,
+    getCorpBank,
+    checkVehVin,
+    modifyVehInfo,
+    ownerBandVeh,
+    removeVehInfo,
+    getOwnerInfoDetail
+}

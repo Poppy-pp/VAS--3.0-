@@ -1,0 +1,659 @@
+<template>
+	<section class="tab_content-wrapper">
+		<!--工具条-->
+		<el-col :span="24" class="toolbar" style="padding-bottom: 0px;">
+			<el-form :inline="true" :model="filters">
+				<template v-for="(item,index) in filters.domSearch">
+					<template v-if="index == 0">
+						<div style="display:inline-block;margin:0 10px 10px 0;">
+							<el-input class="noborder color icon nofocus" @keyup.native.ctrl.8="clearAll()" @keyup.native.13="handleQuery" placeholder="请输入查询内容" v-model="filters.domSearch[index].content">
+								<el-select class="wp_select" multiple clearable filterable v-model="filters.domSearch[index].select" slot="prepend" placeholder="选择条件">
+									<el-option label="设备编号" value="prodnum"></el-option>
+									<el-option label="设备型号" value="productmodelname"></el-option>
+									<el-option label="设备类别" value="prodspec"></el-option>
+									<el-option label="库房" value="storagename"></el-option>
+									<el-option label="设备状态" value="status"></el-option>
+									<el-option label="入库方式" value=""></el-option>
+								</el-select>
+								<template v-if="index == filters.domSearch.length-1">
+									<el-button slot="append" @click="addSelect" icon="el-icon-plus" title="添加查询条件"></el-button>
+								</template>
+								<template v-else>
+									<el-button slot="append" @click="removeSelect(index)" icon="el-icon-minus" title="移除查询条件"></el-button>
+								</template>
+							</el-input>
+						</div>
+					</template>
+					<template v-else>
+						<el-col :span="24">
+							<div style="display:inline-block;margin:0 10px 10px 0;">
+								<el-input class="noborder color icon nofocus" @keyup.native.ctrl.8="clearAll()" @keyup.native.13="handleQuery" placeholder="请输入查询内容" v-model="filters.domSearch[index].content">
+									<el-select class="wp_select" multiple clearable filterable v-model="filters.domSearch[index].select" slot="prepend" placeholder="选择条件">
+										<el-option label="设备编号" value="prodnum"></el-option>
+										<el-option label="设备型号" value="productmodelname"></el-option>
+										<el-option label="设备类别" value="prodspec"></el-option>
+										<el-option label="库房" value="storagename"></el-option>
+										<el-option label="状态" value="status"></el-option>
+										<el-option label="入库方式" value=""></el-option>
+									</el-select>
+									<template v-if="index == filters.domSearch.length-1">
+										<el-button slot="append" @click="addSelect" icon="el-icon-plus" title="添加查询条件"></el-button>
+									</template>
+									<template v-else>
+										<el-button slot="append" @click="removeSelect(index)" icon="el-icon-minus" title="移除查询条件"></el-button>
+									</template>
+								</el-input>
+							</div>
+						</el-col>
+					</template>
+
+					<template v-if="index == 0">
+						<el-form-item>
+							<el-button type="primary" @click="handleQuery" icon="el-icon-search">查询</el-button>
+						</el-form-item>
+						<el-form-item>
+							<el-button type="info" @click="showType" icon="el-icon-edit">设备型号</el-button>
+						</el-form-item>
+					</template>
+				</template>
+			</el-form>
+		</el-col>
+		<!--列表-->
+		<el-table :max-height="windowOutHeight-275" border :data="listData" highlight-current-row v-loading="listLoading" @selection-change="selsChange">
+			<el-table-column type="index" width="30" align="center" label="#">
+			</el-table-column>
+			<el-table-column type="selection" width="40" align="center">
+			</el-table-column>
+			<el-table-column prop="prodnum" label="IMEI" width="165" align="center" >
+			</el-table-column>
+			<el-table-column prop="modelname" label="型号" align="center" >
+			</el-table-column>
+			<el-table-column prop="prodcategory" label="类别" align="center" >
+			</el-table-column>
+			<el-table-column prop="suppliername" label="供应商" align="center" >
+			</el-table-column>
+			<el-table-column prop="" label="分组" align="center" >
+			</el-table-column>
+			<el-table-column prop="storagename" label="库房" align="center" >
+			</el-table-column>
+			<el-table-column prop="instoragtype" label="入库方式" align="center" >
+			</el-table-column>
+			<el-table-column prop="status" label="设备状态" width="80" align="center" >
+			</el-table-column>
+			<el-table-column prop="" label="绑定状态" align="center" >
+			</el-table-column>
+			<el-table-column prop="remark" label="备注" align="center" >
+			</el-table-column>
+			<el-table-column  fixed="right" label="操作" width="150" align="center">
+				<template scope="scope">
+					<el-button id="button" @click="formDetailHandle(scope.row.id,scope.row)" title="详情" :disabled="scope.row.isdelete == '1' ? true : false">
+						<i :class="scope.row.isdelete == '1' ? 'iconfont icon-xiangqing operate' : 'iconfont icon-xiangqing operate operate-xiangqing'"></i>
+					</el-button>
+					<el-button id="button" @click="" title="遗失">
+						<i class="iconfont icon-yishi operate operate-yishi"></i>
+					</el-button>
+					<el-dropdown>
+						<el-button id="button" title="维修"><i class="iconfont icon-weixiu operate operate-guanji"></i></el-button>
+						<el-dropdown-menu slot="dropdown">
+						    <el-dropdown-item @click.native="handleNote(0, scope.row)">开始维修</el-dropdown-item>
+						    <el-dropdown-item v-if="" @click.native="handleNote(1, scope.row)">维修结果</el-dropdown-item>
+						</el-dropdown-menu>
+					</el-dropdown>
+					<el-button id="button" @click="handleEdit(scope.$index, scope.row)" title="解绑卡绑定卡">
+						<i class="iconfont icon-bangding- operate operate-bangding"></i>
+					</el-button>
+					<!-- <el-button id="button" @click="handleEdit(scope.$index, scope.row)" :disabled="scope.row.isdelete == '1' ? true : false" title="编辑">
+						<i :class="scope.row.isdelete == '1' ? 'iconfont icon-bianji1 operate' : 'iconfont icon-bianji1 operate operate-bianji'"></i>
+					</el-button>
+					<el-button id="button" @click="handleChange(scope.$index, scope.row)" :title='scope.row.isdelete == "1" ? "设置为有效" : "设置为无效"'>
+						<i :class='scope.row.isdelete == "1" ? "iconfont icon-cha operate operate-cha" : "iconfont icon-duigou operate operate-duigou"' @mouseover="mouseoverChange" @mouseout="mouseoutChange"></i>
+					</el-button> -->
+				</template>
+			</el-table-column>
+		</el-table>
+
+		<!--工具条-->
+		<el-col :span="24" class="toolbar">
+			<el-button type="danger" @click="" disabled><i class="iconfont icon-yishi"></i> 批量遗失</el-button>
+			<el-button type="danger" @click="" disabled><i class="iconfont icon-jiechubangding"></i> 批量解绑</el-button>
+			<el-pagination @size-change="handleSizeChange" background @current-change="handleCurrentChange" :page-sizes="[15, 50, 80, 99]" :page-size="pageSize" layout="total, sizes, prev, pager, next" :total="total" style="float:right;">
+			</el-pagination>
+		</el-col>
+
+		<!-- 详情 弹窗 start-->
+		<el-dialog title="" :modal-append-to-body="false" :visible.sync="formDialogTableVisible">
+			<el-tabs v-loading="fdtLoading" element-loading-text="拼命加载中..." element-loading-spinner="el-icon-loading" element-loading-background="rgba(0, 0, 0, 0.7)">
+				<el-row style="padding:0 40px;margin-bottom:20px;border-bottom:1px solid #C4E8D6;">
+					<el-col :span="24">
+						<span class="formTile">设备信息</span>
+					</el-col>
+					<el-col :span="9">
+						<dl class="dllist" style="margin-bottom:10px;">
+							<dt>设备编号:</dt>
+							<dd>{{ psData.prodprodnum }}</dd>
+						</dl>
+						<dl class="dllist" style="margin-bottom:10px;">
+							<dt>设备型号:</dt>
+							<dd>{{ psData.prodproductmodelname }}</dd>
+						</dl>
+						<dl class="dllist" style="margin-bottom:10px;">
+							<dt>设备类型:</dt>
+							<dd>{{ psData.prodspec }}</dd>
+						</dl>
+						<dl class="dllist" style="margin-bottom:10px;">
+							<dt>库房:</dt>
+							<dd>{{ psData.prodstoragename }}</dd>
+						</dl>
+						<dl class="dllist" style="margin-bottom:10px;">
+							<dt>供应商:</dt>
+							<dd>{{ psData.prodsuppliername == undefined ? '暂无' : psData.prodsuppliername }}</dd>
+						</dl>
+					</el-col>
+					<el-col :span="9">
+						<dl class="dllist" style="margin-bottom:10px;">
+							<dt>状态:</dt>
+							<dd>{{ psData.prodstatus == 'INSTO' ? '在库' : psData.prodstatus == 'INSTALL' ? '已安装' : psData.prodstatus == 'LOST' ? '报失' : psData.prodstatus == 'REPAIR' ? '维修' : psData.prodstatus == 'DAMAGE' ? '报废' : psData.prodstatus == 'ONWAY' ? '在途' : psData.prodstatus == 'REMOVING' ? '拆除中' : '暂无' }}</dd>
+						</dl>
+						<dl class="dllist" style="margin-bottom:10px;">
+							<dt>协议:</dt>
+							<dd>{{ psData.prodprotocoltype == undefined ? '暂无' : psData.prodprotocoltype }}</dd>
+						</dl>
+						<dl class="dllist" style="margin-bottom:10px;">
+							<dt>安装位置:</dt>
+							<dd>{{ psData.dictdatavalue == undefined ? '暂无' : psData.dictdatavalue }}</dd>
+						</dl>
+						<dl class="dllist" style="margin-bottom:10px;">
+							<dt>是否组装:</dt>
+							<dd>{{ psData.prodispack == '1' ? '是' : psData.prodispack == '0' ? '否' : '' }}</dd>
+						</dl>
+					</el-col>
+					<el-col :span="6">
+						<dl class="dllist" style="margin-bottom:10px;">
+							<dt>是否旧设备:</dt>
+							<dd>{{ psData.prodisold == '1' ? '是' : psData.prodisold == '0' ? '否' : '' }}</dd>
+						</dl>
+
+						<dl class="dllist" style="margin-bottom:10px;">
+							<dt>是否接入平台:</dt>
+							<dd>{{ psData.platid == null ? '否' : '是' }}</dd>
+						</dl>
+						<dl class="dllist" style="margin-bottom:10px;">
+							<dt>有效期:</dt>
+							<dd>{{ psData.prodexpiredate == null ? "暂无" :fmtdata.formatDate.format(new Date(psData.prodexpiredate), 'yyyy-MM-dd') }}</dd>
+						</dl>
+						<dl class="dllist" style="margin-bottom:10px;">
+							<dt>备注:</dt>
+							<dd>{{ psData.prodremark == undefined ? '暂无' : psData.prodremark }}</dd>
+						</dl>
+					</el-col>
+					<el-col :span="24" style="margin-bottom:10px;">
+						<el-button type="primary" v-if="psData.simID == undefined && psData.prodstatus == 'INSTO'" @click.native="addDeviceList" icon="el-icon-plus">点击绑卡</el-button>
+					</el-col>
+				</el-row>
+
+				<el-row style="padding:10px 40px;margin-bottom:20px;border-bottom:1px solid #C4E8D6;">
+					<el-col :span="24">
+						<span class="formTile">创建信息</span>
+					</el-col>
+					<el-col :span="6">
+						<dl class="dllist" style="margin-bottom:10px;">
+							<dt>创建人:</dt>
+							<dd>{{createname == undefined ? '暂无' : createname}}</dd>
+						</dl>
+					</el-col>
+					<el-col :span="6">
+						<dl class="dllist" style="margin-bottom:10px;">
+							<dt>创建日期:</dt>
+							<dd>{{moreData.createdate == null ? "暂无" :fmtdata.formatDate.format(new Date(moreData.createdate), 'yyyy-MM-dd') }}</dd>
+						</dl>
+					</el-col>
+					<el-col :span="6">
+						<dl class="dllist" style="margin-bottom:10px;">
+							<dt>修改人:</dt>
+							<dd>{{updatename == undefined ? '暂无' : updatename}}</dd>
+						</dl>
+					</el-col>
+					<el-col :span="6">
+						<dl class="dllist" style="margin-bottom:10px;">
+							<dt>修改日期:</dt>
+							<dd>{{moreData.updatedate == null ? "暂无" :fmtdata.formatDate.format(new Date(moreData.updatedate), 'yyyy-MM-dd') }}</dd>
+						</dl>
+					</el-col>
+				</el-row>
+
+				<el-row style="padding:10px 40px;margin-bottom:20px;border-bottom:1px solid #C4E8D6;" v-show="psData.simID != undefined">
+					<el-col :span="24">
+						<span class="formTile">SIM卡信息</span>
+					</el-col>
+					<el-col :span="9">
+						<dl class="dllist" style="margin-bottom:10px;">
+							<dt>通讯号:</dt>
+							<dd>{{ psData.simprodnum }}</dd>
+						</dl>
+						<dl class="dllist" style="margin-bottom:10px;">
+							<dt>ICCID:</dt>
+							<dd>{{ psData.simprodsnnum == undefined ? '暂无' : psData.simprodsnnum }}</dd>
+						</dl>
+						<dl class="dllist" style="margin-bottom:10px;">
+							<dt>卡类型:</dt>
+							<dd>{{ psData.simproductmodelname }}</dd>
+						</dl>
+						<dl class="dllist" style="margin-bottom:10px;">
+							<dt>库房:</dt>
+							<dd>{{ psData.storagename }}</dd>
+						</dl>
+					</el-col>
+					<el-col :span="9">
+						<dl class="dllist" style="margin-bottom:10px;">
+							<dt>供应商:</dt>
+							<dd>{{ psData.suppliername == undefined ? '暂无' : psData.suppliername }}</dd>
+						</dl>
+						<dl class="dllist" style="margin-bottom:10px;">
+							<dt>状态:</dt>
+							<dd>{{ psData.simstatus == 'INSTO' ? '在库' : psData.simstatus == 'INSTALL' ? '已安装' : psData.simstatus == 'LOST' ? '报失' : psData.simstatus == 'REPAIR' ? '维修' : psData.simstatus == 'DAMAGE' ? '报废' : psData.simstatus == 'ONWAY' ? '在途' : psData.simstatus == 'REMOVING' ? '拆除中' : '暂无' }}</dd>
+						</dl>
+						<dl class="dllist" style="margin-bottom:10px;">
+							<dt>协议:</dt>
+							<dd>{{ psData.simprotocoltype == undefined ? '暂无' : psData.simprotocoltype }}</dd>
+						</dl>
+						<dl class="dllist" style="margin-bottom:10px;">
+							<dt>安装位置:</dt>
+							<dd>{{ psData.dictdatavalue == undefined ? '暂无' : psData.dictdatavalue }}</dd>
+						</dl>
+					</el-col>
+					<el-col :span="6">
+						<dl class="dllist" style="margin-bottom:10px;">
+							<dt>是否组装:</dt>
+							<dd>{{ psData.simispack == '1' ? '是' : psData.simispack == '0' ? '否' : '' }}</dd>
+						</dl>
+						<dl class="dllist" style="margin-bottom:10px;">
+							<dt>是否旧设备:</dt>
+							<dd>{{ psData.simisold == '1' ? '是' : psData.simisold == '0' ? '否' : '' }}</dd>
+						</dl>
+						<dl class="dllist" style="margin-bottom:10px;">
+							<dt>有效期:</dt>
+							<dd>{{ psData.simexpiredate == null ? "暂无" :fmtdata.formatDate.format(new Date(psData.simexpiredate), 'yyyy-MM-dd') }}</dd>
+						</dl>
+						<dl class="dllist" style="margin-bottom:10px;">
+							<dt>备注:</dt>
+							<dd>{{ psData.simremark == undefined ? '暂无' : psData.simremark }}</dd>
+						</dl>
+					</el-col>
+					<el-col :span="24">
+						<el-button type="danger" v-if="psData.simstatus == 'INSTO'" @click.native="cancel">解绑</el-button>
+					</el-col>
+				</el-row>
+
+				<el-row style="padding:10px 40px;margin-bottom:20px;border-bottom:1px solid #C4E8D6;" v-show="vehInfo != ''">
+					<el-col :span="24">
+						<span class="formTile">车辆信息</span>
+					</el-col>
+					<el-col :span="9">
+						<dl class="dllist" style="margin-bottom:10px;">
+							<dt>车主:</dt>
+							<dd>{{vehInfo.NAME}}</dd>
+						</dl>
+						<dl class="dllist" style="margin-bottom:10px;">
+							<dt>车牌号:</dt>
+							<dd>{{vehInfo.licenseplatenum == undefined ? '暂无' : vehInfo.licenseplatenum}}</dd>
+						</dl>
+						<dl class="dllist" style="margin-bottom:10px;">
+							<dt>车架号:</dt>
+							<dd>{{vehInfo.vin == undefined ? '暂无' : vehInfo.vin}}</dd>
+						</dl>
+					</el-col>
+					<el-col :span="9">
+						<dl class="dllist" style="margin-bottom:10px;">
+							<dt>厂牌型号:</dt>
+							<dd>{{vehInfo.model == undefined ? '暂无' : vehInfo.model}}</dd>
+						</dl>
+						<dl class="dllist" style="margin-bottom:10px;">
+							<dt>发动机号:</dt>
+							<dd>{{vehInfo.enginenum == undefined ? '暂无' : vehInfo.enginenum}}</dd>
+						</dl>
+						<dl class="dllist" style="margin-bottom:10px;">
+							<dt>车类型:</dt>
+							<dd>{{vehInfo.vehicletypename == undefined ? '暂无' : vehInfo.vehicletypename}}</dd>
+						</dl>
+					</el-col>
+					<el-col :span="6">
+						<dl class="dllist" style="margin-bottom:10px;">
+							<dt>初始登记日期:</dt>
+							<dd>{{ vehInfo.createdate == null ? "暂无" :fmtdata.formatDate.format(new Date(vehInfo.createdate), 'yyyy-MM-dd') }}</dd>
+						</dl>
+						<dl class="dllist" style="margin-bottom:10px;">
+							<dt>车辆颜色:</dt>
+							<dd>{{vehInfo.colorname == undefined ? '暂无' : vehInfo.colorname}}</dd>
+						</dl>
+					</el-col>
+				</el-row>
+
+				<el-row style="padding:10px 40px;margin-bottom:20px;border-bottom:1px solid #C4E8D6;" v-show="psData.platid != null">
+					<el-col :span="24">
+						<span class="formTile">平台信息</span>
+					</el-col>
+					<el-col :span="12">
+						<dl class="dllist" style="margin-bottom:10px;">
+							<dt>平台名称:</dt>
+							<dd>{{psData.platname}}</dd>
+						</dl>
+						<dl class="dllist" style="margin-bottom:10px;">
+							<dt>平台IP:</dt>
+							<dd>{{psData.platip}}</dd>
+						</dl>
+					</el-col>
+					<el-col :span="12">
+						<dl class="dllist" style="margin-bottom:10px;">
+							<dt>时间:</dt>
+							<dd>{{psData.platcreatedate == null ? "暂无" :fmtdata.formatDate.format(new Date(psData.platcreatedate), 'yyyy-MM-dd')}}</dd>
+						</dl>
+						<dl class="dllist" style="margin-bottom:10px;">
+							<dt>创建人:</dt>
+							<dd>{{psData.platcreateby}}</dd>
+						</dl>
+					</el-col>
+				</el-row>
+			</el-tabs>
+		</el-dialog>
+		<!-- 订单详情 弹窗  end-->
+
+		<!--编辑界面-->
+		<el-dialog title="编辑" :modal-append-to-body="false" :visible.sync="editFormVisible" :close-on-click-modal="false">
+			<el-form :model="editForm" label-width="100px" :rules="editFormRules" ref="editForm" v-loading="editLoading" element-loading-text="拼命加载中..." element-loading-spinner="el-icon-loading" element-loading-background="rgba(0, 0, 0, 0.7)">
+				<el-row :gutter="20">
+					<el-col :span="14">
+						<el-form-item label="设备编号" prop="prodnum" ref="prodnum">
+							<el-input v-model="editForm.prodnum" auto-complete="off" @blur="checkout('prodnum',editForm.prodnum,0)"></el-input>
+						</el-form-item>
+						<el-form-item label="设备型号" prop="productmodelname">
+							<el-select v-model="editForm.productmodelname" @visible-change="moNameChange" @change="getNameEdit" :loading="moNameLoading" filterable placeholder="请选择设备型号" clearable>
+								<el-option v-for="item in moNamelist" :key="item.prodmodel" :label="item.prodmodel" :value="item.id+''">
+								</el-option>
+							</el-select>
+						</el-form-item>
+						<el-form-item label="设备类别" prop="prodspec">
+							<el-input v-model="editForm.prodspec" disabled auto-complete="off"></el-input>
+						</el-form-item>
+						<el-form-item label="库房名称" prop="storagename">
+							<el-select v-model="editForm.storagename" @visible-change="stoNameChange" :loading="stoNameLoading" filterable placeholder="请选择库房名" clearable remote :remote-method="stoChangeSelect">
+								<el-option v-for="item in stoNamelist" :key="item.storagename" :label="item.storagename" :value="item.id+''">
+								</el-option>
+							</el-select>
+						</el-form-item>
+						<el-form-item label="设备状态" prop="status">
+							<el-radio-group disabled size="small" v-model="editForm.status">
+								<el-radio-button label="INSTO">在库</el-radio-button>
+								<el-radio-button label="INSTALL">已安装</el-radio-button>
+								<el-radio-button label="LOST">报失</el-radio-button>
+								<el-radio-button label="REPAIR">维修</el-radio-button>
+								<el-radio-button label="DAMAGE">报废</el-radio-button>
+								<el-radio-button label="ONWAY">在途</el-radio-button>
+								<el-radio-button label="REMOVING">拆除中</el-radio-button>
+							</el-radio-group>
+						</el-form-item>
+					</el-col>
+					<el-col :span="10">
+						<!-- <el-form-item label="协议" prop="protocoltype">
+                            <el-input v-model="editForm.protocoltype" auto-complete="off"></el-input>
+                        </el-form-item> -->
+						<el-form-item label="安装位置" prop="dictdatavalue" v-show="editForm.status == 'INSTALL'">
+							<el-input v-model="editForm.dictdatavalue" auto-complete="off"></el-input>
+						</el-form-item>
+						<el-form-item label="是否组装" prop="ispack">
+							<el-radio-group v-model="editForm.ispack" disabled>
+								<el-radio class="radio" :label="1">是</el-radio>
+								<el-radio class="radio" :label="0">否</el-radio>
+							</el-radio-group>
+						</el-form-item>
+						<el-form-item label="是否旧设备" prop="isold">
+							<el-radio-group v-model="editForm.isold">
+								<el-radio class="radio" :label="1">是</el-radio>
+								<el-radio class="radio" :label="0">否</el-radio>
+							</el-radio-group>
+						</el-form-item>
+						<el-form-item label="有效期" prop="expiredate">
+							<el-date-picker v-model="editForm.expiredate" type="date" placeholder="选择日期" :picker-options="pickerOptions">
+							</el-date-picker>
+						</el-form-item>
+						<el-form-item label="备注" prop="remark">
+							<el-input v-model="editForm.remark" auto-complete="off"></el-input>
+						</el-form-item>
+					</el-col>
+				</el-row>
+			</el-form>
+			<div slot="footer" class="dialog-footer">
+				<el-button @click.native="editFormVisible = false">取消</el-button>
+				<el-button type="primary" @click.native="editSubmit" :loading="editLoading">提交</el-button>
+			</div>
+		</el-dialog>
+
+		<!--新增界面-->
+		<el-dialog title="新增" :modal-append-to-body="false" :visible.sync="addFormVisible" :close-on-click-modal="false">
+			<el-form :model="addForm" label-width="100px" :rules="addFormRules" ref="addForm">
+				<el-row :gutter="20">
+					<el-col :span="14">
+						<el-form-item label="设备编号" prop="prodnum" ref="prodnum">
+							<el-input v-model="addForm.prodnum" auto-complete="off" @blur="checkout('prodnum',addForm.prodnum,0)"></el-input>
+						</el-form-item>
+						<el-form-item label="设备型号" prop="productmodelname">
+							<el-select v-model="addForm.productmodelname" @visible-change="moNameChange" @change="getNameAdd" :loading="moNameLoading" filterable placeholder="请选择设备型号" clearable>
+								<el-option v-for="item in moNamelist" :key="item.prodmodel" :label="item.prodmodel" :value="item.id">
+								</el-option>
+							</el-select>
+						</el-form-item>
+						<el-form-item label="设备类别" prop="prodspec">
+							<el-input v-model="addForm.prodspec" disabled auto-complete="off" placeholder="选择设备型号自动匹配该设备分类"></el-input>
+						</el-form-item>
+						<el-form-item label="库房名称" prop="storagename">
+							<el-select v-model="addForm.storagename" @visible-change="stoNameChange" :loading="stoNameLoading" filterable placeholder="请选择库房名" clearable remote :remote-method="stoChangeSelect">
+								<el-option v-for="item in stoNamelist" :key="item.storagename" :label="item.storagename" :value="item.id">
+								</el-option>
+							</el-select>
+						</el-form-item>
+						<el-form-item label="设备状态" prop="status">
+							<el-radio-group size="small" v-model="addForm.status">
+								<el-radio-button label="INSTO">在库</el-radio-button>
+								<el-radio-button label="INSTALL">已安装</el-radio-button>
+								<el-radio-button label="LOST">报失</el-radio-button>
+								<el-radio-button label="REPAIR">维修</el-radio-button>
+								<el-radio-button label="DAMAGE">报废</el-radio-button>
+								<el-radio-button label="ONWAY">在途</el-radio-button>
+								<el-radio-button label="REMOVING">拆除中</el-radio-button>
+							</el-radio-group>
+						</el-form-item>
+					</el-col>
+					<el-col :span="10">
+						<el-form-item label="供应商" prop="suppliername">
+							<el-input v-model="addForm.suppliername" auto-complete="off"></el-input>
+						</el-form-item>
+						<el-form-item label="协议" prop="protocoltype">
+							<el-input v-model="addForm.protocoltype" auto-complete="off"></el-input>
+						</el-form-item>
+						<el-form-item label="安装位置" prop="dictdatavalue">
+							<el-input v-model="addForm.dictdatavalue" auto-complete="off"></el-input>
+						</el-form-item>
+						<el-form-item label="是否组装" prop="ispack">
+							<el-radio-group v-model="addForm.ispack">
+								<el-radio class="radio" :label="1">是</el-radio>
+								<el-radio class="radio" :label="0">否</el-radio>
+							</el-radio-group>
+						</el-form-item>
+						<el-form-item label="是否旧设备" prop="isold">
+							<el-radio-group v-model="addForm.isold">
+								<el-radio class="radio" :label="1">是</el-radio>
+								<el-radio class="radio" :label="0">否</el-radio>
+							</el-radio-group>
+						</el-form-item>
+						<el-form-item label="设备有效期" prop="expiredate">
+							<el-date-picker v-model="addForm.expiredate" type="date" placeholder="选择日期" :picker-options="pickerOptions">
+							</el-date-picker>
+						</el-form-item>
+						<el-form-item label="备注" prop="remark">
+							<el-input v-model="addForm.remark" auto-complete="off"></el-input>
+						</el-form-item>
+					</el-col>
+				</el-row>
+			</el-form>
+			<div slot="footer" class="dialog-footer">
+				<el-button @click.native="addFormVisible = false">取消</el-button>
+				<el-button type="primary" @click.native="addSubmit" :loading="addLoading">提交</el-button>
+			</div>
+		</el-dialog>
+
+		<!--SIM列表选择界面-->
+		<el-dialog title="SIM卡信息" :modal-append-to-body="false" :visible.sync="deviceFormVisible" top="3%" @close="clearAll()" :close-on-click-modal="false">
+			<el-col :span="24" class="toolbar" style="padding-bottom: 0px;">
+				<el-form :inline="true" :model="filters">
+					<template v-for="(item,index) in filters.domSearch">
+						<template v-if="index == 0">
+							<div style="display:inline-block;margin:0 10px 10px 0;">
+								<el-input class="noborder color icon nofocus" @keyup.native.ctrl.8="clearAll()" @keyup.native.13="getDeciceListInfo" placeholder="请输入查询内容" v-model="filters.domSearch[index].content">
+									<el-select class="wp_select" multiple clearable filterable v-model="filters.domSearch[index].select" slot="prepend" placeholder="选择条件">
+										<el-option label="通讯号" value="prodnum"></el-option>
+										<el-option label="卡类型" value="productmodelname"></el-option>
+										<!-- <el-option label="设备类别" value="prodspec"></el-option> -->
+										<el-option label="库房" value="storagename"></el-option>
+										<el-option label="ICCID" value="prodsnnum"></el-option>
+									</el-select>
+									<template v-if="index == filters.domSearch.length-1">
+										<el-button slot="append" @click="addSelect" icon="el-icon-plus" title="添加查询条件"></el-button>
+									</template>
+									<template v-else>
+										<el-button slot="append" @click="removeSelect(index)" icon="el-icon-minus" title="移除查询条件"></el-button>
+									</template>
+								</el-input>
+							</div>
+						</template>
+						<template v-else>
+							<el-col :span="24">
+								<div style="display:inline-block;margin:0 10px 10px 0;">
+									<el-input class="noborder color icon nofocus" @keyup.native.ctrl.8="clearAll()" @keyup.native.13="getDeciceListInfo" placeholder="请输入查询内容" v-model="filters.domSearch[index].content">
+										<el-select class="wp_select" multiple clearable filterable v-model="filters.domSearch[index].select" slot="prepend" placeholder="选择条件">
+											<el-option label="通讯号" value="prodnum"></el-option>
+											<el-option label="卡类型" value="productmodelname"></el-option>
+											<!-- <el-option label="设备类别" value="prodspec"></el-option> -->
+											<el-option label="库房" value="storagename"></el-option>
+											<el-option label="ICCID" value="prodsnnum"></el-option>
+										</el-select>
+										<template v-if="index == filters.domSearch.length-1">
+											<el-button slot="append" @click="addSelect" icon="el-icon-plus" title="添加查询条件"></el-button>
+										</template>
+										<template v-else>
+											<el-button slot="append" @click="removeSelect(index)" icon="el-icon-minus" title="移除查询条件"></el-button>
+										</template>
+									</el-input>
+								</div>
+							</el-col>
+						</template>
+
+						<template v-if="index == 0">
+							<el-form-item>
+								<el-button type="primary" @click="getDeciceListInfo" @keyup.native.13="getDeciceListInfo" icon="el-icon-search">查询</el-button>
+							</el-form-item>
+						</template>
+					</template>
+				</el-form>
+			</el-col>
+			<!--列表-->
+			<el-table border :data="deviceListData" max-height="500" ref="deviceListData" highlight-current-row v-loading="devicelistLoading" @row-dblclick="comlist" style="width: 100%;">
+				<el-table-column prop="prodnum" label="通讯号" align="center">
+				</el-table-column>
+				<el-table-column prop="productmodelname" label="卡类型" align="center">
+				</el-table-column>
+				<el-table-column prop="prodsnnum" label="ICCID" align="center">
+				</el-table-column>
+				<el-table-column prop="storagename" label="库房" align="center">
+				</el-table-column>
+				<el-table-column prop="status" label="状态" :formatter="statusFormat" align="center">
+				</el-table-column>
+			</el-table>
+
+			<!--工具条-->
+			<el-col :span="24" class="toolbar">
+				<el-pagination @size-change="dhandleSizeChange" @current-change="dhandleCurrentChange" :page-sizes="[15, 50, 80,99]" :page-size="dpageSize" layout="total, sizes, prev, pager, next, jumper" :total="dtotal" style="float:right;margin-top:10px;">
+				</el-pagination>
+			</el-col>
+		</el-dialog>
+
+		<!--设备型号弹窗-->
+		<el-dialog title="设备型号设置" :modal-append-to-body="false" :visible.sync="typeFormVisible" top="3%" @close="typeAddCancel">
+			<!--列表-->
+			<el-table border :data="typeListData" ref="typeForm" max-height="800" v-loading="typeListLoading">
+				<el-table-column type="index" width="30" align="center" label="#"></el-table-column>
+				<el-table-column label="类型" align="center" width="100">
+					<template slot-scope="scope">
+					    <el-select v-if="scope.$index == typeListData.length-1 && editable" v-model="typeForm.modelcategory" clearable>
+					    	<el-option v-for="item in categoryOptions" :key="item.value" :label="item.label" :value="item.value"></el-option>
+					    </el-select> 
+					    <span v-else>{{ scope.row.modelcategory == 'P' ? '设备' : '卡' }}</span>
+					</template>
+				</el-table-column>
+				<el-table-column label="型号名称" align="center">
+					<template slot-scope="scope">
+					    <!-- 输入框 —— 当前行下标index = list数据最后一条 并且 可编辑  -->
+					    <el-input v-if="scope.$index == typeListData.length-1 && editable" v-model="typeForm.modelname" ></el-input> 
+					    <!-- 显示框  -->
+					    <span v-else>{{ scope.row.modelname }}</span>
+					</template>
+				</el-table-column>
+				<el-table-column label="通讯协议" align="center">
+					<template slot-scope="scope">
+					    <el-input v-if="scope.$index == typeListData.length-1 && editable" v-model="typeForm.protocolname" ></el-input> 
+					    <span v-else>{{ scope.row.protocolname }}</span>
+					</template>
+				</el-table-column>
+				<el-table-column label="供应商" align="center">
+					<template slot-scope="scope">
+					    <el-input v-if="scope.$index == typeListData.length-1 && editable" v-model="typeForm.suppliername" ></el-input> 
+					    <span v-else>{{ scope.row.suppliername }}</span>
+					</template>
+				</el-table-column>
+				<el-table-column label="单位" align="center" width="70">
+					<template slot-scope="scope">
+					    <el-input v-if="scope.$index == typeListData.length-1 && editable" v-model="typeForm.modelunit" ></el-input> 
+					    <span v-else>{{ scope.row.modelunit }}</span>
+					</template>
+				</el-table-column>
+				<el-table-column label="是否保险" align="center" width="80">
+					<template slot-scope="scope">
+					    <el-input v-if="scope.$index == typeListData.length-1 && editable" v-model="typeForm.insuranceflag" ></el-input> 
+					    <span v-else>{{ scope.row.insuranceflag }}</span>
+					</template>
+				</el-table-column>
+				<el-table-column label="状态" align="center" width="60">
+					<template scope="scope">
+						<el-tooltip :content="scope.row.isactive === '1' ? '已启用' : '已停用'" placement="top">
+							<!-- 新增时 -->
+							<el-switch v-if="scope.$index == typeListData.length-1 && editable" v-model="typeForm.isactive" active-color="#13ce66" inactive-color="#ff4949" active-value="1"  inactive-value="0" @change="typeHandleChange(scope.$index, scope.row)"></el-switch>
+							<!-- 修改时 -->
+							<el-switch v-else v-model="scope.row.isactive" active-color="#13ce66" inactive-color="#ff4949" active-value="1"  inactive-value="0" @change="typeHandleChange(scope.$index, scope.row)"></el-switch>
+						</el-tooltip>
+					</template>
+				</el-table-column>
+				<el-table-column label="删除" align="center" width="50">
+					<template scope="scope">
+						<el-button id="button"  @click="handleDel(scope.$index, scope.row)" title="删除"> <i class="iconfont icon-p-delet  operate operate-delet"></i></el-button>
+					</template>
+				</el-table-column>
+			</el-table>
+
+			<!--工具条-->
+			<el-col :span="24" class="toolbar">
+				<el-button-group v-if="editable">
+					<el-button type="primary" size="small" @click="typeAddConfirm"><i class="el-icon-check"></i> 确定新增 </el-button>
+					<el-button type="info" size="small" @click="typeAddCancel"><i class="el-icon-close"></i> 取 消 </el-button>
+				</el-button-group>
+				<el-button v-else type="danger" size="small" @click="typeAddClick"><i class="iconfont icon-plus"></i> 新 增 </el-button>
+				<el-pagination @size-change="handleSizeChangeType" background @current-change="handleCurrentChangeType" :page-sizes="[15, 50, 80, 99]" :page-size="typepageSize" layout="total, sizes, prev, pager, next" :total="typetotal" style="float:right;">
+				</el-pagination>
+			</el-col>
+		</el-dialog>
+
+	</section>
+</template>
+
+<style type="text/css">
+.toolbar .el-button-group{margin-top: 5px;}
+</style>
+
+<script src="./index.js"></script>

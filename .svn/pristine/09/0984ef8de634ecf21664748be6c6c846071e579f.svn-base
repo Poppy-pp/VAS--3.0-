@@ -1,0 +1,17 @@
+import axios from 'axios'
+
+// 库存统计
+export const getStoProdCount = params => {
+    return axios.get('/sto/stoStat/query/storageProductStatistics', {params})
+}
+// 当前库房权限查询
+export const getStorages = params => {
+    return axios.get('/sto/stoStat/query/storageTree', {params})
+}
+
+
+export const getPolicyno = params => {
+    return axios.get('/insurance/insurancePolicyno/query/queryAllPolicyno', {
+        params
+    })
+}

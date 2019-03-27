@@ -1,0 +1,21 @@
+import axios from 'axios';
+
+let base = '/vasms-web';
+let api = '/api';
+
+// 操作记录查询
+const getOperationRecordList = params => {
+    return axios.get(`${base}/api/v1/sys/sysLog/query/vw`, {
+        params: params
+    })
+};
+
+// 记录详情查询
+const getOperationRecordDetails = params => {
+    return axios.get(`${base}/api/v1/sys/sysLog/query/detail/` + params.id, params)
+};
+
+export {
+    getOperationRecordList,
+    getOperationRecordDetails
+}

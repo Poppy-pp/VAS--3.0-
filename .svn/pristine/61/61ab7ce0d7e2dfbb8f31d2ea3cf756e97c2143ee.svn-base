@@ -1,0 +1,186 @@
+<template>
+    <div class="count-chart-box">
+        <div class="left-count">
+            <div>
+                <p>本月出单数</p>
+                <span>1000</span>
+            </div>
+            <div>
+                <p>本月出单保费</p>
+                <span>1000.00元</span>
+            </div>
+            <div>
+                <p>月累计车价</p>
+                <span>1000.00元</span>
+            </div>
+            <div>
+                <p>月平均车价</p>
+                <span>1000.00元</span>
+            </div>
+        </div>
+        <div style="flex: auto">
+            <div class="chart-operate">
+                <el-button type="text" :class="{'active': dateType === 'day'}" @click="setDate('day')">按日</el-button>
+                <el-button type="text" :class="{'active': dateType === 'month'}" @click="setDate('month')">按月</el-button>
+                <el-button type="text" :class="{'active': dateType === 'quarter'}" @click="setDate('quarter')">按季度</el-button>
+                <el-button type="text" :class="{'active': dateType === 'year'}" @click="setDate('year')">按整年</el-button>
+                <el-date-picker
+                        style="width: 200px; margin-left: 10px;"
+                        v-model="value"
+                        type="daterange"
+                        size="mini"
+                        start-placeholder="开始日期"
+                        end-placeholder="结束日期">
+                </el-date-picker>
+            </div>
+            <div ref="countChart" style="height: 100%; width: 100%"></div>
+        </div>
+    </div>
+</template>
+
+<script>
+    import echarts from 'echarts'
+
+    const option = {
+        tooltip: {
+            trigger: 'axis',
+            axisPointer: {
+                type: 'cross',
+                crossStyle: {
+                    color: '#999'
+                }
+            }
+        },
+        toolbox: {
+            feature: {
+                dataView: {show: true, readOnly: false},
+                magicType: {show: true, type: ['line', 'bar']},
+                restore: {show: true},
+                saveAsImage: {show: true}
+            }
+        },
+        legend: {
+            data: ['蒸发量', '降水量', '平均温度']
+        },
+        dataZoom: [
+            {
+                show: true,
+                realtime: true,
+                start: 0,
+                end: 30
+            },
+            {
+                type: 'inside',
+                realtime: true,
+                start: 0,
+                end: 30
+            }
+        ],
+        xAxis: [
+            {
+                type: 'category',
+                data: ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'],
+                axisPointer: {
+                    type: 'shadow'
+                }
+            }
+        ],
+        yAxis: [
+            {
+                type: 'value',
+                name: '水量',
+                min: 0,
+                max: 250,
+                interval: 50,
+                axisLabel: {
+                    formatter: '{value} ml'
+                }
+            },
+            {
+                type: 'value',
+                name: '温度',
+                min: 0,
+                max: 25,
+                interval: 5,
+                axisLabel: {
+                    formatter: '{value} °C'
+                }
+            }
+        ],
+        series: [
+            {
+                name: '蒸发量',
+                type: 'bar',
+                data: [2.0, 4.9, 7.0, 23.2, 25.6, 76.7, 135.6, 162.2, 32.6, 20.0, 6.4, 3.3]
+            },
+            {
+                name: '降水量',
+                type: 'bar',
+                data: [2.6, 5.9, 9.0, 26.4, 28.7, 70.7, 175.6, 182.2, 48.7, 18.8, 6.0, 2.3]
+            },
+            {
+                name: '平均温度',
+                type: 'line',
+                yAxisIndex: 1,
+                data: [2.0, 2.2, 3.3, 4.5, 6.3, 10.2, 20.3, 23.4, 23.0, 16.5, 12.0, 6.2]
+            }
+        ]
+    };
+
+    export default {
+        name: "insuranceCountChart",
+        data () {
+            return {
+                value: '',
+                dateType: 'month',
+                chartInstance: null
+            }
+        },
+        mounted () {
+            this.initChart();
+        },
+        methods: {
+            initChart () {
+                if (this.chartInstance)
+                    this.chartInstance.clear();
+                else
+                    this.chartInstance = echarts.init(this.$refs.countChart)
+                this.chartInstance.setOption(option)
+            },
+            setDate (dateType) {
+                this.dateType = dateType
+                this.initChart();
+            }
+        }
+    }
+</script>
+
+<style scoped lang="stylus">
+
+    .count-chart-box
+        display flex
+        height 500px
+        > div
+            padding 10px;
+
+    .left-count
+        width 200px;
+        border-right 1px solid #ccc
+        font-size 14px;
+        div
+            margin-top 40px;
+            p
+                margin 10px 0;
+        div:first-child
+            margin-top 20px;
+            span
+                font-size 20px;
+                font-weight bold
+
+    .chart-operate
+        .el-button
+            color #1b1b1b
+            font-weight 600
+        .active
+            color #41B883
+</style>

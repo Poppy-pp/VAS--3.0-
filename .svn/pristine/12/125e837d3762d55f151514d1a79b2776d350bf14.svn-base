@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>中国人寿保险模板</title>
+</head>
+<link type="image/x-icon" rel="icon" href="favicon.ico">
+<link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
+
+<body>
+
+<div>
+    <div id="app">
+            <section id="rs_print" class="bxd_rsbx zgrs_sty">
+                <div class="bxd_logo">
+                    <img src="http://222.212.141.40:9104/img/vas3.0/images/chinallife.png" alt="中国人寿" class="chinaLifeImg">
+                    <img src="http://222.212.141.40:9104/img/vas3.0/images/wanwanglogo.png" alt="万网鑫成" class="companyImg">
+                </div>
+                <div class="bxd_header"><b>保 险 凭 证</b></div>
+                <span class="insucode">No <input type="text" readonly v-model="ruleForm.serialnum"></span>
+
+                <div class="bxd_center">
+                    <div class="bcFl">
+                        <p class="wordspace"><b>1.投保人及被保险人：</b>四川万网鑫成信息科技有限公司（以下简称四川万网）</p>
+                        <p class="wordspace"><b>2.保单号码：{{ ruleForm.policyno }}</b></p>
+                        <p class="wordspace"><b>3.保险范围：</b>凡在中华人民共和国境内（不含港澳台）购买四川万网车辆盗抢保障服务系统，并安装该公司车载智能终端的合法机动车。</p>
+                        <p class="wordspace"><b>4.保险责任：</b>
+                            （1）在保单约定销售期限内安装四川万网车辆盗抢保障服务系统终端的合法车辆，在约定服务期限内发生全车被盗窃、抢劫、抢夺的，经出险地当地的县级公安部门立案证明，满60天未查明下落的车辆损失，由保险人在约定的赔偿限额内按照车辆实际价值100%进行赔偿;
+                            （2）在保险车辆全车被盗窃、抢劫、抢夺期间内，被盗车辆遭受破坏需要修复的合理费用，由保险人在约定的赔偿限额内按照车辆修复金额进行赔偿。</p>
+                        <p class="wordspace"><b>5.主要除外责任：</p>
+                        <p class="wordspace">
+                            被保险人及实际使用客户的故意行为；
+                            用户违反本产品使用说明书中规定的操作规程或擅自对产品进行拆装、移机；
+                            移动通讯费或定位服务费欠费、停机导致设备无法正常工作；
+                            对于定位设备处于未上线状态的车辆在经投保人通知后，车主未按投保人要求配合售后服务的；
+                            租赁车辆与承租人同时失踪的；
+                            被他人诈骗造成全车或部分损失的；
+                            非全车遭受盗抢，仅车上零部件或车上设备被盗，被破坏的；
+                            被保险人因违反政府相关法律、法规、被国家相关单位罚没、扣押的；
+                            车主因与他人在民事、经济纠纷而被抢夺的；
+                            保险责任外的其他一切责任。</b></p>
+                        <p class="wordspace"><b>6.保险期限：</b>本凭证的有效期限为：
+                            <input type="text" class="yxqDate" readonly v-model="ruleForm.yxqDate">
+                        ；有效期限为保险期限；在保险期限内如发生车辆转让，保险期限终止；车辆所有人或管理人应及时通知四川万网办理变更手续，手续变更次日起零时 保险责任恢复，否则中国人寿财产保险股份有</p>
+                    </div>
+                    <div class="bcFr">
+                        <p>限公司深圳市分公司（以下简称“保险人”）不承担保险责任。</p>
+                        <p class="wordspace"><b>7.赔偿标准：</b></p>
+                        <p class="wordspace">在遵照保险责任及主要除外责任的前提下，赔付标准如下:</p>
+                        <p class="wordspace"><b>
+                            (1)发生全车盗抢事故满60天未能追回，车辆未购买机动车商业盗抢险的，按被盗车辆实际价值的100%确定损失，最高不超过投保时确定的赔付限额，最高赔偿限额：
+                            <input type="text" v-model="ruleForm.yxqDate1" class="yxqDate yxqDate1" readonly>万元;</p>
+                        <p class="wordspace">
+                            (2)发生全车盗抢事故，如果保险车辆已购机动车商业保盗抢险的，则先从机动车商业盗抢险的项下进行赔付，剩余差额部分再向本保单索赔。</p>
+                        <p class="wordspace">
+                            (3)保险人收齐完整有效的索赔资料后，由四川万网先行向车主赔付，由车主签署赔付确认书，保险人收到赔付确认书后依据保单约定承担赔偿责任。</b></p>
+                        <p class="wordspace"><b>8.理赔须知：</b></p>
+                        <p class="wordspace">
+                            (1)全车被盗抢后，车主应立即向出险当地的公安刑侦部门报案，并同时向万网客户服务中心(028-85315109)报案，由四川万网在24小时内通过0755-95519向保险公司报案；
+                            车主应向四川万网提出索赔，待赔付完成后，由四川万网向保险人索赔，保险人不接受车主的直接索赔；
+                            索赔时，必须提供本保险凭证、购买及安装车载定位产品的相关凭证，被盗车辆的机动车登记证书、行驶证原件、驾驶证复印件、购车发票原件(车辆来历证明)、车辆购置税完税证明或者车辆购置附加费缴费证明、全套钥匙；
+                            县以上公安部门出具的盗抢案件证明(报案回执及车辆未寻回证明)；
+                            车管所已根据刑侦部门提供的情况，在其计算机登记系统内记录，并停止办理保险车辆各项登记的证明(车辆销户证明)；
+                            车主的有效身份证明，第一受益人与车主的关系证明；
+                            机动车辆商业险保险单、权益转让书；
+                            车辆维修发票；
+                            保险人要求的其他资料。</p>
+                        <p class="wordspace">
+                            (2)用户递交完整的索赔资料后20个工作日内予以理赔。</p>
+                    </div>
+                </div>
+                <div class="bxd_djb_header"><b>四川万网车辆盗抢保障服务用户信息登记</b></div>
+                <div class="bxd_djb">
+                    <table border="1">
+                            <tr>
+                                <td><b>车主姓名</b></td>
+                                <td style="width:100px;">{{ruleForm.yxqDate2}}</td>
+                                <td><b>身份证号码</b></td>
+                                <td>{{ruleForm.yxqDate3}}</td>
+                                <td><b>手机号码</b></td>
+                                <td>{{ruleForm.yxqDate4}}</td>
+                            </tr>
+                            <tr>
+                                <td><b>车牌号码</b></td>
+                                <td>{{ruleForm.yxqDate5}}</td>
+                                <td><b>厂牌型号</b></td>
+                                <td>{{ruleForm.yxqDate6}}</td>
+                                <td><b>初登日期</b></td>
+                                <td>{{ruleForm.yxqDate7}}</td>
+                            </tr>
+                            <tr>
+                                <td><b>发动机号</b></td>
+                                <td colspan="2">{{ruleForm.yxqDate8}}</td>
+                                <td><b>车架号</b></td>
+                                <td colspan="2">{{ruleForm.yxqDate9}}</td>
+                            </tr>
+                            <tr>
+                                <td><b>设备编号</b></td>
+                                <td>{{ruleForm.yxqDate10}}</td>
+                                <td><b>安装时间</b></td>
+                                <td>{{ruleForm.yxqDate11}}</td>
+                                <td><b>新车购置价</b></td>
+                                <td>{{ruleForm.yxqDate12}}</td>
+                            </tr>
+                            <tr>
+                                <td colspan="2"><b>四川万网车辆盗抢保障服务费</b></td>
+                                <td colspan="4" class="price"><span>{{ ruleForm.yxqDate13 }}</span> ￥： {{ruleForm.yxqDate14}} 元</td>
+                            </tr>
+                            <tr>
+                                <td colspan="6" class="remark">
+                                        <span>1.如保险车辆涉及车辆贷款业务，未还清银行、金融公司贷款时，车主同意以</span>
+                                        <input type="text" class="yxqDate yxqDate15" v-model="ruleForm.yxqDate15" readonly>
+                                        <span>(放款银行或者金融公司)作为第一受益人收取保险赔款；第一受益人允许其他受益人作为保险金收款人的，应出具赔款承诺书。</span>
+                                        <p>2.四川万网车辆防盗保障服务终端在保险有效期限内享受免费保修服务，车主应积极配合维护工作。</p>
+                                </td>
+                            </tr>
+                    </table>
+                    <p class="wordspace font"><b>本保险凭证约定内容与保单一致，四川万网已经向车主说明投保险种对应的保险条款，
+                            特别是免除保险人责任的条款及保险人承担的赔偿限额，车主完全理解且认可，没有异议。</b></p>
+                    <p class="owerinfo">车主签字：<input type="text" class="footerinfo1" readonly> 
+                        日期：<input type="text" class="footerinfo2" readonly>年
+                        <input type="text" class="footerinfo3" readonly>月
+                        <input type="text" class="footerinfo3" readonly>日</p>
+                    <div class="footer">
+                            <div class="left-footer">
+                                <p>运营商：四川万网鑫成信息科技有限公司</p>
+                                <p>地   址：四川省成都市高新区天府四街航兴国际2栋18F</p>
+                                <p>24小时服务电话：<b>028-85315109</b></p>
+                            </div>
+                            <div class="right-footer">
+                                <p>保险人：中国人寿财产保险股份有限公司深圳市分公司</p>
+                                <p>地址：广东省深圳市罗湖区嘉宾路4025号城市天地广场东座6楼</p>
+                                <p>报案电话：<b>0755-95519</b></p>
+                            </div>
+                    </div>
+                    
+                </div>
+
+                <img src="http://222.212.141.40:9104/img/vas3.0/images/wanwang.png" alt="四川万网鑫成信息科技有限公司" class="logoImg">
+            </section>
+            <div class="operation">
+                <el-button type="primary" @click="printRs" style="margin-left:5px;float:right;">确认打印</el-button>
+            </div>
+        </section>
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/vue/2.5.17/vue.min.js"></script>
+<script src="https://unpkg.com/element-ui/lib/index.js"></script>
+<script src="http://222.212.141.40:9104/img/vas3.0/js/Print.js"></script>
+<script>
+    window.onload = function () {
+        const data = {
+            policyno: getQueryString('policyno'),//大保单编号
+            serialnum: getQueryString('serialnum'),//万网保单编号
+            effectivedate: getQueryString('effectivedate'),//保险期限-开始日期
+            expiredate: getQueryString('expiredate'),//保险期限-截止日期
+            indemnitylimit: getQueryString('indemnitylimit'),//赔偿限额
+            vehicleowner: getQueryString('vehicleowner'),//车主
+            vehicleowneridcard: getQueryString('vehicleowneridcard'),//身份证
+            vehicleownercontact: getQueryString('vehicleownercontact'),//电话
+            vehicleplate: getQueryString('vehicleplate'),//车牌号
+            vehiclemodel: getQueryString('vehiclemodel'),//厂牌型号
+            createdate: getQueryString('createdate'),//初登日期
+            vehicleenginenum: getQueryString('vehicleenginenum'),//发动机号
+            vehiclevin: getQueryString('vehiclevin'),//车架号
+            price: getQueryString('price'),//万网车辆盗抢保障服务费
+            beneficiary: getQueryString('beneficiary'),//受理银行
+            equipmentnum: getQueryString('equipmentnum'),//设备编号
+            equipmentinstalldate: getQueryString('equipmentinstalldate'),//安装日期
+        }
+
+        const app = new Vue({
+            el: '#app',
+            data: {
+                ruleForm: {
+                    policyno: data.policyno,
+                    serialnum: data.serialnum,
+                    yxqDate: data.effectivedate == '' ? '' : format(new Date((data.effectivedate)), 'yyyy-MM-dd') + ' ~ ' + format(new Date((data.expiredate)), 'yyyy-MM-dd'),
+                    yxqDate1: data.indemnitylimit == '' ? '' : data.indemnitylimit / 10000,
+                    yxqDate2: data.vehicleowner,
+                    yxqDate3: data.vehicleowneridcard,
+                    yxqDate4: data.vehicleownercontact,
+                    yxqDate5: data.vehicleplate,
+                    yxqDate6: data.vehiclemodel,
+                    yxqDate7: data.createdate == '' ? '' : format(new Date((data.createdate)), 'yyyy-MM-dd'),
+                    yxqDate8: data.vehicleenginenum,
+                    yxqDate9: data.vehiclevin,
+                    yxqDate10: data.equipmentnum,
+                    yxqDate11: data.equipmentinstalldate == '' ? '' : format(new Date((data.equipmentinstalldate)), 'yyyy-MM-dd'),
+                    yxqDate12: data.indemnitylimit,
+                    yxqDate13: changeMoneyToChinese(data.price),
+                    yxqDate14: data.price,
+                    yxqDate15: data.beneficiary,
+                }
+            },
+            methods: {
+                printRs () {
+                    Print('#rs_print');
+                },
+            },
+            mounted () {
+            }
+        });
+    };
+    // 时间封装
+    function format (date, pattern) {
+        var SIGN_REGEXP = /([yMdhsm])(\1*)/g;
+        var DEFAULT_PATTERN = 'yyyy-MM-dd';
+
+        function padding (s, len) {
+            var len = len - (s + '').length;
+            for (var i = 0; i < len; i++) {
+                s = '0' + s;
+            }
+            return s;
+        };
+        pattern = pattern || DEFAULT_PATTERN;
+        return pattern.replace(SIGN_REGEXP, function ($0) {
+            switch ($0.charAt(0)) {
+                case 'y':
+                    return padding(date.getFullYear(), $0.length);
+                case 'M':
+                    return padding(date.getMonth() + 1, $0.length);
+                case 'd':
+                    return padding(date.getDate(), $0.length);
+                case 'w':
+                    return date.getDay() + 1;
+                case 'h':
+                    return padding(date.getHours(), $0.length);
+                case 'm':
+                    return padding(date.getMinutes(), $0.length);
+                case 's':
+                    return padding(date.getSeconds(), $0.length);
+            }
+        });
+    }
+    // 获取url
+    function getQueryString (string) {
+        var reg = new RegExp('(^|&)' + string + '=([^&]*)(&|$)', 'i');
+        var r = window.location.href.match(reg);
+        if (r != null) {
+            return decodeURI(r[2]);
+        }
+        return "";
+    }
+    // 繁体字转换
+    function changeMoneyToChinese (money) {
+        var cnNums = new Array("零", "壹", "贰", "叁", "肆", "伍", "陆", "柒", "捌", "玖"); //汉字的数字
+        var cnIntRadice = new Array("", "拾", "佰", "仟"); //基本单位
+        var cnIntUnits = new Array("", "万", "亿", "兆"); //对应整数部分扩展单位
+        var cnDecUnits = new Array("角", "分", "毫", "厘"); //对应小数部分单位
+        var cnInteger = "整"; //整数金额时后面跟的字符
+        var cnIntLast = "元"; //整型完以后的单位
+        var maxNum = 999999999999999.9999; //最大处理的数字
+
+        var IntegerNum; //金额整数部分
+        var DecimalNum; //金额小数部分
+        var ChineseStr = ""; //输出的中文金额字符串
+        var parts; //分离金额后用的数组，预定义
+        if (money == "") {
+            return "";
+        }
+        money = parseFloat(money);
+        if (money >= maxNum) {
+            $.alert('超出最大处理数字');
+            return "";
+        }
+        if (money == 0) {
+            //ChineseStr = cnNums[0]+cnIntLast+cnInteger;
+            ChineseStr = cnNums[0] + cnIntLast
+            //document.getElementById("show").value=ChineseStr;
+            return ChineseStr;
+        }
+        money = money.toString(); //转换为字符串
+        if (money.indexOf(".") == -1) {
+            IntegerNum = money;
+            DecimalNum = '';
+        } else {
+            parts = money.split(".");
+            IntegerNum = parts[0];
+            DecimalNum = parts[1].substr(0, 4);
+        }
+        if (parseInt(IntegerNum, 10) > 0) {//获取整型部分转换
+            var zeroCount = 0,
+                IntLen = IntegerNum.length;
+            for (var i = 0; i < IntLen; i++) {
+                var n = IntegerNum.substr(i, 1),
+                    p = IntLen - i - 1,
+                    q = p / 4,
+                    m = p % 4;
+                if (n == "0") {
+                    zeroCount++;
+                } else {
+                    if (zeroCount > 0) {
+                        ChineseStr += cnNums[0];
+                    }
+                    zeroCount = 0; //归零
+                    ChineseStr += cnNums[parseInt(n)] + cnIntRadice[m];
+                }
+                if (m == 0 && zeroCount < 4) {
+                    ChineseStr += cnIntUnits[q];
+                }
+            }
+            ChineseStr += cnIntLast;
+        }
+        if (DecimalNum != '') {//小数部分
+            var decLen = DecimalNum.length;
+            for (var i = 0; i < decLen; i++) {
+                var n = DecimalNum.substr(i, 1);
+                if (n != '0') {
+                    ChineseStr += cnNums[Number(n)] + cnDecUnits[i];
+                }
+            }
+        }
+        if (ChineseStr == '') {
+            //ChineseStr += cnNums[0]+cnIntLast+cnInteger;
+            ChineseStr += cnNums[0] + cnIntLast;
+        }
+        /* else if( DecimalNum == '' ){
+                    ChineseStr += cnInteger;
+                    ChineseStr += cnInteger;
+                } */
+        return ChineseStr;
+    }
+
+</script>
+</body>
+
+<style>
+    body,html{font-family:'Microsoft YaHei';}
+    ul, ol {
+        list-style: none outside none;
+        margin: 0;
+        padding: 0;
+    }
+
+    p {
+        margin: 0;
+    }
+    .bxd_logo{height: 50px;}
+    .insucode{display: inline;float: right;margin-top: -40px;}
+    .insucode input{color: red !important;font-size: 18px !important;}
+    .insucode input{width: 190px;border: 0;}
+    .wordspace{text-indent:25px;}
+    .chinaLifeImg{width: 155px;}
+    .companyImg {float: right;width: 110px;margin-right: 10px;}
+    .font{font-size: 12px;}
+    .footer{margin-top: 45px;}
+    .left-footer,.right-footer{font-size: 12px;float:left;width: 50%;}
+    .owerinfo{float: right;font-size: 12px;margin-top: 10px;}
+    .footerinfo1,.footerinfo2,.footerinfo3{border: 0;border-bottom: 1px solid #555;}
+    .footerinfo1{width: 100px;}
+    .footerinfo2{width: 42px;}
+    .footerinfo3{width: 30px;}
+    .logoImg{position: absolute;width: 160px;bottom: -95px;left: 40px;}
+    .bxd_rsbx, .operation {
+        width: 690px;
+        margin: 0 auto;
+        padding: 10px 20px 0 20px;
+        position: relative;
+    }
+
+    .bxd_rsbx input {
+        color: #000;
+        font-size: 16px;
+        text-align: center;
+    }
+
+    .zgrs_sty .bxd_header {
+        height: 55px;
+        font-size: 24px;
+        text-align: center;
+    }
+
+    .zgrs_sty .bxd_center {
+        font-size: 12px;
+        line-height: 18px;
+        overflow: hidden;
+        color: #606266;
+    }
+
+    .bxd_djb {
+        font-size: 14px;
+        color: #606266;
+    }
+
+    .zgrs_sty .bcFl, .zgrs_sty .bcFr {
+        width: 336px;
+        height: 515px;
+        overflow: hidden;
+    }
+
+    .zgrs_sty .bxd_djb_header {
+        font-size: 18px;
+        text-align: center;
+        margin-top: 10px;
+    }
+
+    .zgrs_sty .bxd_djb {
+        margin-top: 10px;
+    }
+    .zgrs_sty .bxd_djb table {width: 100%;border-collapse:collapse;font-size: 12px;line-height: 18px;}
+    .zgrs_sty .bxd_djb table td{padding: 4px 10px;text-align: center;width: 60px;}
+    .zgrs_sty .bxd_djb table td input{ border: none;}
+    .zgrs_sty .bxd_djb table td.price{ text-align: right;}
+    .zgrs_sty .bxd_djb table td.price span{ float: left;margin-left: 10px;}
+    .zgrs_sty .bxd_djb table td.remark{ text-align: left;}
+    .zgrs_sty .bcFl {
+        float: left;
+    }
+
+    .zgrs_sty .bcFr {
+        float: right;
+    }
+
+    .zgrs_sty .yxqDate {
+        width: 275px;
+        border: 0;
+        border-bottom: 1px solid #555 !important; 
+        margin-top: 2px;
+    }
+
+    .zgrs_sty .bxd_djb ul {
+        line-height: 32px;
+    }
+
+    .zgrs_sty .bxd_djb ul li {
+        display: inline-block;
+        position: relative;
+        left: -30px;
+    }
+
+    .zgrs_sty .yxqDate1 {
+        width: 65px;
+        text-align: left;
+        border-bottom: 1px solid #555 !important; 
+    }
+
+    .zgrs_sty .yxqDate2 {
+        position: absolute;
+        bottom: 20px;
+        width: 600px;
+        text-align: left;
+        font-size: 12px;
+    }
+
+    .zgrs_sty .yxqDate3 {
+        width: 340px;
+        text-align: center;
+        position: relative;
+        top: 3px;
+    }
+
+    .zgrs_sty .yxqDate4 {
+        width: 120px;
+        text-align: left;
+    }
+
+    .zgrs_sty .yxqDate5 {
+        width: 94px;
+    }
+
+    .zgrs_sty .yxqDate6 {
+        width: 245px;
+        text-align: left;
+        font-size: 12px;
+    }
+
+    .zgrs_sty .yxqDate7 {
+        width: 130px;
+        text-align: left;
+    }
+
+    .zgrs_sty .yxqDate8 {
+        width: 266px;
+        text-align: left;
+    }
+
+    .zgrs_sty .yxqDate9 {
+        width: 316px;
+        text-align: left;
+    }
+
+    .zgrs_sty .yxqDate10 {
+        width: 230px;
+        text-align: left;
+    }
+
+    .zgrs_sty .yxqDate11 {
+        width: 124px;
+        text-align: left;
+    }
+
+    .zgrs_sty .yxqDate12 {
+        width: 124px;
+        text-align: left;
+    }
+
+    .zgrs_sty .yxqDate13 {
+        width: 350px;
+    }
+
+    .zgrs_sty .yxqDate14 {
+        width: 150px;
+    }
+
+    .zgrs_sty input.yxqDate15 {
+        width: 258px;
+        font-size: 14px;
+        border-bottom: 1px solid #555 !important; 
+    }
+
+    .zgrs_sty .label_w {
+        width: 80px;
+        text-align: center;
+        display: inline-block;
+    }
+
+    .zgrs_sty .label_w1 {
+        width: 207px;
+    }
+
+    @media print {
+        .zgrs_sty .yxqDate {
+            border: 0;
+            background-color: transparent;
+        }
+    }
+
+    ::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+    }
+
+    ::-webkit-scrollbar-corner {
+        background-color: #535353;
+    }
+
+    ::-webkit-scrollbar-thumb {
+        background-color: #ccc;
+        border-radius: 5px;
+    }
+
+    ::-webkit-scrollbar-track {
+        background: 0 0;
+    }
+</style>
+</html>

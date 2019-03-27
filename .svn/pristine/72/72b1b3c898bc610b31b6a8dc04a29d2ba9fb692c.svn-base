@@ -1,0 +1,39 @@
+import { getParentInfoList } from '@/views/sysManage/organizationManage/service'
+import installOrder from './installOrder/index.vue'
+import maintainOrder from './subComponent/maintainOrder'
+
+export default {
+    name: "addInstallOrder",
+    components: {
+        installOrder,
+        maintainOrder
+    },
+    data () {
+        return {
+            type: 'INSTALL',
+            corplist: [],// 公司列表
+            corpid: ''
+        }
+    },
+    methods: {
+        /**
+         * 获取公司列表
+         */
+        async getCorpList (query) {
+            let param = {
+                page: 1,
+                limit: 20,
+                corpname: query
+            }
+            try {
+                const {data} = await getParentInfoList(param)
+                this.corplist = data.data.records;
+            } catch (e) {
+                console.log(e)
+            }
+        },
+        changeCorp () {
+
+        },
+    }
+}

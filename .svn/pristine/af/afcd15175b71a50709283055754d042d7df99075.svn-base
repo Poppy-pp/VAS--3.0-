@@ -1,0 +1,37 @@
+import axios from 'axios'
+
+export const getInsuranceDataCount = params => {
+    return axios.get('/insurance/insuranceinfo/query/insuranceDataStatistic', {
+        params
+    })
+}
+
+export const getPolicyno = params => {
+    return axios.get('/insurance/insurancePolicyno/query/queryAllPolicyno', {
+        params
+    })
+}
+
+export const getCountByDay = params => {
+    return axios.get('/insurance/insuranceinfo/query/issueStatisticByDay', {
+        params
+    })
+}
+
+export const getCountByMonth = params => {
+    return axios.get('/insurance/insuranceinfo/query/issueStatisticByMonth', {
+        params
+    })
+}
+
+export const getCountByQuarter = params => {
+    return axios.get('/insurance/insuranceinfo/query/issueStatisticByQuarter', {
+        params
+    })
+}
+
+export const getCountByYear = params => {
+    return axios.get('/insurance/insuranceinfo/query/issueStatisticByYear', {
+        params
+    })
+}

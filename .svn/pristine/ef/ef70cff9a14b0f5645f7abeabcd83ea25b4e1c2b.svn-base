@@ -1,0 +1,12 @@
+import axios from 'axios';
+let base = '/vasms-web';
+
+function get (params) {
+    return axios.get(`${base}/api/v1/org/corporateInfo/query/vw`, {
+        params
+    });
+}
+
+export {
+    get
+}

@@ -1,0 +1,88 @@
+<template>
+    <el-table
+            border
+            stripe
+            :data="list"
+            @row-click="rowClick"
+            style="width: 100%">
+        <el-table-column
+                align="center"
+                type="index"
+                width="50">
+        </el-table-column>
+        <el-table-column
+                prop="cmsPackage.packcode"
+                align="center"
+                label="产品编码"
+                width="180">
+        </el-table-column>
+        <el-table-column
+                prop="cmsPackage.packdesc"
+                align="center"
+                label="产品名称">
+        </el-table-column>
+        <el-table-column
+                prop="cmsPackage.packcontent"
+                :formatter="contentFormatter"
+                align="center"
+                label="产品内容">
+        </el-table-column>
+        <el-table-column
+                align="center"
+                width="200"
+                label="选择">
+            <template slot-scope="scope">
+                <el-radio v-model="selected" :label="scope.row.id" class="product-radio"></el-radio>
+            </template>
+        </el-table-column>
+    </el-table>
+</template>
+
+<script>
+
+    export default {
+        name: "productList",
+        data () {
+            return {
+                tableData: [],
+                selected: ''
+            }
+        },
+        props: ['list', 'selectedId'],
+        watch: {
+            selectedId (newValue) {
+                if (newValue) {
+                    this.selected = newValue
+                } else {
+                    this.selected = ''
+                }
+            }
+        },
+        methods: {
+            rowClick (row) {
+                this.selected = row.id
+                this.$emit('select', row)
+            },
+            contentFormatter (row) {
+                if (row.cmsPackage && row.cmsPackage.packcontent) {
+                    return row.cmsPackage.packcontent
+                }
+                return '无'
+            }
+        },
+        created () {
+            if (this.selectedId) {
+                this.selected = this.selectedId
+            } else {
+                this.selected = ''
+            }
+        }
+    }
+</script>
+
+<style lang="stylus">
+    .product-radio
+        .el-radio__label
+            display none
+
+</style>

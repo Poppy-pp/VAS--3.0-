@@ -1,0 +1,21 @@
+import invoiceDetail from './invoice-detail/index.vue'
+import { mapState } from 'vuex'
+
+export default {
+    name: "putInStorageInvoices",
+    data () {
+        return {
+            activeNames: [0]
+        }
+    },
+    computed: {
+        ...mapState({
+            storageInvoice: state => state.storage.data
+        })
+    },
+    components: {
+        invoiceDetail
+    },
+    methods: {},
+    mounted () {}
+}

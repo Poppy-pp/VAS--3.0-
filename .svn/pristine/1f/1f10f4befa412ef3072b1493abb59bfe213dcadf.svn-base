@@ -1,0 +1,59 @@
+import { getParentInfoList } from '@/views/sysManage/organizationManage/service'
+import installOrder from './installOrder/index.vue'
+import maintainOrder from './maintainOrder/index.vue'
+import { mapState } from "vuex";
+
+export default {
+    name: "addInstallOrder",
+    components: {
+        installOrder,
+        maintainOrder
+    },
+    data () {
+        return {
+            type: 'INSTALL', //INSTALL REPAIR
+            corplist: [],// 公司列表
+            corpid: '',
+            corpname: ''
+        }
+    },
+    computed: {
+        ...mapState({
+            roles: state => state.user.roles,
+            corporateinfo: state => state.user.corporateinfo,
+            isEmployee: state => state.user.isEmployee
+        })
+    },
+    methods: {
+        /**
+         * 获取公司列表
+         */
+        async getCorpList (query) {
+            let param = {
+                page: 1,
+                limit: 20,
+                corpname: query
+            }
+            try {
+                const {data} = await getParentInfoList(param)
+                this.corplist = data.data.records;
+            } catch (e) {
+                console.log(e)
+            }
+        },
+        changeType (value) {
+            this.initCorp()
+        },
+        initCorp () {
+            this.corplist = [{
+                id: this.corporateinfo.id,
+                corpname: this.corporateinfo.corpname
+            }]
+            this.corpid = this.corporateinfo.id
+            this.corpname = this.corporateinfo.corpname
+        }
+    },
+    created () {
+        this.initCorp()
+    }
+}

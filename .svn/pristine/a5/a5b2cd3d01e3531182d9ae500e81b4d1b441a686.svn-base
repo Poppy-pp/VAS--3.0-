@@ -1,0 +1,94 @@
+/* 
+ * @description: 后台数据接口配置中心 
+ * @author: wp 
+ * @update: wp (2017-05-27 10:55) 
+ */
+import axios from 'axios';
+import Qs from 'qs';
+
+let base = '/vasms-web';
+let api = '/api';
+
+//保单信息管理接口
+const getInsuranceInfoList = params => {
+    return axios.get(`insurance/insuranceinfo/query/like`, {params: params});
+};
+
+const modifyInsuranceInfo = params => {
+    return axios.put(`insurance/insuranceinfo/mod`, params);
+};
+
+const removeInsuranceInfo = params => {
+    return axios.delete(`insurance/insuranceinfo/` + params.id);
+};
+
+//保单详情
+const getMoreInfo = params => {
+    return axios.get(`insurance/insuranceinfo/query/` + params.id, params);
+};
+// 操作详情
+const getRecordsInfo = params => {
+    return axios.get(`insurance/insuranceinfo/query/insuranceEvent`,  {params: params});
+};
+// 导出
+const exportInsurance = params => {
+    return axios.get(`insurance/insuranceinfo/query/export`,  {params: params});
+};
+// 重新出单
+const againInsuranceInfo = params => {
+    return axios.post(`${base}/api/v1/insur/insuranceInfo/issueAgain`, params);
+};
+// 保单操作
+const handleInsurance = params => {
+    return axios.post(`/insuranceinfo/add/insuranceEvent`, params);
+};
+
+
+const delInsuranceInfoList = params => {//废除保单
+    return axios.get(`${base}/api/v1/insur/insuranceInfo/invalid`, {
+        params: params
+    });
+};
+/*保单搜索模糊查询接口*/
+const getSelectListInsu = params => {
+    return axios.get(`${base}/api/v1/insur/insuranceInfo/query/like`, {
+        params: params
+    });
+};
+
+const printInsuranceInfo = params => {//打印保单
+    return axios.put(`${base}/api/v1/insur/insuranceInfo/updateAndPrint/` + params.id, params);
+};
+
+
+// 获取关联详情接口
+const getProdInfoList = params => {
+    return axios.get(`${base}/api/v1/insur/insuranceInfo/getProduct`, {
+        params: params
+    });
+};
+//查询车架号
+const getVehicleSearchInfoList = params => {
+    return axios.get(`${base}/api/v1/car/vehicleInfo/`, {
+        params: params
+    });
+};
+//获取设备型号
+const getMoNameList = params => {
+    return axios.get(`${base}/api/v1/device/productModel?prodcategory=E&showCount=1000`);
+};
+// 保单公司接口
+const getInCorpInfoList = params => {
+    return axios.get(`${base}/api/v1/org/corporateInfo/query/vw?ctype=INSU`, {
+        params: params
+    });
+};
+const getCheckoutOfIns = params => {
+    return axios.get(`${base}/api/v1/insur/insuranceInfo/checkout/` + params.para + '/' + params.value);
+}
+
+
+
+export{
+    getInsuranceInfoList, addInsuranceInfo, modifyInsuranceInfo, exportInsurance,handleInsurance,getRecordsInfo,getMoreInfo, removeInsuranceInfo, getProdInfoList, getVehicleSearchInfoList, getMoNameList, getSortList, getInCorpInfoList, getSelectListInsu, getCheckoutOfIns,getCorpList,delInsuranceInfoList,againInsuranceInfo,printInsuranceInfo 
+}

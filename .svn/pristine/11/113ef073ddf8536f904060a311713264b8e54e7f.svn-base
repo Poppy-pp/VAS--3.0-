@@ -1,0 +1,66 @@
+import axios from 'axios'
+
+let base = '/vasms-web';
+let admin = '/admin';
+
+export const get = id => {
+    // return new Promise((resolve) => {
+    //     setTimeout(() => {
+    //         resolve(data)
+    //     }, 300)
+    // })
+    return axios.get(`${base}/api/v1/workflow/new_build/declaration/${id}`)
+}
+
+//提交保险信息
+export const addApprovaperInsurance = params => {
+    return axios.post(`${base}/api/v1/workflow/new_build/` + params.taskId + `/insurance`, params.properties)
+};
+
+//获取公司名称列表
+export const getCorpNameInsuList = params => {
+    return axios.get(`${base}/api/v1/org/corporateInfo?corptype=INSU`)
+};
+
+//检查设备是否在线
+export const cldeviceIsOnstate = params => {
+    return axios.post(`/gisapiservice/Prod/proddetail`, params)
+};
+
+//提交保险信息
+export const addInsuranceDetail = params => {
+    return axios.post(`${base}/api/v2/commom_task/insu/` + params.taskId, params.properties)
+};
+
+//获取客户和银行列表
+export const getCorpList = params => {
+    return axios.get(`${base}/api/v1/org/corporateInfo?flag=万网公司&showCount=1000`, {
+        params: params
+    });
+};
+
+// 验证所有电话
+export const checkAllMobile = (rule, value, callback) => {
+    var reg = /((\d{11})|^((\d{7,8})|(\d{4}|\d{3})-(\d{7,8})|(\d{4}|\d{3})-(\d{7,8})-(\d{4}|\d{3}|\d{2}|\d{1})|(\d{7,8})-(\d{4}|\d{3}|\d{2}|\d{1}))$)/g,
+        flag = reg.test(value);
+    if (!flag) {
+        return callback(new Error('请输入电话号码或手机号码'));
+    } else {
+        callback();
+    }
+};
+
+// 验证数字
+export const checkNum = (rule, value, callback) => {
+    var reg = /^[0-9]*$/g,
+        flag = reg.test(value);
+    if (!flag) {
+        return callback(new Error('只能输入数字'));
+    } else {
+        callback();
+    }
+};
+
+export const add = params => {
+    return axios.post(`/insurance/insuranceinfo/add/commitInsuranceInfo`, params)
+}

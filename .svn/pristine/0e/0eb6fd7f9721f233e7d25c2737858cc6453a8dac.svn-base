@@ -1,0 +1,62 @@
+<!--* 
+* @description: 报单中心列表 新装单 拆除单 维修单
+*-->
+<template>
+    <section class="tab_content-wrapper yewu">
+        <el-tabs v-model="activeName" @tab-click="handleClick" tab-position="left">
+            <el-tab-pane label="新装单管理" name="1">
+                <newpackinglist :windowOutHeight="windowOutHeight" v-if="activeName == 1"></newpackinglist>
+            </el-tab-pane>
+            <el-tab-pane label="拆除单管理" name="2">
+                <dismantlelist :windowOutHeight="windowOutHeight" v-if="activeName == 2"></dismantlelist>
+            </el-tab-pane>
+            <el-tab-pane label="维修单管理" name="3">
+                <repairlist :windowOutHeight="windowOutHeight" v-if="activeName == 3"></repairlist>
+            </el-tab-pane>
+            
+        </el-tabs>
+    </section>
+</template>
+
+<script>
+    //组件引入
+    import newpackinglist from './newPackingList';
+    import dismantlelist from './dismantleList';
+    import repairlist from './repairList';
+    export default {
+        props: ['windowOutHeight'],
+        components: {
+            newpackinglist,
+            dismantlelist,
+            repairlist,
+        },
+        data() {
+            return {
+                activeName: '2'
+            }
+        },
+        methods: {
+            //页面管理切换
+            handleClick(tab, event) {
+                console.log(tab.name)
+                // let tabbarType = {
+                //     name:'a2',
+                //     type:tab.name
+                // }
+                // this.$store.dispatch("tabbarType",tabbarType);
+            }
+        },
+        created(){
+            // let tabbarType = this.$store.getters.tabbarType;
+            // if(tabbarType.name=='a2'){
+            //     this.activeName = tabbarType.type;
+            // }
+        }
+    }
+</script>
+
+
+<style scoped lang="stylus">
+    
+</style>
+

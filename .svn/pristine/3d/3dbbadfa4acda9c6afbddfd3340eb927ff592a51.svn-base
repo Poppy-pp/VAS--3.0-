@@ -1,0 +1,356 @@
+import { getInterfaceList, addInterface, modifyInterface, removeInterface, getSelectInterfaceList, getInterfaceParaList } from './service';
+import { checkname, checkvalue } from '@/utils/formValidation'
+
+export default {
+    props: ['windowOutHeight'],
+    data () {
+        return {
+            filters: {
+                domSearch: [{
+                    select: ['interfacename'],
+                    content: ''
+                }], //查询框
+            },
+            listData: [],
+            interfaceData: [], //接口
+            paraThisList: [], //参数
+            total: 0,
+            currentPage: 1,
+            pageSize: 15,
+            listLoading: false,
+            formDialogTableVisible: false,
+            sels: [], //列表选中列
+            editFormVisible: false, //编辑界面是否显示
+            editLoading: false,
+            editFormRules: {
+                interfacename:[{
+                    required: true,
+                    message: '请输入接口名称',
+                    trigger:'blur'
+                },
+                {
+                    validator: checkname,
+                    trigger:'blur'
+               }],
+               interfaceaddress:[{
+                    required: true,
+                    message: '请输入接口地址',
+                    trigger:'blur'
+               },
+               {
+                    validator: checkvalue,
+                    trigger:'blur'
+               }],
+               interfaceformat:[{
+                    required: true,
+                    message: '请输入支持格式',
+                    trigger:'blur'
+               },
+               {
+                    validator: checkvalue,
+                    trigger:'blur'
+               }],
+               requestway:[{
+                    required: true,
+                    message: '请输入请求方式',
+                    trigger:'blur'
+               },
+               {
+                    validator: checkvalue,
+                    trigger:'blur'
+               }],
+               requestsample:[{
+                    required: true,
+                    message: '请输入请求示例',
+                    trigger:'blur'
+               },
+               {
+                    validator: checkvalue,
+                    trigger:'blur'
+               }]
+            },
+            //编辑界面数据
+            editForm: {
+                id: '',
+                interfacename: '',
+                interfaceaddress: '',
+                interfaceformat: '',
+                requestway: '',
+                requestsample: '',
+                instruction: '',
+                system: '',
+               // STATUS: '',
+               // SOURCE: '',
+            },
+
+            addFormVisible: false, //新增界面是否显示
+            addLoading: false,
+            addFormRules: {
+                interfacename:[{
+                    required: true,
+                    message: '请输入接口名称',
+                    trigger:'blur'
+                },
+                {
+                    validator: checkname,
+                    trigger:'blur'
+               }],
+               interfaceaddress:[{
+                    required: true,
+                    message: '请输入接口地址',
+                    trigger:'blur'
+               },
+               {
+                    validator: checkvalue,
+                    trigger:'blur'
+               }],
+               interfaceformat:[{
+                    required: true,
+                    message: '请输入支持格式',
+                    trigger:'blur'
+               },
+               {
+                    validator: checkvalue,
+                    trigger:'blur'
+               }],
+               requestway:[{
+                    required: true,
+                    message: '请输入请求方式',
+                    trigger:'blur'
+               },
+               {
+                    validator: checkvalue,
+                    trigger:'blur'
+               }],
+               requestsample:[{
+                    required: true,
+                    message: '请输入请求示例',
+                    trigger:'blur'
+               },
+               {
+                    validator: checkvalue,
+                    trigger:'blur'
+               }]
+            },
+            //新增界面数据
+            addForm: {
+                interfacename: '',
+                interfaceaddress: '',
+                interfaceformat: '',
+                requestway: '',
+                requestsample: '',
+                instruction: '',
+                system: '',
+                //STATUS: '',
+                //SOURCE: '',
+            },
+        }
+    },
+    methods: {
+        //详情查看
+        formDetailHandle (row) {
+            this.formDialogTableVisible = true;
+            this.interfaceData = row;
+            this.paraThisList = ''; //清空上条数据
+            // 获取当前参数信息
+            let para = {
+                interfaceid:row.id
+                
+            }
+            getInterfaceParaList(para).then((res) => {
+                if (res.data.data.params.length == 0) {
+                    this.$message({
+                        message: '该接口暂无参数信息！',
+                        type: 'warning'
+                    });
+                } else {
+                    this.paraThisList = res.data.data.params;
+                }
+                
+            });
+        },
+        //查询清空
+        clearAll () {
+            this.filters.domSearch = [{
+                select: [],
+                content: ''
+            }] //清空查询框;
+        },
+        // 添加查询条件
+        addSelect () {
+            this.filters.domSearch.push({
+                select: [],
+                content: ''
+            });
+        },
+        // 移除查询条件
+        removeSelect (index) {
+            this.filters.domSearch.splice(index, 1); //从当前index位置开始，删除一项
+        },
+        //搜索按钮——模糊查询
+        handleQuerySelect () {
+            let para = {
+                page: this.currentPage,
+                limit: this.pageSize,
+                domSearch: this.filters.domSearch,
+            };
+            this.listLoading = true;
+            getSelectInterfaceList(para).then((res) => {
+                this.total = res.data.data.totalResult;
+                this.listData = res.data.data.records;
+                this.listLoading = false;
+            }).catch((error) => {
+                this.listLoading = false;
+            });
+        },
+        handleCurrentChange (val) {
+            this.currentPage = val;
+            this.handleQuery();
+        },
+        //切换每页显示数量
+        handleSizeChange (val) {
+            this.pageSize = val;
+            this.handleQuery();
+        },
+        //获取保单列表
+        handleQuery () {
+            let para = {
+                currentPage: this.currentPage,
+                showCount: this.pageSize,
+            };
+            this.listLoading = true;
+            getInterfaceList(para).then((res) => {
+                this.total = res.data.data.total;
+                this.listData = res.data.data.records;
+                this.listLoading = false;
+                //console.log(this.total);                
+                //console.log(this.listData);                
+
+            }, () => {
+                this.listLoading = false;
+            });
+        },
+
+        //删除
+        handleDel (index, row) {
+            this.$confirm('确认删除该记录吗?', '提示', {
+                type: 'warning'
+            }).then(() => {
+                this.listLoading = true;
+                let para = {
+                    ids: row.id
+                    // method: "delete"
+                };
+                removeInterface(para).then((res) => {
+                    this.listLoading = false;
+                    this.$message({
+                        message: '删除成功',
+                        type: 'success'
+                    });
+                    this.handleQuery();
+                }, () => {
+                    this.listLoading = false;
+                });
+            }).catch(() => {
+
+            });
+        },
+        //显示编辑界面
+        handleEdit (index, row) {
+            this.editFormVisible = true;
+            this.editForm = {
+                id: row.id,
+                interfacename: row.interfacename,
+                interfaceaddress: row.interfaceaddress,
+                interfaceformat: row.interfaceformat,
+                requestway: row.requestway,
+                requestsample: row.requestsample,
+                instruction: row.instruction,
+                system: row.system,
+                //STATUS: row.STATUS,
+                //SOURCE: row.SOURCE,
+            }
+        },
+        //显示新增界面
+        handleAdd () {
+            this.addFormVisible = true;
+            this.addForm = {
+                interfacename: '',
+                interfaceaddress: '',
+                interfaceformat: '',
+                requestway: '',
+                requestsample: '',
+                instruction: '',
+                system: '',
+                //STATUS: '',
+                //SOURCE: '',
+            };
+        },
+        //编辑
+        editSubmit () {
+            this.$refs.editForm.validate((valid) => {
+                if (valid) {
+                    this.editLoading = true;
+                    let para = {
+                        id: this.editForm.id,
+                        interfacename: this.editForm.interfacename,
+                        interfaceaddress: this.editForm.interfaceaddress,
+                        interfaceformat: this.editForm.interfaceformat,
+                        requestway: this.editForm.requestway,
+                        requestsample: this.editForm.requestsample,
+                        instruction: this.editForm.instruction,
+                        system: this.editForm.system,
+                        //STATUS: this.editForm.STATUS,
+                        //SOURCE: this.editForm.SOURCE,
+                    }
+                    modifyInterface(para).then((res) => {
+                        this.editLoading = false;
+                        this.$message({
+                            message: '编辑成功',
+                            type: 'success'
+                        });
+                        this.$refs['editForm'].resetFields();
+                        this.editFormVisible = false;
+                        this.handleQuery();
+                    }, () => {
+                        this.editLoading = false;
+                    });
+                }
+            });
+        },
+        //新增
+        addSubmit () {
+            this.$refs.addForm.validate((valid) => {
+                if (valid) {
+                    this.addLoading = true;
+                    let para = {
+                        interfacename: this.addForm.interfacename,
+                        interfaceaddress: this.addForm.interfaceaddress,
+                        interfaceformat: this.addForm.interfaceformat,
+                        requestway: this.addForm.requestway,
+                        requestsample: this.addForm.requestsample,
+                        instruction: this.addForm.instruction,
+                        system: this.addForm.system,
+                        //STATUS: this.addForm.STATUS,
+                        //SOURCE: this.addForm.SOURCE,
+                    }
+                    addInterface(para).then((res) => {
+                        this.addLoading = false;
+                        this.$message({
+                            message: '新增成功',
+                            type: 'success'
+                        });
+                        this.$refs['addForm'].resetFields();
+                        this.addFormVisible = false;
+                        this.handleQuery();
+                    }, () => {
+                        this.addLoading = false;
+                    });
+                }
+            });
+        },
+    },
+    created () {
+        this.handleQuery();
+    }
+}

@@ -1,0 +1,372 @@
+import { getSearchVinNum } from '../../../insuranceManage/addInsurance/service';
+import gdmap from '@/views/map/gdmap';
+import { get as getVinInfo } from '@/views/insuranceManage/addInsurance/service';
+import { getGroupInfoList } from '@/views/sysManage/group/service'
+import { cldeviceIsOnstate } from '@/views/insuranceManage/addInsurance/service'
+import { initMaintainOrderForm, initMaintainOrderRules } from '../service'
+import { getSysDictionaryDataList } from '@/views/sysManage/dictionaryManage/SysDictionaryData/service'
+
+export default {
+    name: "maintainOrder",
+    data () {
+        return {
+            activeNames: ['1', '2', '3'],
+            form: initMaintainOrderForm(),
+            rules: initMaintainOrderRules(),
+            vehicleInfo: null,
+            vehiclevin: '',
+            options: [
+                {
+                    id: 'REPAIR',
+                    dictdatavalue: '维修',
+                    children: [
+                        // {value: 'shejiyuanze1', label: '未定位'},
+                        // {value: 'shejiyuanze2', label: '设备无电'},
+                        // {value: 'shejiyuanze3', label: '停车超时'},
+                        // {value: 'shejiyuanze4', label: '设备离线'},
+                        // {value: 'shejiyuanze5', label: '卡号关机'},
+                        // {value: 'shejiyuanze6', label: '流量异常处理'},
+                        // {value: 'shejiyuanze7', label: '客户要求检测'},
+                        // {value: 'shejiyuanze8', label: '定位不准'},
+                        // {value: 'shejiyuanze9', label: '其它'},
+                    ]
+                }, {
+                    id: 'REMOVE',
+                    dictdatavalue: '拆除',
+                    children: [
+                        // {value: 'shejiyuanze10', label: '结清拆除'},
+                        // {value: 'shejiyuanze11', label: '客户退单'},
+                        // {value: 'shejiyuanze12', label: '设备换装'},
+                        // {value: 'shejiyuanze13', label: '多装或错装'},
+                        // {value: 'shejiyuanze14', label: '其它'}
+                    ]
+                }
+            ],
+            checked: false,
+            loading: false,
+            addressList: [],
+            signalLoading: false,
+            installDetails: [],
+            el: null,
+            groupArr: [],
+            groupList: [],//分组列表
+            cascaderProp: {
+                value: 'id',
+                label: 'name',
+            },
+            reasonProp: {
+                value: 'id',
+                label: 'dictdatavalue',
+            },
+            isShowHistory: false,
+            signalInfo: {}
+        }
+    },
+    components: {
+        gdmap
+    },
+    methods: {
+        /**
+         * 根据车架号/车牌号查询车辆列表
+         * @param queryString
+         * @param cb
+         */
+        querySearchVins (queryString, cb) {
+            let para = {
+                vin: $.trim(queryString.toUpperCase()) ? $.trim(queryString.toUpperCase()) : "2"
+            };
+            getSearchVinNum(para).then((res) => {
+                cb(res.data.data)
+            });
+        },
+        //根据车架号/车牌号查询
+        handleSelectVin (item) {
+            this.getVinInfo(item.id)
+            this.form.vehicleid = item.id
+        },
+        /**
+         * 高德地图API autocomplete
+         * @param query
+         */
+        autoInput (query) {
+            if (query !== '') {
+                this.loading = true;
+                let autoComplete = new AMap.Autocomplete({
+                    city: '全国'
+                });
+                autoComplete.search(query, (status, result) => {
+                    // 搜索成功时，result即是对应的匹配数据
+                    this.addressList = result.tips
+                    this.loading = false
+                })
+            } else {
+                this.addressList = [];
+            }
+        },
+        // 选择地图
+        changeAdress (item) {
+            const address = item.district + item.address + item.name
+            this.$refs.vueAmap.geocoder(address, (res) => {
+                this.form.impaddresscode = res.adcode
+                this.form.impaddress = address
+                this.form.impaddresslng = res.location.lng
+                this.form.impaddresslat = res.location.lat
+            });
+        },
+        /**
+         * 地图拖动事件
+         * @param address
+         * @param lnglatXY
+         * @param type
+         */
+        draggerMapMarker (address, lnglatXY, type) {
+            this.form.impaddress = address
+            this.form.impaddresslng = lnglatXY[0]
+            this.form.impaddresslat = lnglatXY[1]
+        },
+        /**
+         * 根据车辆ID查询车辆详情
+         * @param vehicleId
+         * @returns {Promise<void>}
+         */
+        async getVinInfo (vehicleId) {
+            try {
+                const params = {
+                    vehicleId
+                }
+                const {data} = await getVinInfo(params)
+                this.initForm(data.data)
+            } catch (e) {
+                console.log(e)
+            }
+        },
+        /**
+         * 初始化表单
+         * @param res
+         */
+        initForm (res) {
+            this.vehicleInfo = {
+                vehicleowner: '',//车主姓名
+                vehiclevin: '',//车架号
+                vehicletype: '',//车辆类型
+                licenseplatenum: '',//车牌号
+                vehicleownermobile: '',//车主电话
+                vehiclemodel: '',//厂牌型号
+                vehiclecategory: '',//车辆分类
+                vehiclecolor: ''//车辆颜色
+            }
+            this.vehicleInfo.vehicleowner = res.ownerInfo.name
+            this.vehicleInfo.vehiclevin = res.vehicleInfo.vin
+            this.vehicleInfo.vehicletype = '二手车'
+            this.vehicleInfo.licenseplatenum = res.vehicleInfo.licenseplatenum
+            this.vehicleInfo.vehicleownermobile = res.ownerInfo.mobile
+            this.vehicleInfo.vehiclemodel = res.vehicleInfo.model
+            this.vehicleInfo.vehiclecategory = res.vehicleInfo.vehiclePlateColor.typedesc
+            this.vehicleInfo.vehiclecolor = res.vehicleInfo.color
+            _.forEach(res.installDetails, item => {
+                item.checked = false
+                item.isShow = false
+            })
+            this.installDetails = res.installDetails
+        },
+        /**
+         * 图片浏览器
+         */
+        initViewer () {
+            if (this.viewer)
+                this.viewer.destroy()
+            // const el = this.$refs['rpShowimgDialog'].$el
+            // const doc = document.getElementsByClassName('image')
+            this.$nextTick(() => {
+                this.viewer = new Viewer(this.el)
+            });
+        },
+        viewImageList (dc) {
+            this.el = document.getElementById(dc)
+            this.initViewer()
+        },
+        /**
+         * 获取安装组&组员
+         * @returns {Promise<void>}
+         */
+        async getGroupInfoList () {
+            try {
+                const params = {
+                    page: 1,
+                    limit: 15,
+                    isactive: 1,
+                    grouptype: 'INSTALL'
+                }
+                const {data} = await getGroupInfoList(params)
+                this.groupBeanList = data.data.records
+                this.groupList = _.map(data.data.records, item => {
+                    return {
+                        id: item.id,
+                        name: item.groupname,
+                        children: _.map(item.employeeInfos, employee => {
+                            return {
+                                id: employee.userid,
+                                name: employee.employeename,
+                            }
+                        })
+                    }
+                })
+            } catch (e) {
+                console.log(e)
+            }
+        },
+        /**
+         * 选择安装人员
+         * @param item
+         */
+        changeGroup (item) {
+            this.form.impgroupid = this.groupArr[0]
+            this.form.impby = this.groupArr[1]
+            this.addressDetail = ''
+            const data = _.find(this.groupBeanList, item => {
+                return item.id === this.groupArr[0]
+            })
+
+            this.selectEmployee = _.find(data.employeeInfos, item => {
+                return item.userid === this.groupArr[1]
+            })
+
+            /**
+             * lat: 30.629002
+             * lng: 104.142672
+             */
+            this.$refs.vueAmap.getAddress([104.142672, 30.629002], (res) => {
+                this.addressDetail = res
+            });
+        },
+        /**
+         * 信号检测
+         * @param productNum
+         */
+        async getSignalInfo (productNum) {
+            try {
+                this.signalLoading = true
+                this.signalInfo = {
+                    curonlinestatus: '',//设备实时状态
+                    locationmode: '',//定位方式
+                    gps_satellite_count: '',//卫星或基站数量
+                    signalqulity: '',//卫星或基站信号强度
+                    curaddress: '',//定位地址
+                    onlineStatus: ''//上线质量
+                }
+                const params = {
+                    id: productNum
+                }
+                const {data} = await cldeviceIsOnstate(params)
+                const realdata = data.data.realdata
+                let curonlinestatus = ''
+                let signalqulity = ''
+                let onlineStatus = ''
+                switch (realdata.istate) {
+                    case 0:
+                        curonlinestatus = "行驶";
+                        break;
+                    case 1:
+                        curonlinestatus = "离线";
+                        break;
+                    case 2:
+                        curonlinestatus = "停车";
+                        break;
+                    case 3:
+                        curonlinestatus = "报警";
+                        break;
+                    case 4:
+                        curonlinestatus = "无效定位";
+                        break;
+                    case 5:
+                        curonlinestatus = "未定位";
+                        break;
+                }
+
+                switch (realdata.signalqulity) {
+                    case 0:
+                        signalqulity = "未知";
+                        onlineStatus = '差'
+                        break;
+                    case 1:
+                        signalqulity = "无信号";
+                        onlineStatus = '差'
+                        break;
+                    case 2:
+                        signalqulity = "信号较弱";
+                        onlineStatus = '差'
+                        break;
+                    case 3:
+                        signalqulity = "信号良好/中";
+                        onlineStatus = '中'
+                        break;
+                    case 4:
+                        signalqulity = "信号强";
+                        onlineStatus = '优'
+                        break;
+                }
+                this.signalInfo.curonlinestatus = curonlinestatus
+                this.signalInfo.onlineStatus = onlineStatus
+                this.signalInfo.locationmode = realdata.locationmode
+                this.signalInfo.gps_satellite_count = realdata.gps_satellite_count
+                this.signalInfo.signalqulity = signalqulity
+                this.$refs.vueAmap.getAddress([realdata.lng, realdata.lat], (res) => {
+                    this.signalInfo.curaddress = res
+                })
+                this.signalLoading = false
+            } catch (e) {
+                this.signalLoading = false
+                console.log(e)
+            }
+        },
+        submit () {
+            this.$refs.form.validate(async valid => {
+                if (valid) {
+                    try {
+                        const arr = _.filter(this.installDetails, item => {
+                            return item.checked
+                        })
+                        if (!arr.length) {
+                            this.$message.warning('请选择维护设备')
+                        }
+                        this.form.busiImpdetails = _.map(arr, item => {
+                            return {
+                                prodmodelid: item.packInfo.PRODMODELID,
+                                installpositioncode: item.installpositioncode,
+                                packid: item.packid,
+                                onlinestatus: item.onlinestatus,
+                            }
+                        })
+                    } catch (e) {
+                        console.log(e)
+                    }
+                } else {
+                    this.$message.warning('请完善信息')
+                }
+            })
+        },
+        async getReason () {
+            try {
+                const RemoveParams = {
+                    dictvalue: 'RemoveReason',
+                    limit: 1000,
+                    page: 1
+                }
+                const RepairParams = {
+                    dictvalue: 'RepairReason',
+                    limit: 1000,
+                    page: 1
+                }
+                const removeReason = await getSysDictionaryDataList(RemoveParams)
+                const repairReason = await getSysDictionaryDataList(RepairParams)
+                this.options[0].children = repairReason.data.data.records
+                this.options[1].children = removeReason.data.data.records
+            } catch (e) {
+                console.log(e)
+            }
+        }
+    },
+    mounted () {
+        this.getReason()
+    }
+}

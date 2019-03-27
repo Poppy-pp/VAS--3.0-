@@ -1,0 +1,150 @@
+import axios from 'axios';
+
+let base = '/vasms-web';
+let admin = '/admin';
+
+/*部门搜索模糊查询接口*/
+// const getDepartmentInfoList = params => {
+//     // return axios.get(`${base}/api/v1/org/departmentInfo/query/vw`, {
+//     //     params: params
+//     // });
+//     return new Promise((resolve) => {
+//         setTimeout(() => {
+//             resolve(deptList)
+//         }, 200)
+//     })
+// };
+
+// const getGroupInfoList = params => {
+//     // return axios.get(`${base}/api/v1/org/groupInfo/query/vw`, {
+//     //     params: params
+//     // });
+//     return new Promise((resolve) => {
+//         setTimeout(() => {
+//             resolve(groupInfoList)
+//         }, 200)
+//     })
+// };
+
+// const getPositionInfoList = params => {
+//     // return axios.get(`${base}/api/v1/org/positionInfo/query/vw`, {
+//     //     params: params
+//     // });
+//     return new Promise((resolve) => {
+//         setTimeout(() => {
+//             resolve(positionInfoList)
+//         }, 200)
+//     })
+// };
+
+// //获取公司类型列表
+// const getCorpType = params => {
+//     return axios.get(`${base}/api/v1/sys/sysDictionaryData?dicvalue=CorpType`, {
+//         params: params
+//     });
+// };
+//
+// // 查询详细公司
+// const getAllCorpList = params => {
+//     return axios.get(`${base}/api/v1/org/corporateInfo/query/IDAndName`, {
+//         params: params
+//     });
+// };
+//
+// //数据检测接口
+// const getCheckoutOfDeptInfo = params => {
+//     return axios.get(`${base}/api/v1/org/departmentInfo/checkout`, {
+//         params: params
+//     });
+// };
+//
+// const getDeptManagerInfoList = params => {
+//     return axios.get(`${base}/api/v1/org/employeeInfo/?showCount=10000`, {
+//         params: params
+//     });
+// };
+//
+// // 查询详细部门
+// const getAllDeptList = params => {
+//     return axios.get(`${base}/api/v1/org/departmentInfo/query/IDAndName`, {
+//         params: params
+//     });
+// };
+//
+// //数据检测接口
+// const getCheckoutOfGroupInfo = params => {
+//     return axios.get(`${base}/api/v1/org/groupInfo/checkout/` + params.para + '/' + params.value);
+// };
+//
+// //分组类型列表查询
+// const groupClass = params => {
+//     return axios.get(`${base}/api/v1/sys/sysDictionaryData/dictvalue/` + params.dictvalue, params)
+// };
+//
+// // 获取员工
+// const getEmpsGroupList = params => {
+//     return axios.get(`${base}/api/v1/org/employeeInfo/getIDandName`, {
+//         params: params
+//     });
+// };
+//
+// //获取客户和银行列表
+// const getCorpList = params => {
+//     return axios.get(`${base}/api/v1/org/corporateInfo?flag=万网公司&showCount=1000`, {
+//         params: params
+//     });
+// };
+//
+// const getCheckoutOfPosInfo = params => {
+//     return axios.get(`${base}/api/v1/org/positionInfo/checkout/` + params.para + '/' + params.value);
+// };
+
+// 更新
+const update = params => {
+    return axios.put(`${admin}/corporateinfo`, params)
+}
+
+// 创建
+const create = params => {
+    return axios.post(`${admin}/corporateinfo`, params)
+}
+
+// 获取父级公司名称列表
+const getParentInfoList = params => {
+    return axios.get(`${admin}/corporateinfo/page`, {
+        params: params
+    });
+};
+
+// 获取树
+const getCorporateInfo = params => {
+    return axios.get(`${admin}/corporateinfo/corporateTree`, {
+        params
+    });
+};
+
+// 通过id查询组织
+const getCorporateById = id => {
+    return axios.get(`${admin}/corporateinfo/${id}`);
+};
+
+export {
+    getCorporateInfo,
+    // getDepartmentInfoList,
+    // getGroupInfoList,
+    // getPositionInfoList,
+    getParentInfoList,
+    // getCorpType,
+    // getAllCorpList,
+    // getCheckoutOfDeptInfo,
+    // getDeptManagerInfoList,
+    // getAllDeptList,
+    // getCheckoutOfGroupInfo,
+    // groupClass,
+    // getEmpsGroupList,
+    // getCorpList,
+    // getCheckoutOfPosInfo,
+    update,
+    create,
+    getCorporateById
+}

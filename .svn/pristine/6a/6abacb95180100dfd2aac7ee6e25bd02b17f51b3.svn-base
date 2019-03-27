@@ -1,0 +1,673 @@
+import util from '@/utils/tools'
+import {
+    getPlatProdList,
+    addPlatProd,
+    modifyPlatProd,
+    removePlatProd,
+    getSelectPlatProdList,
+    getMoNameList,
+    getStoNameList,
+    getCorpList,
+    getPlatList,
+    getProdList,
+    getVehicleInfoList,
+    getProtocolList,
+    getProductOwnerList
+} from './service';
+
+export default {
+    name: 'deviceAccess',
+    props: ['windowOutHeight'],
+    data () {
+        return {
+            fmtdata: util,
+            filters: {
+                domSearch: [{
+                    select: ['prodprodnum'],
+                    content: ''
+                }], //查询框
+                isactive: '1',
+            },
+            listData: [],
+            platProdList: [],
+            appointsourceOptions: [{
+                value: 'A',
+                label: '人工添加'
+            }, {
+                value: 'B',
+                label: '订单添加'
+            }, {
+                value: 'C',
+                label: '批量导入'
+            }, {
+                value: 'D',
+                label: '平台对接'
+            }, {
+                value: 'E',
+                label: '其他'
+            }],
+            value: '',
+            formDialogTableVisible: false,
+            total: 0,
+            currentPage: 1,
+            pageSize: 15,
+            listLoading: false,
+            sels: [], //列表选中列
+            editFormVisible: false, //编辑界面是否显示
+            editLoading: false,
+            moNamelist: [], //设备型号列表
+            moNameLoading: false, //设备型号
+            stoNamelist: [], //库房名称列表
+            stoNameLoading: false, //库房名称
+            corplist: [], //所属公司
+            corpLoading: false, //
+            platlist: [], //绑定平台
+            platLoading: false, //
+            prodnumlist: [], //设备编号
+            prodnumLoading: false, //
+            vehlist: [], //车辆是否存在
+            vehID: '', //通过车架号查出当前已选择车辆的id
+            protocollist: [], //协议列表
+            protocolLoading: false, //协议
+            pickerOptions: { //日期
+            },
+            activeNames: ['1', '2'],
+            modelSendNum: '', //存储当前设备型号id，查出该型号下的设备编号
+            prodid: '', //存储当前prodid，查出该设备编号下的车辆
+            editFormRules: {},
+            //编辑界面数据
+            editForm: {
+                id: '',
+                prodID: '',
+                prodprodnum: '',
+                platid: '',
+                platname: '',
+                platip: '',
+            },
+            editFormId: {
+                platid: '',
+                platname: '',
+            },
+            addFormVisible: false, //新增界面是否显示
+            addLoading: false,
+            addFormRules: {
+                // corpname: [
+                // 	{ required: true, message: '请选择所属客户', trigger: 'blur' }
+                // ],
+                // vin: [
+                // 	{ required: true, message: '请输入车架号', trigger: 'blur' }
+                // ],
+            },
+            //新增界面数据
+            addForm: {
+                vehicleid: '',
+                platname: '',
+                platip: '',
+                platid: '',
+                appointtype: '',
+                appointdate: '',
+                appointby: '',
+                hasParent: 1,
+                hasParentTwo: 1,
+                platnameId: '',
+                licenseplatenum: '',
+                vin: '',
+                corporateid: '',
+                corpname: '',
+                appointsource: 'A',
+                defaultflag: '',
+                productid: '',
+                protocolid: '',
+                productInfo: [{
+                    prodnum: '',
+                    prodspec: '',
+                    protocoltype: '',
+                    prodcategory: '',
+                    prodmodelid: '',
+                    productmodelname: '',
+                    storageid: '',
+                    storagename: '',
+                    status: 1,
+                    suppliername: '',
+                    dictdatavalue: '',
+                    ispack: 1,
+                    isold: 1,
+                    expiredate: '',
+                    remark: '',
+                }],
+            }
+        }
+    },
+    methods: {
+        //协议——搜索下拉
+        protocolChange (r) {
+            if (!r || this.protocollist.length > 0) return;
+            this.protocolLoading = true;
+            getProtocolList().then((res) => {
+                this.protocollist = res.data.data.records;
+                this.protocolLoading = false;
+            });
+        },
+        //查询清空
+        clearAll () {
+            this.filters.domSearch = [{
+                select: [],
+                content: ''
+            }] //清空查询框;
+        },
+        // 验证是否是平台内现有的车辆
+        checkCars (val) {
+            let para = {
+                licenseplatenum: $.trim(val.target.value)
+            }
+            // this.addForm.vin='';//清空对应型号的车架号
+            if (para.licenseplatenum == "") return;
+            getVehicleInfoList(para).then((res) => {
+                this.vehlist = res.data.data.records;
+                if (this.vehlist.length == 0) {
+                    this.$message({
+                        message: '平台暂无该车辆！',
+                        type: 'warning'
+                    });
+                    this.$refs.licenseplatenumes.$el.className = "el-form-item is-error"; //输入框标红
+                } else {
+                    this.$refs.licenseplatenumes.$el.className = "el-form-item";
+                }
+            });
+        },
+        /*平台——下拉*/
+        platChange (r) {
+            if (!r || this.platlist.length > 0) return;
+            this.platLoading = true;
+            getPlatList().then((res) => {
+                this.platlist = res.data.data.records;
+                this.platLoading = false;
+            });
+        },
+        // 设备编号——下拉
+        querySearchName (queryString, cb) {
+            let para = {
+                    prodnum: queryString,
+                    prodmodelid: this.modelSendNum,
+                    // status:'INSTO',
+                },
+                prodnumArray = [];
+            getProdList(para).then((res) => {
+                console.log(res)
+                res.data.data.records.forEach(function (item, index) {
+                    prodnumArray.push({
+                        value: item.prodnum,
+                        id: item.id,
+                        prodid: item.id,
+                        protocoltype: item.protocoltype,
+                        protocolid: item.protocolid
+                    });
+                });
+                cb(prodnumArray);
+            });
+        },
+        handleSelectName (item) {
+            this.addForm.productInfo[0].prodnum = item.value;
+            this.addForm.productInfo[0].id = item.id;
+            this.addForm.productInfo[0].protocoltype = item.protocoltype;
+            this.addForm.protocolid = item.protocolid;
+            this.prodid = item.prodid; //存储packid，查出车辆
+        },
+        // 车架号——下拉
+        querySearchVin (queryString, cb) {
+            let para = {
+                    vin: queryString,
+                    isdelete: 0,
+                    showCount: 1000,
+                    PRODID: this.prodid,
+                },
+                vinArray = [];
+            getProductOwnerList(para).then((res) => {
+                res.data.data.records.forEach(function (item, index) {
+                    vinArray.push({
+                        value: item.vin,
+                        licenseplatenum: item.licenseplatenum,
+                        id: item.ID
+                    });
+                });
+                cb(vinArray);
+            });
+        },
+        handleSelectVin (item) {
+            this.vehID = item.id;
+            this.addForm.vin = item.value;
+            this.addForm.licenseplatenum = item.licenseplatenum;
+        },
+
+        /*设备编号——下拉*/
+        // prodnumChange(r){
+        // 	if(!r || this.prodnumlist.length > 0) return;
+        // 	this.prodnumLoading = true;
+        // 	getProdList().then((res) => {
+        // 		this.prodnumlist = res.data.data.records;
+        // 		this.prodnumLoading = false;
+        // 	});
+        // },
+
+        /*设备型号——下拉*/
+        moNameChange (r) {
+            if (!r || this.moNamelist.length > 0) return;
+            this.moNameLoading = true;
+            getMoNameList().then((res) => {
+                this.moNamelist = res.data.data.records;
+                this.moNameLoading = false;
+            });
+        },
+        //新增—— 设备型号选中时自动获取设备分类，匹配相应的设备编号
+        getNameAdd (val) {
+            for (var i = 0; i < this.moNamelist.length; i++) {
+                if (this.moNamelist[i].id == this.addForm.productInfo[0].productmodelname) {
+                    this.addForm.productInfo[0].prodspec = this.moNamelist[i].prodspec;
+                    this.addForm.productInfo[0].prodcategory = this.moNamelist[i].prodcategory;
+                }
+            }
+
+            this.addForm.productInfo[0].prodnum = ''; //清空对应型号的设备编号
+            this.modelSendNum = val;
+
+            // 选设备型号匹配设备编号
+            let para = {
+                prodmodelid: val,
+                showCount: 100,
+                // status:'INSTO',
+            }
+            getProdList(para).then((res) => {
+                this.prodnumlist = res.data.data.records;
+            });
+
+            // 选设备型号匹配协议
+            // let para ={
+            // 		prodmodelid:val,
+            // 	}
+
+        },
+        //新增—— 平台名称选中时自动获取平台ip
+        getIpAdd () {
+            for (var i = 0; i < this.platlist.length; i++) {
+                if (this.platlist[i].ID == this.addForm.platnameId) {
+                    this.addForm.platip = this.platlist[i].platip;
+                }
+            }
+        },
+        /*库房名称——下拉*/
+        stoNameChange (r) {
+            if (!r || this.stoNamelist.length > 0) return;
+            this.stoNameLoading = true;
+            getStoNameList().then((res) => {
+                this.stoNamelist = res.data.data.records;
+                this.stoNameLoading = false;
+            });
+        },
+        /*所属客户——下拉*/
+        corpChange (r) {
+            if (!r || this.corplist.length > 0) return;
+            this.corpLoading = true;
+
+            let para = {
+                flag: '万网公司',
+            }
+            getCorpList(para).then((res) => {
+                this.corplist = res.data.data.records;
+                this.corpLoading = false;
+            });
+        },
+        // 客户，模糊查询
+        corpChangeSelect (query) {
+            let para = {
+                showCount: 30,
+                corpname: query,
+            }
+            this.corpLoading = true;
+            getCorpList(para).then((res) => {
+                this.corplist = res.data.data.records;
+                this.corpLoading = false;
+            });
+        },
+        //格式化状态
+        formatterStatus (row, col) {
+            if (row.status == "INSTO") {
+                return "在库";
+            }
+            if (row.status == "INSTALL") {
+                return "已安装";
+            }
+            if (row.status == "LOST") {
+                return "报失";
+            }
+            if (row.status == "REPAIR") {
+                return "维修";
+            }
+            if (row.status == "DAMAGE") {
+                return "报废";
+            }
+            if (row.status == "ONWAY") {
+                return "在途";
+            }
+            return '';
+        },
+        //类型显示转换
+        typeFormat: function (row, col) {
+            return row.appointtype == 'I' ? '系统内' : row.appointtype == 'E' ? '系统外' : '';
+        },
+        // 设备来源
+        fromFormat: function (row, col) {
+            return row.appointsource == 'A' ? '人工添加' : row.appointsource == 'B' ? '订单添加' : row.appointsource == 'C' ? '批量导入' : row.appointsource == 'D' ? '平台对接' : row.appointsource == 'E' ? '其他' : '';
+        },
+        // 所属客户显示判断
+        corpFormat: function (row, col) {
+            return row.corpname == undefined ? row.orcorpname : row.corpname;
+        },
+        // 车牌号显示判断
+        licenseplatenumFormat: function (row, col) {
+            return row.licenseplatenum == undefined ? row.orlicenseplatenum : row.licenseplatenum;
+        },
+        // 主设备显示判断
+        defaultflagFormat: function (row, col) {
+            return row.defaultflag == 'Y' ? '是' : row.defaultflag == 'N' ? '否' : '';
+        },
+        //详情查看
+        formDetailHandle (ID) {
+            this.formDialogTableVisible = true;
+            this.platProdList = '';
+            let para = {
+                id: ID,
+            }
+            getPlatProdList(para).then((res) => {
+                this.platProdList = res.data.data.records[0];
+            });
+        },
+        // 排序
+        sortChange (col, prop, order) {
+            let para = {
+                prop: col.prop,
+                order: col.order.substring(0, col.order.length - 6),
+            }
+            console.log(para);
+            // getSortList(para).then((res) => {});
+        },
+        // 有效无效开关
+        showData (i) {
+            this.filters.isactive = i;
+            this.getPlat();
+        },
+        // 有效无效颜色切换
+        tableRowClassName (row, index) {
+            if (row.isactive == 0) {
+                return 'warning-row';
+            }
+            return '';
+        },
+        //切换当前页
+        handleCurrentChange (val) {
+            this.currentPage = val;
+            // this.getPlat();
+            this.handleQuerySelect();
+        },
+        //切换每页显示数量
+        handleSizeChange (val) {
+            this.pageSize = val;
+            this.getPlat();
+        },
+        // 添加查询条件
+        addSelect () {
+            this.filters.domSearch.push({
+                select: [],
+                content: ''
+            });
+        },
+        // 移除查询条件
+        removeSelect (index) {
+            this.filters.domSearch.splice(index, 1); //从当前index位置开始，删除一项
+        },
+        //搜索按钮——模糊查询
+        handleQuerySelect () {
+            let para = {
+                currentPage: this.currentPage,
+                showCount: this.pageSize,
+                isactive: this.filters.isactive,
+                domSearch: this.filters.domSearch,
+            };
+            this.listLoading = true;
+            getSelectPlatProdList(para).then((res) => {
+                this.total = res.data.data.totalResult;
+                this.listData = res.data.data.records;
+                this.listLoading = false;
+            }).catch((error) => {
+                this.listLoading = false;
+            });
+        },
+        //获取用户列表
+        getPlat () {
+            let para = {
+                currentPage: this.currentPage,
+                showCount: this.pageSize,
+                isactive: this.filters.isactive,
+            };
+            this.listLoading = true;
+            getPlatProdList(para).then((res) => {
+                this.total = res.data.data.totalResult;
+                this.listData = res.data.data.records;
+                this.listLoading = false;
+            }).catch((error) => {
+                this.listLoading = false;
+            });
+        },
+        //删除
+        handleDel (index, row) {
+            this.$confirm('确认删除该记录吗?', '提示', {
+                type: 'warning'
+            }).then(() => {
+                this.listLoading = true;
+                let para = {
+                    ids: row.ID,
+                    method: "delete",
+                };
+                removePlatProd(para).then((res) => {
+                    this.listLoading = false;
+                    this.$message({
+                        message: '删除成功',
+                        type: 'success'
+                    });
+                    this.handleQuerySelect();
+                });
+            }).catch(() => {
+                this.listLoading = false;
+            });
+        },
+
+        // 新增切换两个tab时
+        tabclick (item) {
+            if (item.label == "自主平台") {
+                this.addForm.appointtype = 'I';
+            } else {
+                this.addForm.appointtype = 'E';
+            }
+        },
+        //显示编辑界面
+        handleEdit (index, row) {
+            this.editFormVisible = true;
+            this.editForm = {
+                id: row.ID,
+                prodID: row.prodID,
+                prodprodnum: row.prodprodnum,
+                platid: row.platid,
+                platname: row.platname,
+                platip: row.platip,
+            }
+            this.editFormId = {
+                platid: row.platid,
+                platname: row.platname,
+            }
+        },
+        //显示新增界面
+        handleAdd () {
+            this.addFormVisible = true;
+            this.addForm = {
+                vehicleid: '',
+                platname: '',
+                platip: '',
+                appointdate: '',
+                appointby: '',
+                appointtype: 'I',
+                hasParent: '1',
+                hasParentTwo: '1',
+                platnameId: '',
+                licenseplatenum: '',
+                vin: '',
+                corporateid: '',
+                corpname: '',
+                appointsource: 'A',
+                platid: '',
+                defaultflag: '',
+                productid: '',
+                protocolid: '',
+                productInfo: [{
+                    id: '',
+                    prodnum: '',
+                    prodspec: '',
+                    prodcategory: '',
+                    prodmodelid: '',
+                    productmodelname: '',
+                    storageid: '',
+                    storagename: '',
+                    status: 1,
+                    suppliername: '',
+                    protocoltype: '',
+                    dictdatavalue: '',
+                    ispack: 1,
+                    isold: 1,
+                    expiredate: '',
+                    remark: '',
+                }],
+            };
+        },
+        //编辑
+        editSubmit () {
+            this.$refs['editForm'].validate((valid) => {
+                if (valid) {
+                    this.editLoading = true;
+                    let para = {
+                        id: this.editForm.prodID,
+                        // prodid:this.editForm.prodID,
+                        prodnum: this.editForm.prodprodnum,
+                        platid: this.editForm.platname,
+                    }
+                    console.log(para)
+                    if (this.editFormId.platname == this.editForm.platname) {
+                        para.platid = this.editFormId.platid;
+                    } else {
+                        para.platid = this.editForm.platname;
+                    }
+                    modifyPlatProd(para).then((res) => {
+                        this.editLoading = false;
+                        this.$message({
+                            message: '编辑成功',
+                            type: 'success'
+                        });
+                        this.$refs['editForm'].resetFields();
+                        this.editFormVisible = false;
+                        this.handleQuerySelect();
+                    }).catch((error) => {
+                        this.editLoading = false;
+                    });
+                }
+            });
+        },
+        //新增
+        addSubmit () {
+            this.$refs['addForm'].validate((valid) => {
+                if (valid) {
+                    this.addLoading = true;
+                    let para = {
+                        vehicleid: this.vehID,
+                        platip: this.addForm.platip,
+                        appointtype: this.addForm.appointtype,
+                        appointdate: this.addForm.appointdate,
+                        appointby: this.addForm.appointby,
+                        platnameId: this.addForm.platnameId,
+                        platid: this.addForm.platnameId,
+                        corporateid: this.addForm.corpname,
+                        licenseplatenum: this.addForm.licenseplatenum,
+                        appointsource: this.addForm.appointsource,
+                        defaultflag: this.addForm.defaultflag,
+                        vin: this.addForm.vin,
+                        productid: this.addForm.productInfo[0].id,
+                        protocolid: this.addForm.protocolid,
+                        productInfo: [{
+                            id: this.addForm.productInfo[0].id,
+                            prodnum: this.addForm.productInfo[0].prodnum,
+                            prodspec: this.addForm.productInfo[0].prodspec,
+                            prodcategory: this.addForm.productInfo[0].prodcategory,
+                            productmodelname: this.addForm.productInfo[0].productmodelname,
+                            status: this.addForm.productInfo[0].status,
+                            suppliername: this.addForm.productInfo[0].suppliername,
+                            protocoltype: this.addForm.productInfo[0].protocoltype,
+                            dictdatavalue: this.addForm.productInfo[0].dictdatavalue,
+                            ispack: parseInt(this.addForm.productInfo[0].ispack),
+                            isold: parseInt(this.addForm.productInfo[0].isold),
+                            expiredate: this.addForm.productInfo[0].expiredate,
+                            remark: this.addForm.productInfo[0].remark,
+                            prodmodelid: this.addForm.productInfo[0].productmodelname,
+                            storageid: this.addForm.productInfo[0].storagename,
+                        }],
+                    }
+                    if (this.addForm.platnameId == '') {
+                        this.$message({
+                            message: '请选择平台！',
+                            type: 'warning'
+                        });
+                        this.addLoading = false;
+                        return;
+                    }
+                    addPlatProd(para).then((res) => {
+                        this.addLoading = false;
+
+                        if (res.data.result.code == 4001) {
+                            this.$message.warning.message(res.data.result.desc);
+                        } else {
+                            this.$message({
+                                message: '新增成功！',
+                                type: 'success'
+                            });
+                            this.$refs['addForm'].resetFields();
+                            this.addFormVisible = false;
+                            this.getPlat();
+                        }
+                    }).catch((error) => {
+                        this.addLoading = false;
+                    });
+                }
+            });
+        },
+        selsChange (sels) {
+            this.sels = sels;
+        },
+        //批量删除
+        batchRemove () {
+            // var ids = this.sels.map(item => item.id).toString();
+            // this.$confirm('确认删除选中记录吗？', '提示', {
+            // 	type: 'warning'
+            // }).then(() => {
+            // 	this.listLoading = true;
+            // 	let para = { ids: ids,method:"delete" };
+            // 	removePlatProd(para).then((res) => {
+            // 		this.listLoading = false;
+            // 		this.$message ({
+            // 			message : '删除成功',
+            // 			type: 'success'
+            // 		});
+            // 		this.getPlat();
+            // 	});
+            // }).catch(() => {
+            // });
+        }
+    },
+    created () {
+        this.getPlat();
+    },
+}

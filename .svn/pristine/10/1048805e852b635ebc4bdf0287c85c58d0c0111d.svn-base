@@ -1,0 +1,242 @@
+<template>
+    <el-form label-position="right" label-width="110px" :model="form" ref="form">
+        <el-form-item label="组名" prop="groupname" ref="groupname">
+            <el-input v-model="form.groupname" :disabled="formEdit" @blur="checkout('groupname',form.groupname,0)"></el-input>
+        </el-form-item>
+
+        <el-form-item label="组类型" prop="grouptype">
+            <el-select v-model="form.grouptype" :disabled="formEdit" :loading="grouptypeLoading" @visible-change="grouptypeChange" filterable placeholder="组类型"
+                       clearable>
+                <el-option v-for="item in grouptypeOptions" :key="item.dictdatavalue" :label="item.dictdatavalue" :value="item.dictdataname">
+                </el-option>
+            </el-select>
+        </el-form-item>
+        <el-form-item label="组长姓名" prop="leadername">
+            <el-autocomplete class="inline-input searchInput" :disabled="formEdit" v-model="form.leadername" :fetch-suggestions="querySearchName"
+                             placeholder="请输入组长姓名"
+                             :trigger-on-focus="false" @select="handleSelectName"></el-autocomplete>
+        </el-form-item>
+        <el-form-item label="组长电话" prop="mobile">
+            <el-input v-model="form.mobile" :disabled="formEdit"></el-input>
+        </el-form-item>
+        <el-form-item label="所属部门" prop="deptname">
+            <el-select v-model="form.deptname" :disabled="formEdit" @visible-change="deptChange" :loading="deptLoading" filterable placeholder="请选择所属部门"
+                       clearable remote
+                       :remote-method="deptChangeSelect">
+                <el-option v-for="item in deptlist" :key="item.id" :label="item.deptname" :value="item.id">
+                </el-option>
+            </el-select>
+        </el-form-item>
+        <el-form-item label="编辑员工" prop="emps">
+            <el-select v-if="empOptions" collapse-tags v-model="form.emps" :disabled="formEdit" multiple placeholder="请选择" remote :remote-method="remoteMethod"
+                       @visible-change="empChange" value-key="employeename"
+                       :loading="empLoading" filterable clearable>
+                <el-option v-for="item in empOptions" :key="item.id" :label="item.employeename" :value="item">
+                </el-option>
+            </el-select>
+        </el-form-item>
+        <el-form-item v-if="formStatus === 'update'">
+            <el-button type="primary" @click="update">更新</el-button>
+            <el-button @click="$emit('onCancel')">取消</el-button>
+        </el-form-item>
+        <el-form-item v-if="formStatus === 'create'">
+            <el-button type="primary" @click="create">保存</el-button>
+            <el-button @click="$emit('onCancel')">取消</el-button>
+        </el-form-item>
+    </el-form>
+</template>
+
+<script>
+    import util from 'utils/tools.js';
+    // import { getCheckoutOfGroupInfo, groupClass, getDeptManagerInfoList, getAllDeptList, getEmpsGroupList } from './service'
+
+    export default {
+        name: "group-form",
+        props: ['formEdit', 'formStatus', 'data'],
+        data () {
+            return {
+                //新增界面数据
+                form: {
+                    groupleaderid: '',
+                    groupcode: '',
+                    groupname: '',
+                    grouptype: '',
+                    croupnum: '',
+                    leadername: '',
+                    employeename: '',
+                    deptname: '',
+                    corpname: '',
+                    mobile: '',
+                    isdelete: 0,
+                    emps: [],
+                    tempEmps: []
+                },
+                prOptions: util.initProvince(),
+                grouptypeLoading: false,
+                deptLoading: false,
+                empLoading: false,
+                grouptypeOptions: [],
+                deptlist: [],
+                empOptions: [],
+                thisInput: '', //编辑时存入row验证的值
+                checkoutDataF: [], //数据验证组
+            }
+        },
+        watch: {
+            data () {
+                this.initForm();
+            },
+            formStatus () {
+                this.initForm();
+            }
+        },
+        mounted () {
+            this.initForm();
+        },
+        methods: {
+            initForm () {
+                if (this.data) {
+                    if (this.formStatus === 'create') {
+                        this.init();
+                    } else {
+                        this.form = _.cloneDeep(this.data);
+                        this.empOptions = this.data.emps ? _.cloneDeep(this.data.emps) : [];
+                        this.thisInput = this.form.groupname; //将当前验证的字段 已获得的值存入
+                    }
+                }
+            },
+            init () {
+                this.form = {
+                    groupleaderid: '',
+                    groupcode: '',
+                    groupname: '',
+                    grouptype: '',
+                    croupnum: '',
+                    leadername: '',
+                    employeename: '',
+                    deptname: this.data.deptname,
+                    corpname: this.data.corpname,
+                    mobile: '',
+                    isdelete: 0,
+                    emps: [],
+                    tempEmps: []
+                };
+                this.empOptions = [];
+                this.thisInput = "";
+            },
+            // 数据重复验证
+            checkout (p, v, index) {
+                if (v === "") return;
+                if (this.thisInput === v) return; //编辑时 没改输入框值
+                this.checkoutDataT = true; //初始化
+                let paras = {
+                    para: p,
+                    value: v,
+                }
+                getCheckoutOfGroupInfo(paras).then((res) => {
+                    let errorInput = res.data.data.param; //保存验证失败的字段
+                    if (!res.data.data.result) {
+                        this.$message({
+                            message: '信息输入重复！',
+                            type: 'warning'
+                        });
+                        this.$refs[errorInput].$el.className = "el-form-item is-error"; //输入框标红
+                        this.checkoutDataF[index] = false
+                    } else {
+                        this.$refs[errorInput].$el.className = "el-form-item"; //输入框恢复
+                        this.checkoutDataF[index] = true
+                    }
+                });
+            },
+            //分组类型查询
+            grouptypeChange (r) {
+                if (!r || this.grouptypeOptions.length > 0) return;
+                this.grouptypeLoading = true;
+                let para = {
+                    dictvalue: 'GroupType'
+                }
+                groupClass(para).then((res) => {
+                    this.grouptypeOptions = res.data.data;
+                    this.grouptypeLoading = false;
+                });
+            },
+            // 组长——搜索下拉
+            querySearchName (queryString, cb) {
+                let para = {
+                        employeename: queryString
+                    },
+                    leaderNameArray = [];
+                getDeptManagerInfoList(para).then((res) => {
+                    res.data.data.records.forEach(function (item, index) {
+                        leaderNameArray.push({
+                            value: item.employeename,
+                            id: item.id,
+                            leadermobile: item.mobile
+                        });
+                    });
+                    cb(leaderNameArray);
+                });
+            },
+            handleSelectName (item) {
+                this.form.employeename = item.value;
+                this.form.groupleaderid = item.id;
+                this.form.mobile = item.leadermobile;
+            },
+            // 部门——搜索下拉
+            deptChange (r) {
+                if (!r || this.deptlist.length > 0) return;
+                this.deptLoading = true;
+                getAllDeptList().then((res) => {
+                    this.deptlist = res.data.data.records;
+                    this.deptLoading = false;
+                });
+            },
+            // 部门——搜索下拉
+            deptChangeSelect (query) {
+                let para = {
+                    showCount: 30,
+                    deptname: query,
+                }
+                getAllDeptList(para).then((res) => {
+                    this.deptlist = res.data.data.records;
+                    this.deptLoading = false;
+                });
+            },
+            remoteMethod (query) {
+                let para = {
+                    isenable: 1,
+                    showCount: 30,
+                    employeename: query
+                };
+                this.empLoading = true;
+                getEmpsGroupList(para).then((res) => {
+                    this.empLoading = false;
+                    this.empOptions = res.data.data.records;
+                });
+            },
+            // 新增员工分组
+            empChange (r) {
+                if (!r || this.empOptions.length > 0) return;
+                this.empLoading = true;
+                let para = {
+                    isenable: 1,
+                    showCount: 30
+                };
+                getEmpsGroupList(para).then((res) => {
+                    this.empOptions = res.data.data.records;
+                    this.empLoading = false;
+                });
+            },
+            update () {
+                this.$emit('update', this.form)
+            },
+            create () {
+                this.$emit('create', this.form)
+            }
+        }
+    }
+</script>
+
+<style scoped>
+
+</style>

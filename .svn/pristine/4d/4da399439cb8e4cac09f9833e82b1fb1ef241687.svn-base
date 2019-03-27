@@ -1,0 +1,55 @@
+import axios from 'axios';
+import Qs from 'qs';
+
+let base = '/vasms-web';
+let api = '/api';
+
+const getPositionInfoList = params => {
+	return axios.get(`${base}/api/v1/org/positionInfo/query/vw`, {
+		params: params
+	});
+};
+
+const addPositionInfo = params => {
+	return axios.post(`${base}/api/v1/org/positionInfo/add`, params);
+};
+
+const modifyPositionInfo = params => {
+	return axios.put(`${base}/api/v1/org/positionInfo/update/` + params.id, params);
+};
+
+const removePositionInfo = params => {
+	return axios.post(`${base}/api/v1/org/positionInfo/batch`, Qs.stringify(params));
+};
+/*岗位搜索模糊查询接口*/
+const getSelectListPos = params => {
+	return axios.get(`${base}/api/v1/org/positionInfo/query/like`, {
+		params: params
+	});
+};
+//获取客户和银行列表
+const getCorpList = params => {
+	return axios.get(`${base}/api/v1/org/corporateInfo?flag=万网公司&showCount=1000`, {
+		params: params
+	});
+};
+const getCheckoutOfPosInfo = params => {
+	return axios.get(`${base}/api/v1/org/positionInfo/checkout/` + params.para + '/' + params.value);
+};
+//根据员工userid获取员工姓名
+const getNamebyUserid = params => {
+	return axios.get(`${base}/api/v1/org/employeeInfo/getNameByUserid`, {
+		params: params
+	});
+};
+
+export{
+    getPositionInfoList, 
+	addPositionInfo, 
+	modifyPositionInfo, 
+	removePositionInfo, 
+	getSelectListPos, 
+	getCorpList, 
+	getCheckoutOfPosInfo, 
+	getNamebyUserid 
+}

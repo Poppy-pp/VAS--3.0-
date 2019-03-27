@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <link rel="icon" href="<%= BASE_URL %>favicon.ico">
+    <title>车联网资产安全管理信息系统</title>
+  </head>
+  <body>
+    <noscript>
+      <strong>We're sorry but VAS system doesn't work properly without JavaScript enabled. Please enable it to continue.</strong>
+    </noscript>
+    <div id="app">
+      <div style="color:#41b883;position:absolute;left:50%;top:50%;transform:translate(-150px,-100px);">
+        正在进入车联网系统 ... 请稍后 ...
+      </div>
+    </div>
+  </body>
+</html>

@@ -1,0 +1,14 @@
+import invoiceDetail from './sub-components/invoice-detail'
+
+export default {
+    name: "putInStorageInvoices",
+    data () {
+        return {
+            activeNames: ['1']
+        }
+    },
+    components: {
+        invoiceDetail
+    },
+    methods: {}
+}

@@ -1,0 +1,449 @@
+@import "normalize.css"
+@import "./variables.styl"
+@import "./reset.styl"
+@import "./insurance.styl"
+
+opacity(n)
+  opacity n
+  if support-for-ie
+    filter unquote('progid:DXImageTransform.Microsoft.Alpha(Opacity=' + round(n * 100) + ')')
+
+html
+body
+  @extend .edenfont
+  width 100%
+  height 100%
+  background-color bg-color
+  overflow hidden
+  font-size 1em
+p
+  margin 0
+
+ul
+  list-style none
+  padding 0
+  margin 0
+
+a
+a:hover
+a:focus
+  cursor pointer
+  text-decoration none
+
+
+.el-card.is-always-shadow,
+.el-card.is-hover-shadow:focus,
+.el-card.is-hover-shadow:hover
+  box-shadow 0 1px 6px rgba(0,0,0,.2) !important
+
+.widget-card
+  background white
+  height 100%
+  width 100%
+  overflow hidden
+  border-radius 4px
+  transition box-shadow .4s
+  &:hover
+    box-shadow 0 1px 6px rgba(0,0,0,.2)
+
+.deleteline
+  .el-checkbox__label
+    text-decoration line-through
+
+#app
+  height 100%
+  min-width 1024px
+  -webkit-font-smoothing antialiased
+
+  .eden-card
+    background eden-card-bg
+    padding 20px
+    box-sizing border-box
+    @extend .widget-card
+
+  // sidebar
+  .sidebar-wrap
+  .el-submenu__icon-arrow
+    color white
+
+  .el-submenu
+    .el-menu-item
+      background-color submenu-bg !important
+      padding-left 50px !important
+      &:hover
+        background-color menu-hover !important
+
+  // sidebar scroll
+  .sidebar-container
+    height 100%
+    z-index 1005
+    .scrollbar-wrapper
+      height 'calc(%s + %s)' % (100% 5px)
+      .el-scrollbar__view
+        height 100%
+      .el-scrollbar__wrap
+        overflow-x hidden
+    .el-menu
+      @extend .edenfont-content
+      border none
+      height 100%
+      width 100% !important
+    .el-menu--collapse
+      .el-submenu__icon-arrow
+        display none
+
+.el-notification__content p
+  text-align left
+
+// nprogress style
+#nprogress
+  .bar
+    background main-color !important
+  .peg
+    box-shadow 0 0 10px main-color, 0 0 5px main-color !important
+  .spinner-icon
+    border-top-color main-color !important
+    border-left-color main-color !important
+
+// scrollbar
+::-webkit-scrollbar
+  width 6px
+  height 6px
+::-webkit-scrollbar-track
+  background 0 0
+::-webkit-scrollbar-thumb
+  background-color scrollbar-thumb-bg
+  border-radius 5px
+::-webkit-scrollbar-thumb:hover
+  background-color scrollbar-thumb-hover-bg
+::-webkit-scrollbar-corner
+  background-color scrollbar-corner-bg
+::-webkit-scrollbar-resizer
+  background-color scrollbar-resizer-bg
+body::-webkit-scrollbar
+  width 8px
+body::-webkit-scrollbar-thumb
+  background-color body-scrollbar-thumb-bg
+
+
+.el-dialog__body
+  overflow hidden
+  padding 0 10px 10px 10px
+
+html
+  font-size 62.5%
+
+.operate
+  font-size 2rem
+  cursor pointer
+  margin-left -10px
+
+.el-pagination
+  float right
+  margin-top 5px
+
+.el-collapse-item__arrow
+  line-height 48px !important
+
+.toolbar 
+  .el-form-item 
+    margin-bottom 10px
+  .el-button--danger
+    margin-top 5px
+
+.el-table th
+  background-color #F7F7F7
+
+.el-collapse-item__header 
+    background-color #f5f5f5
+    color #444
+    font-weight bold
+
+.el-collapse-item__header
+    padding-left 15px
+    margin-bottom 10px
+
+
+.radius {
+    border-radius: 100%;
+    width: 145px;
+    height: 140px;
+}
+
+.el-table .warning-row {
+    background-color: #F3F5F8;
+    color: #BFCBD9;
+}
+
+#button {
+    border: none;
+    display: inline-block;
+    width: 0;
+    margin: 0;
+    background-color: transparent;
+}
+
+.wp_select {
+    max-width: 1396px;
+    min-width: 94px;
+    cursor: pointer;
+    margin-right: 0 !important;
+    margin-left: 0 !important;
+  }
+  
+  .wp_select .el-select__tags {
+    max-width: 1396px !important;
+    position: relative;
+    line-height: normal;
+    height: 36px;
+    line-height: 36px;
+    white-space: inherit;
+    z-index: 1;
+    top: 0;
+    transform: inherit;
+    -ms-transform: inherit;
+    padding: 0 10px 0 0;
+  }
+  
+  .wp_select .el-input {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    -ms-transform: translateY(-50%);
+    z-index: 0;
+    padding-left: 5px;
+  }
+
+.noborder .el-input__inner {
+    border-left: 0;
+    padding: 0;
+}
+
+.color .el-input-group__prepend {
+    background-color: #fff;
+}
+
+.icon .el-input__icon {
+    width: 14px;
+    right: 12px;
+}
+
+.nofocus .el-input__inner:focus,
+.nofocus .el-input__inner:hover {
+    border-color: #bfcbd9;
+}
+
+dl.dllist {
+    overflow: hidden;
+}
+
+dl.dllist dt {
+    float: left;
+    color: #99a9bf;
+}
+
+dl.dllist dd {
+    color: #444;
+}
+
+dl.dllist dt, dd {
+    font-size: 1.4rem;
+}
+
+.formTile {
+    display: block;
+    text-align: left;
+    font-size: 1.6rem;
+    background-color: #f7f7f7;
+    padding: 6px 0;
+}
+
+.formTile:before {
+    content: '';
+    padding: 9px 0 10px 5px;
+    background: #41B883;
+    margin-right: 8px;
+}
+
+.el-input-number, .el-cascader, .el-select {
+    width: 100%;
+}
+
+div.el-input-group__prepend {
+    padding: 0;
+}
+
+.details .el-row{
+    padding: 0px 10px;
+    margin-bottom: 10px;
+}
+
+#nomargin .el-form-item__content {
+    margin: 0 !important;
+}
+
+.el-tabs__header {
+    margin: 0 0 10px;
+}
+
+.tree-highlight.el-tree--highlight-current .el-tree-node.is-current>.el-tree-node__content {
+  background-color: #2595ff;
+  color white
+}
+
+.toolbar .comlist 
+  margin-top 5px
+
+.line
+  border-bottom 1px solid #E1E1E1
+
+.el-date-editor.el-input, .el-date-editor.el-input__inner, .el-autocomplete
+  width 100%
+
+.el-message-box
+  .el-message-box__title, .el-message-box__message
+    text-align center
+
+.el-input.is-disabled .el-input__inner
+  color #A0A7B1
+
+
+/*********物流模板样式开始************&&&&&&&&&&&&&&&&&&&&&&&&&&**************************************************************************************************************/
+.logistice_content{
+  min-height: 100px;
+}
+.logistice_content .point-time {
+  content: "";
+  position: absolute;
+  width: 13px;
+  height: 13px;
+  top: 17px;
+  left: 86px;
+  background: #9f9f9f;
+  margin-left: -4px;
+  border-radius: 50%;
+  box-shadow: 0 0 0 5px #fff;
+}
+
+.logistice_content .text-red {
+  color: #f6393f;
+}
+
+.logistice_content .text-blue {
+  color: #1c87bf;
+}
+
+.logistice_content .text-green {
+  color: #41B883;
+}
+
+.logistice_content .text-yellow {
+  color: #ffb902;
+}
+
+.logistice_content .text-purple {
+  color: #d32d93;
+}
+
+.logistice_content .point-red {
+  background-color: #f6393f;
+}
+
+.logistice_content .point-blue {
+  background-color: #1c87bf;
+}
+
+.logistice_content .point-green {
+  background-color: #41B883;
+}
+
+.logistice_content .point-yellow {
+  background-color: #ffb902;
+}
+
+.logistice_content .point-purple {
+  background-color: #d32d93;
+}
+.logistice_content article {
+  position: relative;
+  padding: 10px;
+}
+.logistice_content article > h3 {
+  width: 15%;
+  height: 20px;
+  line-height: 20px;
+  text-align: right;
+  font-size: 1.4em;
+  color: #1d1d1d;
+  padding: 10px 0 20px;
+}
+.logistice_content article section {
+  padding: 0 0 2px;
+  position: relative;
+}
+.logistice_content article section:before {
+  content: "";
+  width: 5px;
+  top: 17px;
+  bottom: -17px;
+  left: 86px;
+  background: #e6e6e6;
+  position: absolute;
+}
+.logistice_content article section:last-child:before {
+  display: none;
+}
+.logistice_content article section time {
+  width: 71px;
+  display: block;
+  position: absolute;
+}
+.logistice_content article section time > span {
+  display: block;
+  text-align: right;
+}
+.logistice_content article section div.aside {
+  color: #3a3a38;
+  margin-left: 110px;
+  padding-bottom: 15px;
+}
+.logistice_content article section .brief {
+  color: #9f9f9f;
+}
+/*********物流模板样式结束************&&&&&&&&&&&&&&&&&&&&&&&&&&**************************************************************************************************************/
+
+.el-select .el-select__tags>span {
+  display: inherit;
+}
+
+.invoice-title{
+    color: #fff;
+    margin-bottom: 10px;
+    background: #41b883;
+    width: 100px;
+    height: 35px;
+    line-height: 35px;
+    padding-left: 20px;
+    font-size: 15px;
+    display: inline-block;
+    position: relative;
+}
+.invoice-title::after {
+    content: '';
+    width: 0;
+    height: 0;
+    display: block;
+    position: absolute;
+    border: 18px solid transparent;
+    border-left-color: #41b883;
+    border-right-width: 0;
+    right: -18px;
+    top: 0;
+}
+.row_select{
+  position: absolute;
+  margin-left: 30px;
+}
+.row_select.el-select{
+  width: 35%;
+}

@@ -1,0 +1,118 @@
+import axios from 'axios';
+import Qs from 'qs';
+
+let base = '/vasms-web';
+let admin = '/admin';
+let api = '/api';
+
+const getEmployeeInfoList = params => {
+	return axios.get(`${admin}/employee/query/like`, {
+		params: params
+	});
+};
+
+const addEmployeeInfo = params => {
+	return axios.post(`${admin}/employee/add`, params);
+};
+
+const modifyEmployeeInfo = params => {
+	return axios.put(`${admin}/employee/mod`, params);
+};
+
+// const removeEmployeeInfo = params => {
+// 	return axios.post(`${base}/api/v1/org/employeeInfo/batch`, Qs.stringify(params));
+// };
+//获取员工类型
+// const getEmpType = params => {
+// 	return axios.get(`${base}/api/v1/sys/sysDictionaryData?dicvalue=EmployeeType`);
+// };
+//获取员工所属部门列表
+// const getDeptList = params => {
+// 	return axios.get(`${base}/api/v1/org/departmentInfo?dicvalue=DeptName`, {
+// 		params: params
+// 	});
+// };
+//组织管理接口
+// const getCorporateInfoList = params => {
+// 	return axios.get(`${base}/api/v1/org/corporateInfo/query/vw`, {
+// 		params: params
+// 	});
+// };
+//分组信息管理接口
+// const getGroupInfoList = params => {
+// 	return axios.get(`${base}/api/v1/org/groupInfo/query/vw`, {
+// 		params: params
+// 	});
+// };
+// 员工排序
+// const getSortList = params => {
+// 	return axios.get(`${base}/api/v1/org/employeeInfo/sort`, {
+// 		params: params
+// 	});
+// };
+// const getSelectList = params => {
+// 	return axios.get(`${base}/api/v1/org/employeeInfo/query/like`, {
+// 		params: params
+// 	});
+// };
+// 员工岗位列表
+// const getPositionList = params => {
+// 	return axios.get(`${base}/api/v1/org/positionInfo/query/vw`, {
+// 		params: params
+// 	});
+// };
+//部门管理接口
+// const getDepartmentInfoList = params => {
+// 	return axios.get(`${base}/api/v1/org/departmentInfo/query/vw`, {
+// 		params: params
+// 	});
+// };
+const getUserRole = params => {
+	return axios.get(`${base}/api/v1/sys/sysUserRole`, {
+		params: params
+	})
+}
+//角色信息管理接口
+// const getSysRoleInfoList = params => {
+// 	return axios.get(`${base}/api/v1/sys/sysRoleInfo`, {
+// 		params: params
+// 	});
+// };
+//用户资源编辑
+// const editUserRole = params => {
+// 	return axios.post(`${base}/api/v1/sys/sysUserRole/` + params.userid, params.data)
+// }
+// 有效无效
+// const modifyEmployeeInfoStatus = params => {
+// 	return axios.put(`${base}/api/v1/org/employeeInfo/disable/` + params.id, params);
+// };
+//数据检测接口
+// const getCheckout = params => {
+// 	return axios.get(`${base}/api/v1/org/employeeInfo/checkout/` + params.para + '/' + params.value);
+// };
+//根据员工userid获取员工姓名
+const getNamebyUserid = id => {
+    return axios.get(`${admin}/employee/query/${id}`);
+};
+
+
+export{
+    getEmployeeInfoList, 
+    addEmployeeInfo, 
+    modifyEmployeeInfo, 
+    // removeEmployeeInfo,
+    // getEmpType,
+    // getDeptList,
+    // getCorporateInfoList,
+    // getGroupInfoList,
+    // getSortList,
+    // getSelectList,
+    // getPositionList,
+    // getDepartmentInfoList,
+    getUserRole, 
+    // getSysRoleInfoList,
+    // editUserRole,
+    // modifyEmployeeInfoStatus,
+    // getCheckout,
+    getNamebyUserid 
+}

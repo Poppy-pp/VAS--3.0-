@@ -1,0 +1,325 @@
+import { getStorageTree, getStockNumList, getEarlyWarningList, addEarlyWarning } from './service'
+import { getProductInfoList } from "../../basicSetting/equipmentList/service";
+import { getSIMInfoList } from "../../basicSetting/simList/service";
+import { getPartsInfo } from "../../basicSetting/partsList/service";
+import { mapState } from 'vuex'
+import util from 'utils/tools'
+
+let timer = null
+
+export default {
+    name: "stock",
+    data () {
+        return {
+            stockData: {
+                tableList: [],
+                partsNum: 0,
+                cardNum: 0,
+                wiredProdcutNum: 0,
+                wifiProductNum: 0
+            },
+            loading: false,
+            storageTree: [],
+            defaultProps: {
+                children: 'children',
+                label: 'name'
+            },
+            treeLoading: false,
+            modelname: '',
+            currentStorage: {},
+            dialogVisible: false,
+            listLoading: false,
+            listData: [],
+            getFn: {
+                1: getProductInfoList,
+                2: getProductInfoList,
+                3: getPartsInfo,
+                4: getSIMInfoList
+            },
+            currentData: {},
+            pagination: {
+                limit: 15,
+                page: 1,
+                total: 0
+            },
+            defaultExpandedKeys: [],
+            earlyWarningVisible: false,
+            earlyWarningData: [],
+            earlyWarningStorages: [],
+            earlyLoading: false
+        }
+    },
+    props: ['windowOutHeight'],
+    computed: {
+        dataList () {
+            return _.filter(this.stockData.tableList, item => item.modelname.includes(this.modelname))
+        },
+        ...mapState({
+            showPurchasePlan: state => {
+                if (!state.user.employeeinfo.storages)
+                    return false
+                const storage = _.find(state.user.employeeinfo.storages, item => item.storagelevel < 2)
+                return Boolean(storage)
+            },
+            showWantGoods: state => {
+                if (!state.user.employeeinfo.storages)
+                    return false
+                const storage = _.find(state.user.employeeinfo.storages, item => item.storagelevel < 3)
+                return Boolean(storage)
+            }
+        }),
+        GPSCount () {
+            return this.stockData.wiredProdcutNum + this.stockData.wifiProductNum
+        },
+        allCount () {
+            return this.stockData.partsNum + this.stockData.cardNum + this.stockData.wiredProdcutNum + this.stockData.wifiProductNum
+        }
+    },
+    methods: {
+        handleNodeClick (data) {
+            this.currentStorage = data
+            this.getStockNumList()
+        },
+        //获取库房树
+        async getStorageTree () {
+            this.treeLoading = true
+            try {
+                const {data} = await getStorageTree()
+                this.treeLoading = false
+                this.storageTree = data.data
+                if (data.data.length) {
+                    const key = data.data[0].id
+                    this.currentStorage = data.data[0]
+                    this.getStockNumList()
+                    this.$nextTick(() => {
+                        this.$refs.storageTree.setCurrentKey(key)
+                    })
+                }
+            } catch (e) {
+                this.treeLoading = false
+                console.log(e)
+            }
+        },
+        // 获取库存列表
+        async getStockNumList () {
+            try {
+                this.loading = true
+                const {data} = await getStockNumList({
+                    storageId: this.currentStorage.id
+                })
+                this.loading = false
+                _.forEach(data.data.tableList, item => {
+                    if (item.minlimit && item.count < item.minlimit) {
+                        item.isMin = true
+                    } else if (item.maxlimit && item.count > item.maxlimit) {
+                        item.isMax = true
+                    }
+                })
+                this.stockData = data.data
+            } catch (e) {
+                this.loading = false
+                console.log(e)
+            }
+        },
+        //查看设备详情
+        async viewDetails (row) {
+            this.listData = []
+            this.dialogVisible = true
+            this.currentData = row
+            this.pagination.page = 1;
+            this.getList(row)
+        },
+        //获取设备列表
+        async getList (row) {
+            this.listLoading = true
+            try {
+                const params = {
+                    domSearch: [
+                        {
+                            select: ['modelname'],
+                            content: row.modelname
+                        },
+                        {
+                            select: ["storageid"],
+                            content: this.currentStorage.id + ''
+                        },
+                        {
+                            select: ["isactive"],
+                            content: '启用'
+                        }
+                    ],
+                    limit: this.pagination.limit,
+                    page: this.pagination.page
+                }
+
+                if (row.order === 1 || row.order === 2) {
+                    params.domSearch.push({
+                        select: ['modelspec'],
+                        content: row.modelspec
+                    })
+                }
+
+                if (row.order === 4) {
+                    params.domSearch.push({
+                        select: ['ISPACK'],
+                        content: '0'
+                    })
+                }
+
+                const get = this.getFn[row.order] ? this.getFn[row.order] : this.getFn[1]
+                const {data} = await get(params)
+                this.pagination.total = data.data.total
+                this.listData = data.data.records
+                this.listLoading = false
+            } catch (e) {
+                console.log(e)
+                this.listLoading = false
+            }
+        },
+        repairFormat: function (row, col) {
+            return row.isrepairing == '0' ? '正常' : row.isrepairing == '1' ? '维修中' : row.isrepairing == '2' ? '未修好' : '--';
+        },
+        handleSizeChange (size) {
+            this.pagination.limit = size
+            this.getList(this.currentData)
+        },
+        handleCurrentChange (page) {
+            this.pagination.page = page
+            this.getList(this.currentData)
+        },
+        // 设置预警值
+        setEarlyWarning () {
+            this.earlyWarningVisible = true
+            this.earlyWarningData = []
+            this.earlyWarningStorages = _.cloneDeep(this.storageTree)
+            this.$nextTick(() => {
+                this.$refs.treeRouse.setCheckedKeys([this.currentStorage.id])
+            })
+            // this.$nextTick(() => {
+            //     const storages = this.$refs.treeRouse.getCheckedKeys()
+            //     this.getEarlyWarningList(storages)
+            // })
+        },
+        async getEarlyWarningList (storageids) {
+            const arr = _.chain(storageids)
+                .filter(item => item !== 0)
+                .map(item => item)
+                .value()
+
+            if (!arr.length) {
+                this.$message.warning('至少选择一个二级仓库或下级库房')
+                this.earlyWarningData = []
+                return
+            }
+            try {
+                this.earlyLoading = true
+                const str = 'storageids=' + storageids.join('&storageids=')
+                const {data} = await getEarlyWarningList(str)
+                _.forEach(data.data, item => {
+                    item.isEdit = false
+                    // if (!item.minlimit) {
+                    //     item.minlimit = 0
+                    // }
+                    // if (!item.maxlimit) {
+                    //     item.maxlimit = 10
+                    // }
+                })
+                this.earlyWarningData = data.data
+                this.earlyLoading = false
+            } catch (e) {
+                this.earlyLoading = false
+                console.log(e)
+            }
+        },
+        // handleCheckChange
+        handleCheckChange (data, checked, indeterminate) {
+            /*选中父类时候选中给所有子类*/
+
+            if (checked) {
+                this.$refs.treeRouse.setCheckedKeys([])
+                this.$refs.treeRouse.setCheckedKeys([data.id])
+            }
+
+            // if (checked) {
+            //     util.setChecked(this.$refs.treeRouse, data, true, true);
+            // }
+            // /*选中父类时候取消所有子类*/
+            // if (!checked) {
+            //     util.setChecked(this.$refs.treeRouse, data, false, true);
+            // }
+
+            if (timer)
+                clearTimeout(timer)
+            timer = setTimeout(() => {
+                const storages = this.$refs.treeRouse.getCheckedKeys()
+                this.getEarlyWarningList(storages)
+            }, 100)
+        },
+        rowClick (row) {
+            _.forEach(this.earlyWarningData, item => {
+                item.isEdit = false
+            })
+            row.isEdit = true
+        },
+        verifyMinNum (row) {
+            if (row.minlimit < 0) {
+                row.minlimit = 0
+            }
+            if (!+row.maxlimit || !+row.minlimit) {
+                return
+            }
+            if (row.minlimit > row.maxlimit) {
+                // row.minlimit = row.maxlimit
+                this.$message.warning('最小值不能大于最大值')
+            }
+        },
+        verifyMaxNum (row) {
+            if (row.maxlimit < 0) {
+                row.maxlimit = 0
+            }
+            if (!+row.maxlimit || !+row.minlimit) {
+                return
+            }
+            if (row.minlimit > row.maxlimit) {
+                this.$message.warning('最大值不能小于最小值')
+            }
+        },
+        async submit () {
+            try {
+                const warningList = _.filter(this.earlyWarningData, item => {
+                    if (!+item.minlimit || !+item.maxlimit) {
+                        return false
+                    }
+                    return item.minlimit >= item.maxlimit
+
+                })
+                if (warningList.length) {
+                    this.$message.warning('最低预警值不得大于等于最高预警值')
+                    return
+                }
+                const arr = _.map(this.earlyWarningData, ({productmodelid, minlimit, maxlimit}) => {
+                    return {
+                        productmodelid,
+                        minlimit,
+                        maxlimit,
+                    }
+                })
+                const params = {
+                    storageids: this.$refs.treeRouse.getCheckedKeys(),
+                    warns: arr
+                }
+
+                await addEarlyWarning(params)
+                this.$message.success('设置预警值成功')
+                this.earlyWarningVisible = false
+                this.getStockNumList()
+            } catch (e) {
+                console.log(e)
+            }
+        }
+    },
+    mounted () {
+        this.getStorageTree()
+    }
+
+}

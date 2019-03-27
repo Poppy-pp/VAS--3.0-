@@ -1,0 +1,225 @@
+import { get, add, update } from './service';
+import { getToken } from '@/utils/auth'
+import { getInsuranceCompany } from "../policynoList/service";
+
+export default {
+    props: ['windowOutHeight'],
+    data () {
+        return {
+            listData: [],
+            insuCorpList: [],
+            dialogVisible: false,
+            total: 0,
+            currentPage: 1,
+            pageSize: 15,
+            loading: false,
+            // editFormVisible: false, //修改界面是否显示
+            editLoading: false,
+            //修改界面数据
+            editForm: {},
+            addFormVisible: false, //新增界面是否显示handleCurrentChange
+            addLoading: false,
+            rules: {
+                templatename: [
+                    {required: true, message: '保单模板名称必填', trigger: 'blur'},
+                    {min: 1, max: 20, message: '长度在 1 到 20 个字符', trigger: 'blur'}
+                ],
+                templateurl: [
+                    {required: true, message: '保险模板必须上传', trigger: 'blur'}
+                ],
+                insucorpid: [
+                    {required: true, message: '保险公司必选', trigger: 'change'}
+                ],
+                remark: [
+                    {max: 100, message: '长度在不能超过 100 个字符', trigger: 'blur'}
+                ]
+            },
+            //新增界面数据
+            form: {},
+            accept: '.html',
+            fileList: [],
+            baseUrl: this.$store.state.baseUrl,
+            token: getToken()
+        }
+    },
+    methods: {
+        // 模板详情
+        templateDetails (row) {
+            this.form.templateurl = row.templateurl
+            this.dialogVisible = true
+        },
+        // 有效按钮切换状态
+        handleChange: function (index, row) {
+            this.$confirm('确认设置该条记录的状态吗？', '提示', {
+                type: 'warning'
+            }).then(() => {
+                let para = {
+                    id: row.id,
+                    isactive: row.isactive == 1 ? 0 : 1
+                }
+                update(para).then((res) => {
+                    if (res.data.data) {
+                        this.$message({
+                            message: '设置成功',
+                            type: 'success'
+                        });
+                        row.isactive = para.isactive;
+                    } else {
+                        this.$message({
+                            message: '启用失败！该保险公司对应模板已启用，不可重复开启',
+                            type: 'error'
+                        });
+                    }
+                });
+            })
+        },
+        // 有效 鼠标移入
+        mouseoverChange (e) {
+            if ($(e.target).hasClass('icon-duigou')) {
+                $(e.target)
+                    .addClass('operate-cha icon-cha')
+                    .removeClass('operate-duigou icon-duigou')
+            } else {
+                $(e.target)
+                    .addClass('operate-duigou icon-duigou')
+                    .removeClass('operate-cha icon-cha')
+            }
+        },
+        // 有效 鼠标移除
+        mouseoutChange (e) {
+            if ($(e.target).hasClass('icon-cha')) {
+                $(e.target)
+                    .addClass('operate-duigou icon-duigou')
+                    .removeClass('operate-cha icon-cha')
+            } else {
+                $(e.target)
+                    .addClass('operate-cha icon-cha')
+                    .removeClass('operate-duigou icon-duigou')
+            }
+        },
+        //显示编辑界面
+        handleEdit (index, row) {
+            // $('.is-error').removeClass('is-error') //清空验证时的红框
+            this.addFormVisible = true
+            this.form = row
+            this.fileList = [{name: row.templateurl}]
+        },
+        //有效转换器
+        formatIsactive (row, column) {
+            return row.isactive == 1 ? '有效' : row.isactive == 0 ? '无效' : '未知'
+        },
+        //切换每页显示数量
+        handleSizeChange (val) {
+            this.pageSize = val
+            this.get()
+        },
+        handleCurrentChange (val) {
+            this.currentPage = val
+            this.get()
+        },
+        //显示新增界面
+        handleAdd () {
+            this.addFormVisible = true;
+            this.form = {
+                templateurl: '',
+                id: ''
+            }
+            this.fileList = []
+        },
+        addSubmit () {
+            this.$refs.form.validate(async valid => {
+                if (valid) {
+                    this.editLoading = true
+                    let para = Object.assign({}, this.form)
+                    if (para.id) {
+                        try {
+                            await update(para)
+                            this.addFormVisible = false;
+                            this.$message.success('修改模板成功')
+                            this.editLoading = false
+                        } catch (e) {
+                            this.editLoading = false
+                        }
+                    } else {
+                        try {
+                            const res = await add(para)
+                            if (res.data.data) {
+                                this.get()
+                                this.$message.success('添加模板成功')
+                                this.addFormVisible = false;
+                            } else {
+                                this.$message.error('添加失败！该保险公司已有模板，不可重复添加');
+                            }
+                            this.editLoading = false
+                        } catch (e) {
+                            this.editLoading = false
+                        }
+                    }
+                }
+            })
+        },
+        uploadSuccess (response, file, fileList) {
+            if (response.code === 1) {
+                this.$message.warning(response.msg)
+                this.$refs.template.clearFiles()
+                return
+            }
+            this.form.templateurl = response.data;
+            this.$refs.templateurl.clearValidate();
+        },
+        changeFile (file, fileList) {
+            if (fileList.length > 1) {
+                this.fileList = fileList.slice(1)
+            } else {
+                this.fileList = fileList
+            }
+        },
+        removeFile () {
+            this.form.templateurl = ''
+        },
+        async get () {
+            this.loading = true
+            try {
+                const params = {
+                    limit: this.pageSize,
+                    page: this.currentPage
+                }
+                const para = {
+                    page: 0,
+                    limit: 10000,
+                    corpcategory: "INSURANCE",
+                    isactive: 1,
+                    isdelete: 0
+                }
+                const {data} = await get(params)
+                const policyNumData = await getInsuranceCompany(para)
+                this.insuCorpList = policyNumData.data.data.records
+                this.listData = data.data.records
+                this.total = data.data.total
+                this.currentPage = data.data.current
+                this.loading = false
+            } catch (e) {
+                this.loading = false
+            }
+        },
+        dataFormatter (row) {
+            if (row.createdate) {
+                return new Date(row.createdate).toLocaleDateString()
+            } else {
+                return '-'
+            }
+        },
+        changeInsucorp (id) {
+            this.form.insucorpid = id
+        },
+        timeScopeFormatter (row) {
+            const arr = _.map(row.insucorpeffectivedate, item => {
+                return new Date(item).format('yyyy/MM/dd')
+            })
+            return arr.join('-')
+        },
+    },
+    mounted () {
+        this.get()
+    }
+}

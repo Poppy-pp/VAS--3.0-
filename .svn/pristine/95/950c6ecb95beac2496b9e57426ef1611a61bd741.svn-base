@@ -1,0 +1,16 @@
+<template>
+    <div>模板详情</div>
+</template>
+<script>
+export default {
+  name: 'templatePreview'
+}
+</script>
+<style>
+  .center{
+      text-align: center;
+  }
+</style>
+
+
+

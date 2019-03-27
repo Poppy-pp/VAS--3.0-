@@ -1,0 +1,81 @@
+/* 
+ * @description: 后台数据接口配置中心 
+ * @author: wp 
+ * @update: wp (2017-05-27 10:55) 
+ */
+import axios from 'axios';
+import Qs from 'qs';
+
+let base = '/vasms-web';
+let api = '/api';
+
+const getOwnerInfoList = params => {
+	return axios.get(`${base}/api/v1/car/ownerInfo/query/vw`, {
+		params: params
+	});
+};
+
+const addOwnerInfo = params => {
+	return axios.post(`${base}/api/v1/car/ownerInfo/`, params);
+};
+
+const modifyOwnerInfo = params => {
+	return axios.put(`${base}/api/v1/car/ownerInfo/` + params.id, params);
+};
+//查询车架号
+const getVehicleSearchInfoList = params => {
+	return axios.get(`${base}/api/v1/car/vehicleInfo/`, {
+		params: params
+	});
+};
+//车辆信息管理接口
+const getVehicleInfoList = params => {
+	return axios.get(`${base}/api/v1/car/vehicleInfo/query/vw`, {
+		params: params
+	});
+};
+/*车主搜索模糊查询接口*/
+const getSelectListOwner = params => {
+	return axios.get(`${base}/api/v1/car/ownerInfo/query/like`, {
+		params: params
+	});
+};
+// 绑定车辆信息
+const getVehInfoList = params => {
+	return axios.get(`${base}/api/v1/car/vehicleInfo/query/like`, {
+		params: params
+	});
+};
+const modifyVehicleInfo = params => {
+	return axios.put(`${base}/api/v1/car/vehicleInfo/` + params.id, params);
+};
+//根据员工userid获取员工姓名
+const getNamebyUserid = params => {
+	return axios.get(`${base}/api/v1/org/employeeInfo/getNameByUserid`, {
+		params: params
+	});
+};
+//数据检测接口
+const getCheckoutOfOwner = params => {
+	return axios.get(`${base}/api/v1/car/ownerInfo/checkout/` + params.para + '/' + params.value);
+};
+// 详情全部信息
+const getMoreInfoList = params => {
+	return axios.get(`${base}/api/v1/car/vehicleInfo/query/detail`, {
+		params: params
+	});
+};
+
+export{ 
+    getOwnerInfoList,    
+    addOwnerInfo,
+    modifyOwnerInfo,
+    getVehicleSearchInfoList,
+    getVehicleInfoList,
+    getSelectListOwner,
+    getVehInfoList,
+    modifyVehicleInfo,
+    getNamebyUserid,
+    getCheckoutOfOwner,
+    getMoreInfoList 
+}

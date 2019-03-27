@@ -1,0 +1,335 @@
+import util from 'utils/tools';
+
+import { 
+    getStoPurchaseList,
+    addStoPurchase,
+    getPurchaseCascader,
+    getSupplierList,
+} from './service.js';
+import { checkChinese } from '@/utils/formValidation'
+
+export default {
+    props: ['windowOutHeight'],
+    data() {
+        return {
+            fmtdata: util,
+            filters: {
+                domSearch: [{
+                    select: ['contractno'],
+                    content: ''
+                }], //查询框
+                timeScope: '',
+            },
+            filtersSto: {
+                domSearch: [{
+                    select: ['storagename'],
+                    content: ''
+                }], //查询框
+            },
+            deviceListData: [], //入库量列表
+            deviceFormVisible: false,
+            devicelistLoading: false,
+            dtotal: 0,
+            dcurrentPage: 1,
+            dpageSize: 15,
+            pickerOptions: { //日期
+            },
+            empLoading:false,
+            empOptions:[],//员工列表
+            listData: [],
+            total: 0,
+            currentPage: 1,
+            pageSize: 15,
+            listLoading: false,
+            contractThisList: [],
+            formDialogTableVisible: false,
+            addFormVisible: false, //新增界面是否显示
+            addLoading: false,
+            addFormRules: {
+                storagename: [{
+                        required: true,
+                        message: '请输入库房名称',
+                        trigger: 'blur'
+                    },
+                    {
+                        validator: checkChinese,
+                        trigger: 'blur'
+                    }
+                ],
+                managername: [{
+                        required: true,
+                        message: '请输入库管名称',
+                        trigger: 'blur'
+                    },
+                    {
+                        validator: checkChinese,
+                        trigger: 'blur'
+                    }
+                ],
+                storagelevel: [{required: true,message: '请选择库房级别',trigger: 'blur'}],
+                parentname: [{required: true,message: '请选择上级库房',trigger: 'blur'}],
+                addressAll: [{required: true,message: '请选择库房区域',trigger: 'blur'}],
+            },
+            //新增界面数据
+            addForm: {
+                purchaseamount: 0,
+                purchasedate:'',
+                purchaseqty:'',
+                supplierid:'',
+                suppliername:'',
+                linkman:'',
+                contactno:'',
+                stoPurchasedetails:[],
+            },
+            supplierOptions:[],//供应商
+            supplierLoading:false,
+            // 类型设置
+            typeListData:[],//设备型号数据
+            typeListLoading:false,
+            editable:false,//是否可编辑
+            typeForm:{
+                modelname:'',
+                unitprice:'',
+                qty:'',
+                amount:'',
+            },
+            // 级联选择器
+            props: {
+              value: 'label',
+              children: 'cities'
+            },
+            modelOptions:[],//类型级联选择
+        }
+    },
+    methods: {
+        // 卡型号点击新增
+        typeAddClick(){
+            this.typeForm = {
+                modelitem:'',
+                modelname:'',
+                modelspec:'',
+                supplierid:'',
+                modelunit:'',
+                isactive:'1'
+            },//清空输入框，初始化
+            this.typeListData.push(this.typeForm);
+            this.editable = true;
+        },
+        // 确定新增
+        typeAddConfirm(){
+            this.typeListLoading = true;
+            let para = Object.assign({}, this.typeForm);
+            // para.isactive = para.isactive === true ? '1' : para.isactive === false ? '0' : '1';
+            addSIMModel(para).then((res) => {
+                this.typeListLoading = false;
+                this.$message.success('新增成功！');
+                this.getSIMModel();
+                this.typeAddCancel();
+            });
+        },
+        // 取消新增
+        typeAddCancel(){
+            this.editable = false;//取消编辑
+            this.typeListData.splice(this.typeListData.length-1, 1); //从当前index位置开始，删除一项
+        },
+        // 删除卡类型
+        handleDel(index,row){
+            this.$confirm(' 确认删除该条卡类型记录吗?', '提示', {
+                type: 'warning'
+            }).then(() => {
+                let para = { id:row.id  }
+                removeSIMModel(para).then((res) => {
+                    this.typeListLoading = false;
+                    this.$message.success('删除成功！');
+                    this.getSIMModel();
+                    this.typeAddCancel();
+                });
+            })
+        },
+        // 供应商下拉
+        supplierChange(r) {
+            if(!r || this.supplierOptions.length > 0) return;
+            this.supplierLoading = true;
+            getSupplierList({limit:1000}).then((res) => {
+                this.supplierOptions = res.data.data.records;
+                this.supplierLoading = false;
+            });
+        },
+        // 联动联系人联系方式
+        showLink(val){
+            console.log(val)
+            this.addForm.supplierid = val.id;
+            this.addForm.suppliername = val.suppliername;
+            this.addForm.linkman = val.linkman;
+            this.addForm.contactno = val.contactno;
+        },
+        // 人员——搜索下拉
+        empChange(r) {
+            if(!r || this.empOptions.length > 0) return;
+            this.empLoading = true;
+            let para = {
+                isactive: 1,
+                limit:10000
+            }
+            getEmployeeInfoList(para).then((res) => {
+                this.empOptions = res.data.data.records;
+                this.empLoading = false;
+            });
+        },
+        handleSelectName(value) {
+            this.editForm.managername = value.employeename;
+            this.editForm.managerid = value.ID;
+            this.editForm.managermobile = value.mobile;
+            this.addForm.managername = value.employeename;
+            this.addForm.managerid = value.ID;
+            this.addForm.managermobile = value.mobile;
+        },
+
+        // 级联选择器-选择采购型号
+        modelCascader(r){
+            if(!r || this.modelOptions.length > 0) return;
+            let para = { limit:10000 }
+            getPurchaseCascader(para).then((res) => {
+                this.modelOptions = res.data.data.records;
+            });
+        },
+        // 级联选择器-当父级选项变化时触发的事件
+        handleItemChange(val) {
+
+        },
+        //详情查看
+        formDetailHandle(stoid) {
+            this.formDialogTableVisible = true;
+
+            //页面渲染完成，加载条形码
+            this.$nextTick(() => {
+               JsBarcode("#barcode", "CGHT20180910222", {width:1,height: 40} );
+            })
+
+            this.contractThisList = ''; //清空上条数据
+            let para = { id: stoid  }
+            getStorageDetails(para).then((res) => {
+                this.contractThisList = res.data.data;
+            });
+        },
+        // 添加查询条件
+        addSelect() {
+            this.filters.domSearch.push({
+                select: [],
+                content: ''
+            });
+        },
+        // 移除查询条件
+        removeSelect(index) {
+            this.filters.domSearch.splice(index, 1); //从当前index位置开始，删除一项
+        },
+        
+        //转换
+        statusFormat(row, col) {
+            // return row.storagelevel == 1 ? '总库' : row.storagelevel == 2 ? '地方库' : row.storagelevel == 3 ? '个人库' : '未知';
+            return row.storagelevel + ' 级库';
+        },
+      
+       // 入库单详情列表
+        getDeciceListInfo(){
+
+        },
+        //切换当前页
+        dhandleCurrentChange(val) {
+            this.dcurrentPage = val;
+            this.getDeciceListInfo();
+        },
+        //切换每页显示数量
+        dhandleSizeChange(val) {
+            this.dpageSize = val;
+            this.getDeciceListInfo();
+        },
+
+        //切换当前页
+        handleCurrentChange(val) {
+            this.currentPage = val;
+            this.handleQuery();
+        },
+        //切换每页显示数量
+        handleSizeChange(val) {
+            this.pageSize = val;
+            this.handleQuery();
+        },
+        //获取列表
+        handleQuery() {
+            let para = {
+                page: this.currentPage,
+                limit: this.pageSize,
+                domSearch: this.filters.domSearch,
+                startTime: this.filters.timeScope ? (this.filters.timeScope[0] ? util.formatDate.format(new Date(this.filters.timeScope[0]), 'yyyy-MM-dd hh:mm:ss') : '') : '',
+                endTime: this.filters.timeScope ? (this.filters.timeScope[1] ? util.formatDate.format(new Date(this.filters.timeScope[1]), 'yyyy-MM-dd hh:mm:ss') : '') : '',
+            };
+            this.listLoading = true;
+            getStoPurchaseList(para).then((res) => {
+                this.total = res.data.data.total;
+                this.listData = res.data.data.records;
+                this.listLoading = false;
+            }).catch((error) => {
+                this.listLoading = false;
+            });
+        },
+        
+        //显示新增界面
+        handleAdd() {
+            this.addFormVisible = true;
+
+            //页面渲染完成，加载条形码
+            this.$nextTick(() => {
+               JsBarcode("#barcode", "CGHT20180910222", {width:1,height: 40} );
+            })
+            
+            this.addForm = {
+                purchaseamount: 0,
+                purchasedate:'',
+                purchaseqty:'',
+                supplierid:'',
+                suppliername:'',
+                linkman:'',
+                contactno:'',
+                stoPurchasedetails:[],
+            };
+
+        },
+        //新增
+        addSubmit() {
+            this.$refs.addForm.validate((valid) => {
+                if(valid) {
+                    this.addLoading = true;
+                    let para = {
+                        storagename: this.addForm.storagename,
+                        storagelevel: this.addForm.storagelevel,
+                        parentid: this.addForm.parentid,
+                        parentname: this.addForm.parentname,
+                        storagearea:this.addForm.addressAll.toString(),
+                        storageaddress :this.addForm.storageaddress,
+                        remark:this.addForm.remark,
+                        managerid: this.addForm.managerid,
+                        managername: this.addForm.managername,
+                        managermobile: this.addForm.managermobile,
+                    }
+                    this.addLoading = false;
+                    addStorageInfo(para).then((res) => {
+                        if (res.data) {
+                            this.$message({
+                                message: '新增成功！',
+                                type: 'success'
+                            });
+                            this.$refs['addForm'].resetFields();
+                            this.addFormVisible = false;
+                            this.handleQuery();
+                        }
+                        this.addLoading = false;
+                    });
+                }
+            });
+        },
+    },
+    created() {
+        this.handleQuery();
+    }
+}

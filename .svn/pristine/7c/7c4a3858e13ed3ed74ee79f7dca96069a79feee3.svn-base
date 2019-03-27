@@ -1,0 +1,383 @@
+import { getVehList } from "@/views/basicManage/ownerVehicleManage/service";
+import { getToken } from '@/utils/auth'
+import util from 'utils/tools';
+import productList from '../subComponent/productList'
+import gdmap from '@/views/map/gdmap';
+import { getProducts, initForm, installRules, submitInstall } from '../service'
+import { getGroupInfoList } from '@/views/sysManage/group/service'
+import { getAllColorList, getCarModel } from '@/views/basicManage/ownerVehicleManage/service'
+import { getParentInfoList } from '@/views/sysManage/organizationManage/service'
+
+export default {
+    name: "installOrder",
+    components: {
+        productList,
+        gdmap
+    },
+    props: ['corpid'],
+    data () {
+        return {
+            form: initForm(), //表单
+            rules: installRules(this),//表单验证规则
+            vehlist: [], // 车型
+            carColor: [],//车辆颜色列表
+            token: getToken(),
+            accept: '.jpg,.png',
+            util: util,
+            activeNames: ['1', '2', '3'],
+            loading: false,
+            addressList: [],//地址列表
+            productList: [],//产品列表
+            groupList: [],//分组列表
+            groupBeanList: [],//原始分组列表
+            vehiclepowerList: {
+                1: '汽油',
+                2: '柴油',
+                3: '纯电',
+                4: '混动'
+            },//能源类型1=汽油，2=柴油，3=纯电，4=混动
+            cascaderProp: {
+                value: 'id',
+                label: 'name',
+            },
+            groupArr: [],
+            selectEmployee: {},
+            addressDetail: '',
+            vehiclecategoryList: {
+                1: '新车',
+                2: '二手车',
+                3: '资管追回'
+            },//汽车分类列表
+        }
+    },
+    watch: {
+        corpid (newValue) {
+            if (newValue) {
+                this.getProducts()
+            }
+        }
+    },
+    methods: {
+        /**
+         * 获取车辆类型
+         * @param r
+         */
+        vehChange (r) {
+            const params = {
+                page: 1,
+                limit: 10000,
+                isactive: 1
+            }
+            getVehList(params).then((res) => {
+                this.vehlist = res.data.data;
+            });
+        },
+        /**
+         * 获取第一受益人
+         * @param parm
+         * @param cb
+         * @returns {Promise<void>}
+         */
+        async getCorpList (parm, cb) {
+            // if (!show) return
+            let param = {
+                page: 1,
+                limit: 10000,
+                corpcategory: 'BANK',
+                corpname: parm
+            }
+            try {
+                const {data} = await getParentInfoList(param)
+                cb(data.data.records)
+                // this.corplist = data.data.records;
+            } catch (e) {
+
+            }
+        },
+        uploadSuccessInvoice (res, file) {
+            this.form.picinvoice = res.data
+            this.initViewer()
+        },
+        uploadSuccessVehiclelicense (res, file) {
+            this.form.picvehiclelicense = res.data
+            this.initViewer()
+        },
+        uploadSuccessIdcard (res, file) {
+            this.form.picidcard = res.data
+            this.initViewer()
+        },
+        uploadRegistration (res, file) {
+            this.form.picregistration = res.data
+            this.initViewer()
+        },
+        uploadSuccessCertificate (res, file) {
+            this.form.piccertificate = res.data
+            this.initViewer()
+        },
+        uploadSuccessImport (res, file) {
+            this.form.picimport = res.data
+            this.initViewer()
+        },
+        /**
+         * 图片浏览器
+         */
+        initViewer () {
+            if (this.viewer)
+                this.viewer.destroy()
+            const el = this.$refs['rpShowimgDialog'].$el
+            this.$nextTick(() => {
+                this.viewer = new Viewer(el)
+            });
+        },
+        /**
+         * 高德地图API autocomplete
+         * @param query
+         */
+        autoInput (query) {
+            if (query !== '') {
+                this.loading = true;
+                let autoComplete = new AMap.Autocomplete({
+                    city: '全国'
+                });
+                autoComplete.search(query, (status, result) => {
+                    // 搜索成功时，result即是对应的匹配数据
+                    this.addressList = result.tips
+                    this.loading = false
+                }, err => {
+                    console.log(err)
+                    this.loading = false
+                })
+            } else {
+                this.addressList = [];
+            }
+        },
+        /**
+         * 选择地址
+         * @param item
+         */
+        changeAdress (item) {
+            const address = item.district + item.address + item.name
+            this.$refs.vueAmap.geocoder(address, (res) => {
+                console.log(res)
+                this.form.impaddresscode = res.adcode
+                // this.form.impaddress = res.formattedAddress
+                this.form.impaddress = address
+                this.form.impaddresslng = res.location.lng
+                this.form.impaddresslat = res.location.lat
+            });
+        },
+        /**
+         * 拖动地图
+         * @param address
+         * @param lnglatXY
+         * @param type
+         */
+        draggerMapMarker (address, lnglatXY, type) {
+            this.form.impaddress = address
+            this.form.impaddresslng = lnglatXY[0]
+            this.form.impaddresslat = lnglatXY[1]
+        },
+        /**
+         * 选择产品
+         * @param item
+         */
+        selectProduct (item) {
+            this.form.packageid = item.packageid
+            if (item.cmsPackage.packcontent === 'INSU') {
+                this.form.hastheftinsurance = 1
+                return
+            }
+            this.form.hastheftinsurance = 0
+        },
+        /**
+         * 获取产品列表
+         * @returns {Promise<void>}
+         */
+        async getProducts () {
+            try {
+                this.form.corpid = this.corpid
+                const params = {
+                    page: 1,
+                    limit: 15
+                }
+                const {data} = await getProducts(params, this.corpid)
+                this.productList = data.data.records
+            } catch (e) {
+                console.log(e)
+            }
+        },
+        /**
+         * 获取安装组&组员
+         * @returns {Promise<void>}
+         */
+        async getGroupInfoList () {
+            try {
+                const params = {
+                    page: 1,
+                    limit: 15,
+                    isactive: 1,
+                    grouptype: 'INSTALL'
+                }
+                const {data} = await getGroupInfoList(params)
+                this.groupBeanList = data.data.records
+                this.groupList = _.map(data.data.records, item => {
+                    return {
+                        id: item.id,
+                        name: item.groupname,
+                        children: _.map(item.employeeInfos, employee => {
+                            return {
+                                id: employee.userid,
+                                name: employee.employeename,
+                            }
+                        })
+                    }
+                })
+            } catch (e) {
+                console.log(e)
+            }
+        },
+        /**
+         * 选择安装人员
+         * @param item
+         */
+        changeGroup (item) {
+            this.form.impgroupid = this.groupArr[0]
+            this.form.impby = this.groupArr[1]
+            this.addressDetail = ''
+            const data = _.find(this.groupBeanList, item => {
+                return item.id === this.groupArr[0]
+            })
+
+            this.selectEmployee = _.find(data.employeeInfos, item => {
+                return item.userid === this.groupArr[1]
+            })
+
+            // this.contactid = item.userid
+
+            /**
+             * lat: 30.629002
+             * lng: 104.142672
+             */
+            this.$refs.vueAmap.getAddress([104.142672, 30.629002], (res) => {
+                this.addressDetail = res
+            });
+        },
+        /**
+         * 获取车辆颜色
+         * @param queryString
+         * @param cb
+         */
+        handleColorChange (queryString, cb) {
+            let para = {
+                model: this.form.busiVehicleinfo.model,
+                color: queryString,
+                limit: 100
+            }, colorArray = [];
+            getAllColorList(para).then((res) => {
+                if (res.data.data.records) {
+                    res.data.data.records.forEach(function (item, index) {
+                        if (item && item.color) {
+                            colorArray.push({
+                                value: item.color,
+                                color_rgb: item.color_rgb,
+                            });
+                        }
+                    });
+                    cb(colorArray);
+                }
+            });
+        },
+        /**
+         * 选择车辆颜色
+         * @param v
+         */
+        changeCarColor (v) {
+            if (typeof v != "object") return;
+            this.form.busiVehicleinfo.colorname = v.value; //存colorname汉字
+            this.form.busiVehicleinfo.color = v.color_rgb; //存color码
+        },
+        //选择车型查询颜色
+        handleSelectColor (v) {
+            this.form.busiVehicleinfo.model = v.value;
+            this.form.busiVehicleinfo.color = '';
+            this.form.busiVehicleinfo.colorname = '';
+        },
+        //车型选择
+        handleItemChange (queryString, cb) {
+            let para = {
+                    model: queryString,
+                    viewName: "VW_VAS_WEB_VAS_VEHICLE_MODEL",
+                    limit: 30,
+                },
+                ownerArray = [];
+            getCarModel(para).then((res) => {
+                if (res.data.data != null) {
+                    res.data.data.records.forEach(function (item, index) {
+                        ownerArray.push({
+                            value: item.model,
+                            brand: item.brand,
+                            serious: item.serious
+                        });
+                    });
+                    cb(ownerArray);
+                }
+            });
+        },
+        submit () {
+            this.$refs.form.validate(async valid => {
+                if (valid) {
+                    this.form.busiPictures = [{
+                        piclink: this.form.picinvoice,
+                        piccode: '21',
+                        picdesc: '购车发票'
+                    }, {
+                        piclink: this.form.picvehiclelicense,
+                        piccode: '11',
+                        picdesc: '行驶证'
+                    }, {
+                        piclink: this.form.picidcard,
+                        piccode: '22',
+                        picdesc: '身份证'
+                    }, {
+                        piclink: this.form.picregistration,
+                        piccode: '10',
+                        picdesc: '登记证'
+                    }, {
+                        piclink: this.form.piccertificate,
+                        piccode: '23',
+                        picdesc: '合格证'
+                    }, {
+                        piclink: this.form.picimport,
+                        piccode: '24',
+                        picdesc: '货物进口证'
+                    }]
+                    try {
+                        console.log(this.form)
+                        await submitInstall(this.form)
+                    } catch (e) {
+                        console.log(e)
+                    }
+                } else {
+                    this.$message.warning('请完善信息')
+                }
+            })
+        },
+        checkNum (value, obj, property) {
+            if (/^\d+$/.test(value)) {
+                obj[property] = value + '.00'
+            } else {
+                obj[property] = value
+                return
+            }
+            if (property === 'price') {
+                this.form.busiVehicleinfo.indemnitylimit = obj[property]
+            }
+        }
+    },
+    created () {
+        if (this.corpid) {
+            this.getProducts()
+        }
+        // this.debouncedGetAnswer = _.debounce(this.autoInput, 500)
+    }
+}

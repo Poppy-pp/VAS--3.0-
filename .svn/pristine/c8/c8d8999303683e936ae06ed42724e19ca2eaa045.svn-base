@@ -1,0 +1,599 @@
+/* 
+* @description: 业务管理css
+* @author: 王鹏 
+* @update: 王鹏 (2017-05-27 10:55) 
+*/
+.mb15{
+	margin-bottom:15px;
+}
+.mt15{
+	margin-top:15px;
+}
+.ml{
+    margin-left:5px;
+}
+.fl{
+	float: left;
+}
+.fr{
+	float: right;
+}
+.mt9{
+	margin-top: 9px;
+}
+.mb4{
+	margin-bottom: 4px;
+}
+.mb3{
+	margin-bottom: 3px;
+}
+.mb13{
+	margin-bottom: 13px;
+}
+.mt10{
+	margin-top:10px;
+}
+.ml10{
+	margin-left:10px;
+}
+.mt20{
+	margin-top:20px;
+}
+.mt18{
+	margin-top:20px;
+}
+.mt25{
+	margin-top:25px;
+}
+.text_al{
+	text-align: right;
+}
+.mr10{
+	margin-right: 10px;
+}
+.mr15{
+	margin-right: 15px;
+}
+.mb10{
+	margin-bottom:10px;
+}
+.mb5{
+	margin-bottom:5px;
+}
+.mb3{
+	margin-bottom:3px;
+}
+.image{
+  	cursor: -webkit-zoom-in;
+}
+.bt1{
+	border-top: 1px solid #f5f5f5;
+}
+.pr5{
+	padding-right: 5px;
+}
+.bbpx{
+	border-bottom: 1px solid #000000;
+}
+.myt_sel{
+	position: absolute;
+	right: 0;
+	width: 460px;
+	z-index: 11;
+}
+.pd0 .el-dialog__header{
+	padding: 0;
+}
+.pd0 .el-dialog__headerbtn{
+	z-index: 1;
+}
+.myt_sel .myt_carflset{
+	width: 360px;
+	margin-right: 10px;
+}
+.myt_sel .myt_carflset input{
+	height: 35px;
+}
+.myt_sel .myt_carflset .el-select:first-child{
+	margin-right: 10px;
+	width: 150px;
+	float: left;
+}
+.myt_sel .myt_carflset .el-select{
+	width: 200px;
+}
+.myt_sel .el-button--small{
+	padding: 10px 9px;
+}
+.el-dropdown-menu__item{
+	text-align: center;
+}
+.el-dialog__header{
+	overflow: hidden;
+}
+.ser_w100 .el-form-item,
+.ser_w100 .el-form-item__content,
+.ser_w100 input{
+	width: 100% !important;
+}
+.el-collapse-item__header{
+	height: 35px;
+    line-height: 35px;
+    padding-left: 15px;
+    margin-bottom: 0;
+}
+.el-collapse-item__arrow{
+	line-height: 35px !important;
+}
+.el-form--label-top .el-form-item__label{
+	padding: 0;
+}
+.installaddressStyle .el-form-item--medium .el-form-item__content{
+	line-height: 35px;
+}
+.lh35 .el-form-item--medium .el-form-item__content{
+    line-height: 35px;
+}
+.installaddressStyle .cascLable input.el-input__inner{
+	height: 34px;
+}
+.installaddressStyle .el-cascader--medium{
+	line-height: 34px;
+}
+.formdetail .el-dialog__body{
+	margin-right: 0 !important;
+}
+.rpShowimgDialog .el-dialog__body{
+	padding: 15px 20px;
+}
+.formTile{
+	display: block;
+	text-align: left;
+	font-size:1.6rem;
+	margin-bottom: 15px;
+}
+.el-form-item__content .carflset{
+	min-width:200px;
+	margin-right:10px;
+	padding: 0 !important;
+}
+.formTile:before{
+	content: '';
+    padding: 2px;
+    background: #00C1DE;
+    margin-right: 8px;
+}
+.formdetail dl.dllist dt{
+	float: left;
+	color:#7794bb;
+}
+.el-input-number,.el-cascader,.el-select{
+	width:100%;
+}
+.cur-form-inn .el-form-item{
+	width:100%;
+	margin-bottom: 0;
+}
+.seachForm .el-form-item,.seachForm .el-form-item .el-form-item__content{
+	width: 100%;
+}
+.mt10{
+	margin-top:10px;
+}
+.mt8{
+	margin-top:8px;
+}
+.mt18{
+	margin-top:18px;
+}
+.mt20{
+	margin-top:20px;
+}
+.bdcoll{
+	border:0;
+}
+.bdcoll .el-collapse-item__content{
+    padding: 0 10px;
+}
+.bdcoll .el-collapse-item__wrap{
+	border-bottom:0;
+}
+.pb10 .el-collapse-item__content{
+	padding-bottom:10px;
+}
+.pb18 .el-collapse-item__content{
+	padding-bottom:18px;
+}
+
+.wiredNum .el-form-item__content{
+	height:40px;
+}
+.searchInput{
+	width:100%;
+}
+span.tagNum{
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    font-size: 12px;
+    background-color: #00c1de;
+    vertical-align: middle;
+    line-height: 20px;
+    text-align: center;
+    color: #fff;
+    border-radius: 20px;
+}
+.cur-form-inn{
+	width:100%;
+	/*font-size: 0;*/
+	margin:0 auto;
+	overflow: hidden;
+}
+.footer_but_bd{
+	margin:20px 0 10px 0;
+}
+span.cg{
+	color:#1d90e6;
+	font-size:1.6rem;
+}
+.CuseInstallDevice{
+	width: 100%;
+	overflow: hidden;
+}
+.flexButtonZh{
+	display: flex;
+	justify-content: center;
+ 	align-items: flex-end;
+}
+.flexButtonZh .el-button-group{
+	flex: 0 0 79px;
+}
+/*上传图片框样式*/
+.potoh .el-form-item__content{
+	width: 100%;
+}
+.potoh .avatar-uploader{
+	width: 100%;
+}
+.potoh .avatar-uploader .el-upload {
+	border: 1px dashed #d9d9d9;
+	border-radius: 6px;
+	cursor: pointer;
+	position: relative;
+	overflow: hidden;
+	width: 100%;
+}
+.potoh .avatar-uploader .el-upload:hover {
+	border-color: #20a0ff;
+}
+.potoh .avatar-uploader-icon {
+	font-size: 28px;
+	color: #8c939d;
+	width: 100%;
+	height: 100%;
+	line-height: 178px;
+	text-align: center;
+}
+.potoh .avatar {
+	width: 100%;
+	height: 178px;
+	display: block;
+}
+.lh68{
+	line-height: 68px;
+}
+/*组合输入框样式*/
+div.el-input-group__prepend{
+	padding: 0 !important;
+}
+.cascLable input {
+	width: 170px;
+	border:0;
+	height:40px;
+}
+/*组合输入框样式 结束*/
+/*图片放大*/
+.enlargeArea .el-collapse-item__wrap{overflow: inherit;}
+.zoomify { cursor: pointer; cursor: -webkit-zoom-in; cursor: zoom-in; }
+.zoomify.zoomed { cursor: -webkit-zoom-out; cursor: zoom-out; padding: 0; margin: 0; border: none; border-radius: 0; box-shadow: none; position: relative; z-index: 1501; }
+.zoomify-shadow { position: fixed; top: 0; left: 0; right: 0; bottom: 0; width: 100%; height: 100%; display: block; z-index: 1500; background: rgba(0, 0, 0 , .3); opacity: 0; }
+.zoomify-shadow.zoomed { opacity: 1; cursor: pointer; cursor: -webkit-zoom-out; cursor: zoom-out; }
+dl.dllist{
+	overflow: hidden;
+}
+dl.dllist dt{
+	float: left;
+	color:#99a9bf;
+}
+dl.dllist dd{
+	color:#444;
+}
+dl.dllist dt,dd{
+	font-size:1.4rem;
+}
+.dec_carinfo{
+	background-color: #f5f5f5;
+	margin-left: 10px;
+    margin-top: 11px;
+}
+.dec_carinfo dl.dllist{
+	line-height: 25px;
+}
+.dec_carinfo dl.dllist dd{
+	overflow: hidden;
+}
+.dec_carinfo dl.dllist dt{
+	color:#222;
+}
+.pl0{
+	padding-left: 0 !important;
+}
+.mt5{
+	margin-top:5px;
+}
+.pt5{
+	padding-top:5px;
+}
+.mt2{
+	margin-top:2px;
+}
+.mr4{
+	margin-right:4px;
+}
+.pt2{
+	padding-top:2px;
+}
+.ml0{
+	margin-left:0 !important;
+}
+.ml5{
+	margin-left:5;
+}
+.pb10{
+	padding-bottom: 10px;
+}
+.showimgDialog p.simgtitle{
+	text-align: left;;
+	font-size: 1.8rem;
+	margin: 12px 0;
+}
+.showimgDialog dl.dllist{
+	line-height: 21px;
+}
+.showimgDialog dl.dllist dt{
+	color: #222;
+	font-size:1.4rem;
+}
+.devptosty img{
+	margin:0 auto;
+	height: 250px;
+	display: block;
+	width: auto;
+}
+.imgMd{
+	position: relative;
+	width: 80px;
+	height: 80px;
+	float: left;
+}
+.imgMd img{
+	width: 100%;
+	height: 100%;
+}
+.imgMd span{
+	position: absolute;
+	left: 0;
+	bottom: 0;
+	height: 20px;
+	background: rgba(0,0,0,0.3);
+	display: block;
+	color: #fff;
+	font-size: 1.2rem;
+	width: 100%;
+	line-height: 20px;
+	text-align: center;
+}
+.devptosty div.btsty{
+	padding: 10px;
+	border-top: 1px solid #eee;
+	margin-top: 5px;
+	text-align: center;
+	overflow: hidden;
+}
+.photosh{
+	margin-bottom: 20px;
+}
+/*搜索input自定义样式*/
+.my-autocomplete li{
+  line-height: normal;
+  padding: 7px;
+}
+.my-autocomplete li .model{
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+.my-autocomplete li .vin{
+  font-size: 12px;
+  color: #999;
+  display: block;
+}
+.my-autocomplete .highlighted .addr {
+  color: #ddd;
+}
+.bc_none{
+	background-color:#ffffff;
+}
+.plr40{
+	padding: 0 16px;
+}
+.pmbt{
+	padding:10px 16px;
+	margin-top:10px;
+	border-top:1px solid rgb(209, 229, 227);
+}
+.lefw10 .el-collapse-item__header:before,p.ckpbefor:before,div.leftheb label.el-form-item__label:before{
+	content: "";
+	padding:2px;
+	height: 20px;
+	background: #00C1DE;
+    margin-right: 8px;
+}
+.devlef .el-collapse-item__header:before{
+	float: left;
+	margin-top: 5px;
+}
+.devlefSel{
+	width:200px;
+	margin-left:10px;
+}
+.devlefSel .el-input__inner{
+	height: 30px !important;
+}
+.enlargeArea .sebei:before{
+	content: "";
+	padding:2px;
+	height: 20px;
+	background: #00C1DE;
+    margin-right: 8px;
+}
+.wzpdt10 .el-collapse-item__wrap{
+	padding: 10px 0;
+}
+dl.lh55_mb10{
+	line-height: 55px;
+    margin-bottom: 10px;
+}
+dl.lh55_mb10 dt{
+	margin-right: 10px;
+}
+.newForm_s{
+	display: table;
+	overflow: auto;
+	width: 100%;
+	min-width: 815px;
+	padding:0 0 12px 15px;
+}
+div.el-collapse-item__wrap{
+	background-color: #fff;
+}
+.newForm_s .newForm_s_col_1{
+	flex:0 0 155px;
+	width: 155px;
+	float: left;
+}
+.newForm_s .newForm_s_col_1 .leftheb .el-form-item__content{
+	width: 175px;
+}
+.newForm_s .newForm_s_col_2{
+	flex:1;
+	overflow: hidden;
+	max-width: 1000px;
+	min-width: 645px;
+}
+.newForm_i .newForm_i_bx .el-radio-button__inner{
+	border:0;
+}
+.newForm_i .newForm_i_bx .el-radio-button:last-child .el-radio-button__inner{
+	border-radius:0;
+}
+.myorderFFheader .leftheb{
+	width: auto;
+}
+.myorderFFheader .rsty_1{
+    margin-left: 15px;
+}
+.myorderFFheader .rsty_2{
+	float: right;
+	margin-right: 16px;
+}
+.el-steps--simple{
+	padding: 13px;
+}
+.avatar-uploader .el-upload {
+    border-radius: 6px;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+  }
+  .avatar-uploader .el-upload:hover {
+    border-color: #20a0ff;
+  }
+  .avatar-uploader-icon {
+    font-size: 28px;
+    color: #8c939d;
+    width: 159px;
+    height: 137px;
+    line-height: 137px;
+    text-align: center;
+  }
+  .avatar {
+    width: 159px;
+    height: 137px;
+    display: block;
+  }
+  div.sgphtosh{
+  	width: 180px;
+  }
+  .sgphtosh .devptosty div.btsty .el-select{
+  	width: 107px;
+  }
+  .sgphtosh .devptosty div.btsty{
+  	margin: 0;
+  }
+  .sgphtosh .devptosty img{
+  	width: 100%;
+  	height: auto;
+  }
+  .devptosty .avatar-uploader{
+  	height: 132px;
+  	overflow: hidden;
+  }
+/*我的请求 我的已办*/
+.requestdd{
+	position: relative;
+}
+.requestdd .detailback{
+	position: absolute;
+	top:6px;
+	right:5px;
+	z-index: 1;
+}
+.color_rgba{
+	display: block;
+    width: 20px;
+    height: 20px;
+    margin-top: 1px;
+    float: left;
+    border-radius: 5px;
+    border:1px solid #ddd;
+}
+.color_rgba1{
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    vertical-align: bottom;
+    margin-top: 1px;
+    border-radius: 5px;
+    border: 1px solid #ddd;
+}
+i.carFont{
+    font-size: 22px;
+    vertical-align: middle;
+}
+.my-autocomplete li {
+line-height: normal;
+padding: 7px;
+}
+.my-autocomplete li .name {
+text-overflow: ellipsis;
+overflow: hidden;
+}
+.my-autocomplete li .addr {
+font-size: 14px;
+color: #b4b4b4;
+}
+.my-autocomplete li .highlighted .addr {
+color: #ddd;
+}
+
+

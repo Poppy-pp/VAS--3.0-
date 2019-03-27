@@ -1,0 +1,94 @@
+//数据检测接口
+import axios from "axios";
+
+let base = '/vasms-web';
+
+const getCheckoutOfGroupInfo = params => {
+    return axios.get(`${base}/api/v1/org/groupInfo/checkout/` + params.para + '/' + params.value);
+};
+
+//分组类型列表查询
+const groupClass = params => {
+    return axios.get(`${base}/api/v1/sys/sysDictionaryData/dictvalue/` + params.dictvalue, params)
+};
+
+const getDeptManagerInfoList = params => {
+    return axios.get(`${base}/api/v1/org/employeeInfo/?showCount=10000`, {
+        params: params
+    });
+};
+
+// 查询详细部门
+const getAllDeptList = params => {
+    return axios.get(`${base}/api/v1/org/departmentInfo/query/IDAndName`, {
+        params: params
+    });
+};
+
+// 获取员工
+const getEmpsGroupList = params => {
+    return axios.get(`${base}/api/v1/org/employeeInfo/getIDandName`, {
+        params: params
+    });
+};
+
+//分组信息管理接口
+const getGroupInfoList = params => {
+    return axios.get(`${base}/api/v1/org/groupInfo/query/vw`, {
+        params: params
+    });
+};
+
+const addGroupInfo = params => {
+    return axios.post(`${base}/api/v1/org/groupInfo/addGroupAndEmp`, params);
+};
+
+const modifyGroupInfo = params => {
+    return axios.put(`${base}/api/v1/org/groupInfo/updateTo/` + params.id, params);
+};
+
+const removeGroupInfo = params => {
+    return axios.post(`${base}/api/v1/org/groupInfo/batch`, Qs.stringify(params));
+};
+
+// 获取组人数信息
+const getEmpsList = params => {
+    return axios.get(`${base}/api/v1/org/groupInfo/getEmps`, {
+        params: params
+    });
+};
+
+/*分组搜索模糊查询接口*/
+const getSelectListGroup = params => {
+    return axios.get(`${base}/api/v1/org/groupInfo/query/like`, {
+        params: params
+    });
+};
+
+//根据员工userid获取员工姓名
+const getNamebyUserid = params => {
+    return axios.get(`${base}/api/v1/org/employeeInfo/getNameByUserid`, {
+        params: params
+    });
+};
+
+//设置分组信息无效
+const SetStateGroupInfo = params => {
+    return axios.put(`${base}/api/v1/org/groupInfo/` + params.id, params);
+};
+
+export {
+    getCheckoutOfGroupInfo,
+    groupClass,
+    getDeptManagerInfoList,
+    getAllDeptList,
+    getEmpsGroupList,
+    getGroupInfoList,
+    addGroupInfo,
+    modifyGroupInfo,
+    removeGroupInfo,
+    getEmpsList,
+    getSelectListGroup,
+    getNamebyUserid,
+    SetStateGroupInfo
+}

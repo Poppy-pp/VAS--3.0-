@@ -1,0 +1,263 @@
+<template>
+    <div>
+        <el-row>
+            <el-form :inline="true">
+                <el-form-item>
+                    <el-select v-model="value" placeholder="请选择">
+                        <el-option
+                                v-for="item in options"
+                                :key="item.value"
+                                :label="item.label"
+                                :value="item.value">
+                        </el-option>
+                    </el-select>
+                </el-form-item>
+                <el-form-item>
+                    <el-button type="primary">确定采购</el-button>
+                </el-form-item>
+                <el-form-item>
+                    <el-button type="primary">查看采购历史</el-button>
+                </el-form-item>
+                <el-form-item>
+                    <el-button type="primary">导出采购表</el-button>
+                </el-form-item>
+            </el-form>
+        </el-row>
+        <el-row>
+            <h3 class="plan-title">四川万网鑫城设备采购计划</h3>
+            <div ref="stockChart" style="height: 300px; width: 100%; margin: 10px 0;"></div>
+            <el-table
+                    border
+                    :data="tableData"
+                    style="width: 100%">
+                <el-table-column
+                        align="center"
+                        type="index"
+                        width="50">
+                </el-table-column>
+                <el-table-column
+                        align="center"
+                        prop="date"
+                        label="设备类别"
+                        width="180">
+                </el-table-column>
+                <el-table-column
+                        align="center"
+                        prop="name"
+                        label="所有地区采购总量"
+                        width="180">
+                </el-table-column>
+                <el-table-column
+                        align="center"
+                        prop="address"
+                        label="新品库+周转库库存量">
+                </el-table-column>
+            </el-table>
+        </el-row>
+        <el-row style="margin-top: 10px;">
+            <el-col :span="24">
+                <span class="formTile">各个地区要货情况</span>
+            </el-col>
+        </el-row>
+        <el-row>
+            <el-col :span="6" style="display: flex;">
+                <div style="overflow: auto; flex: 1; height: 400px; margin-right: 10px;" v-loading="treeLoading">
+                    <el-tree :data="storageTree" :props="defaultProps" @node-click="handleNodeClick"></el-tree>
+                </div>
+            </el-col>
+            <el-col :span="18">
+                <el-table :data="tableData" border ref="todeTable" highlight-current-row>
+                    <el-table-column type="index" align="center" label="序号" width="50">
+                    </el-table-column>
+                    <el-table-column prop="storagearea" align="center" label="设备类别" min-width="50">
+                    </el-table-column>
+                    <el-table-column prop="receiver" align="center" label="本月期初库存量" min-width="50">
+                    </el-table-column>
+                    <el-table-column prop="operator" align="center" label="当前库存量" min-width="50">
+                    </el-table-column>
+                    <el-table-column prop="actionstatus" align="center" label="在途量" min-width="50">
+                    </el-table-column>
+                    <el-table-column prop="actionstatus" align="center" label="本月安装量" min-width="50">
+                    </el-table-column>
+                    <el-table-column prop="actionstatus" align="center" label="本月出库量" min-width="50">
+                    </el-table-column>
+                    <el-table-column prop="actionstatus" align="center" label="平均每日安装量" min-width="50">
+                    </el-table-column>
+                    <el-table-column prop="actionstatus" align="center" label="预计下月安装量" min-width="50">
+                    </el-table-column>
+                    <el-table-column prop="actionstatus" align="center" label="要货量" min-width="50">
+                    </el-table-column>
+                    <el-table-column prop="actionstatus" align="center" label="前三月每月平均安装量" min-width="50">
+                    </el-table-column>
+                    <el-table-column prop="actionstatus" align="center" label="去年同期安装量" min-width="50">
+                    </el-table-column>
+                    <el-table-column prop="actionstatus" align="center" label="要求最晚到货日期" min-width="50">
+                    </el-table-column>
+                    <el-table-column prop="actionstatus" align="center" label="备注" min-width="50">
+                    </el-table-column>
+                    <el-table-column prop="actionstatus" align="center" label="采购量" min-width="50">
+                    </el-table-column>
+                    <el-table-column prop="actionstatus" align="center" label="新品库+周转库库存量" min-width="50">
+                    </el-table-column>
+                    <el-table-column label="操作" width="100" align="center" fixed="right">
+                        <template slot-scope="scope">
+                            <el-button type="text">
+                                发起调拨
+                            </el-button>
+                        </template>
+                    </el-table-column>
+                </el-table>
+            </el-col>
+        </el-row>
+    </div>
+</template>
+
+<script>
+    import echarts from 'echarts'
+
+    const option = {
+        tooltip: {
+            trigger: 'axis',
+            axisPointer: {
+                type: 'cross',
+                crossStyle: {
+                    color: '#999'
+                }
+            }
+        },
+        toolbox: {
+            feature: {
+                dataView: {show: true, readOnly: false},
+                magicType: {show: true, type: ['line', 'bar']},
+                restore: {show: true},
+                saveAsImage: {show: true}
+            }
+        },
+        legend: {
+            data: ['期初库存量', '期末库存量', '安装量'],
+            padding: 5
+        },
+        grid: {
+            top: '10%',
+            left: '3%',
+            right: '4%',
+            bottom: '3%',
+            containLabel: true
+        },
+        xAxis: [
+            {
+                type: 'category',
+                data: ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'],
+                axisPointer: {
+                    type: 'shadow'
+                }
+            }
+        ],
+        yAxis: [
+            {
+                type: 'value',
+                name: '水量',
+                min: 0,
+                max: 250,
+                interval: 50,
+                axisLabel: {
+                    formatter: '{value} 个'
+                }
+            },
+            // {
+            //     type: 'value',
+            //     name: '温度',
+            //     min: 0,
+            //     max: 25,
+            //     interval: 5,
+            //     axisLabel: {
+            //         formatter: '{value} °C'
+            //     }
+            // }
+        ],
+        series: [
+            {
+                name: '期初库存量',
+                type: 'bar',
+                data: [2.0, 4.9, 7.0, 23.2, 25.6, 76.7, 135.6, 162.2, 32.6, 20.0, 6.4, 3.3]
+            },
+            {
+                name: '期末库存量',
+                type: 'bar',
+                data: [2.6, 5.9, 9.0, 26.4, 28.7, 70.7, 175.6, 182.2, 48.7, 18.8, 6.0, 2.3]
+            },
+            {
+                name: '安装量',
+                type: 'line',
+                // yAxisIndex: 1,
+                data: [2.0, 2.2, 3.3, 4.5, 6.3, 10.2, 20.3, 23.4, 23.0, 16.5, 12.0, 6.2]
+            }
+        ]
+    };
+
+    export default {
+        name: "purchasePlan",
+        data () {
+            return {
+                value: '1231232',
+                options: [
+                    {
+                        value: '1231232',
+                        label: '2019年1月'
+                    }, {
+                        value: '5465765',
+                        label: '2019年2月'
+                    }, {
+                        value: '9567567',
+                        label: '2019年3月'
+                    }
+                ],
+                tableData: [{
+                    date: '2016-05-02',
+                    name: '王小虎',
+                    address: '上海市普陀区金沙江路 1518 弄'
+                }, {
+                    date: '2016-05-04',
+                    name: '王小虎',
+                    address: '上海市普陀区金沙江路 1517 弄'
+                }, {
+                    date: '2016-05-01',
+                    name: '王小虎',
+                    address: '上海市普陀区金沙江路 1519 弄'
+                }, {
+                    date: '2016-05-03',
+                    name: '王小虎',
+                    address: '上海市普陀区金沙江路 1516 弄'
+                }],
+                storageTree: [],
+                defaultProps: {
+                    children: 'children',
+                    label: 'name'
+                },
+                treeLoading: false
+            }
+        },
+        methods: {
+            init () {
+                const chartInstance = echarts.init(this.$refs.stockChart)
+                chartInstance.setOption(option)
+            },
+            handleNodeClick() {
+
+            }
+        },
+        mounted () {
+            this.init()
+        }
+    }
+</script>
+
+<style scoped>
+
+    .plan-title {
+        text-align: center;
+        font-size: 16px;
+        color: #373737;
+    }
+
+</style>

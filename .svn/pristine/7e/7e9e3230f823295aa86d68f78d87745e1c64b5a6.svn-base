@@ -1,0 +1,211 @@
+<template>
+	<section class="tab_content-wrapper">
+		<!--工具条-->
+		<el-col :span="24" class="toolbar" style="padding-bottom: 0px;">
+			<el-form :inline="true" :model="filters">
+				<template v-for="(item,index) in filters.domSearch">
+					<template v-if="index == 0">
+						<div style="display:inline-block;margin:0 10px 10px 0;">
+							<el-input class="noborder color icon nofocus" @keyup.native.ctrl.8="clearAll()" @keyup.native.13="handleQuery" placeholder="请输入查询内容" v-model="filters.domSearch[index].content">
+								<el-select class="wp_select" multiple clearable filterable v-model="filters.domSearch[index].select" slot="prepend" placeholder="选择条件">
+									<el-option label="单号" value="batchno"></el-option>
+									<el-option label="发货人" value="fromemploreename"></el-option>
+									<el-option label="调拨类型" value="actiontype"></el-option>
+									<el-option label="货运状态" value="deliverystatusname"></el-option>
+								</el-select>
+								<template v-if="index == filters.domSearch.length-1">
+									<el-button slot="append" @click="addSelect" icon="el-icon-plus" title="添加查询条件"></el-button>
+								</template>
+								<template v-else>
+									<el-button slot="append" @click="removeSelect(index)" icon="el-icon-minus" title="移除查询条件"></el-button>
+								</template>
+							</el-input>
+						</div>
+					</template>
+					<template v-else>
+						<el-col :span="24">
+							<div style="display:inline-block;margin:0 10px 10px 0;">
+								<el-input class="noborder color icon nofocus" @keyup.native.ctrl.8="clearAll()" @keyup.native.13="handleQuery" placeholder="请输入查询内容" v-model="filters.domSearch[index].content">
+									<el-select class="wp_select" multiple clearable filterable v-model="filters.domSearch[index].select" slot="prepend" placeholder="选择条件">
+										<el-option label="单号" value="batchno"></el-option>
+										<el-option label="发货人" value="fromemploreename"></el-option>
+										<el-option label="调拨类型" value="actiontype"></el-option>
+										<el-option label="货运状态" value="deliverystatusname"></el-option>
+									</el-select>
+									<template v-if="index == filters.domSearch.length-1">
+										<el-button slot="append" @click="addSelect" icon="el-icon-plus" title="添加查询条件"></el-button>
+									</template>
+									<template v-else>
+										<el-button slot="append" @click="removeSelect(index)" icon="el-icon-minus" title="移除查询条件"></el-button>
+									</template>
+								</el-input>
+							</div>
+						</el-col>
+					</template>
+
+					<template v-if="index == 0">
+						<el-form-item label="调拨日期">
+							<el-date-picker style="width:250px;" v-model="filters.timeScope" type="daterange" start-placeholder="开始日期" end-placeholder="结束日期">
+							</el-date-picker>
+						</el-form-item>
+						<el-form-item>
+							<el-button type="primary" @click="handleQuery" icon="el-icon-search">查询</el-button>
+						</el-form-item>
+					</template>
+				</template>
+			</el-form>
+		</el-col>
+		<!--列表-->
+		<el-table :max-height="windowOutHeight-215" border :data="listData" highlight-current-row v-loading="listLoading" >
+			<el-table-column type="index" width="30" label="#" align="center">
+			</el-table-column>
+			<el-table-column prop="batchno" label="单号" align="center" >
+			</el-table-column>
+			<el-table-column prop="actiontype" label="调拨类型" align="center" >
+			</el-table-column>
+			<el-table-column prop="actiondate" label="调拨日期" align="center" :formatter="dateFormatter" width="160">
+			</el-table-column>
+			<el-table-column prop="fromemploreename" label="发货人" align="center" >
+			</el-table-column>
+			<el-table-column prop="allocactionnum" label="调拨数量" align="center" width="80">
+			</el-table-column>
+			<el-table-column label="货运状态" align="center" width="80">
+				<template slot-scope="scope">
+				            <el-tag :type="scope.row.deliverystatusname == '已发货' ? 'success' :
+				            scope.row.deliverystatusname == '已收货' ? 'primary' :
+				         	scope.row.deliverystatusname == '已退回' ? 'warning' :
+				     	scope.row.deliverystatusname == '拒绝收货' ? 'danger' : 'info'">
+				     	{{ scope.row.deliverystatusname }}</el-tag>
+				</template>
+			</el-table-column>
+			<el-table-column prop="" label="收货日期" align="center" :formatter="dateFormatter2" width="160">
+			</el-table-column>
+			<el-table-column label="收货标识" align="center" width="80">
+				<template slot-scope="scope">
+				            <el-tag :type="scope.row.actionstatus == '已提交' ? 'primary' :
+				            scope.row.actionstatus == '已完成' ? 'success' :
+				         	scope.row.actionstatus == '已退回' ? 'warning' :
+				     	scope.row.actionstatus == '已取消' ? 'info' : 'info'">
+				     	{{ scope.row.actionstatus }}</el-tag>
+				</template>
+			</el-table-column>
+			<el-table-column fixed="right" label="操作" width="150" align="center">
+				<template slot-scope="scope">
+			                    <el-button id="button" @click="viewDetails(scope.row)" title="查看详情" >
+			                        <i class="iconfont icon-xiangqing operate operate-xiangqing"></i>
+			                    </el-button>
+			                    <el-button id="button" @click="viewDistribution(scope.row)" title="查看物流" >
+			                        <i class="iconfont icon-wuliu operate operate-guanji"></i>
+			                    </el-button>
+			                    <el-button id="button" @click="handelDeliver(scope.$index, scope.row)" title="确认收货">
+			                    	<i class="iconfont icon-icon-receive operate operate-receive"></i>
+			                    </el-button>
+				       <el-button id="button" @click="handelBackDeliver(scope.$index, scope.row)" title="退回">
+				       	<i class="iconfont icon-tuihui operate operate-tuihui"></i>
+				       </el-button>
+			            </template>
+			</el-table-column>
+		</el-table>
+
+		<!--工具条-->
+		<el-col :span="24" class="toolbar">
+			<el-pagination @size-change="handleSizeChange" background @current-change="handleCurrentChange" :page-sizes="[15, 50, 80, 99]" :page-size="pageSize" layout="total, sizes, prev, pager, next" :total="total">
+			</el-pagination>
+		</el-col>
+
+
+		<!-- 确认收货弹窗 -->
+	        	<el-dialog title="确认收货" :modal-append-to-body="false" :visible.sync="noteDialogVisible" width="30%" :close-on-click-modal="false">
+	                    	<el-form :model="noteForm" ref="noteForm" :inline="true" label-width="120px" >
+	                   		<el-row class="remark">
+	                            		<el-col :span="24">
+				                     	<p>请您确认已收到单号<i>{{ '【 ' + noteForm.rowBatchno + ' 】'  }}</i>的货物，并已进行开箱验货！ </p>
+			                                     <el-form-item label="已核对，数量">
+							<el-select v-model="noteForm.status" filterable placeholder="请选择核对数量状态" clearable>
+								<el-option label="无误" value="1"></el-option>
+								<el-option label="有偏差" value="0"></el-option>
+							</el-select>
+						</el-form-item>
+						<el-input v-if="noteForm.status == '0'" type="textarea"  :autosize="{ minRows: 2, maxRows: 4}" placeholder="请输入偏差备注"  v-model="noteForm.remark"> </el-input>
+	                            		</el-col>
+	                         	</el-row>
+	                    	</el-form>
+	                    	<span slot="footer" class="dialog-footer">
+                            		<el-button @click="noteDialogVisible = false">取 消</el-button>
+                           		<el-button type="primary" @click="comfirmDeliver()">确 定</el-button>
+	                    	</span>
+	        	</el-dialog>
+
+		
+		<!-- 退回 弹窗  start-->
+		<el-dialog title="退回" :modal-append-to-body="false" :visible.sync="rejectDialogVisible" width="30%" :close-on-click-modal="false">
+			<el-form :model="rejectForm" ref="rejectForm" :rules="rejectFormRules" :inline="true" label-width="90px" >
+	                   		<el-row class="remark">
+	                            		<el-col :span="24">
+				                     	<p>您确定要将单号<i>{{ '【 ' + rejectForm.rowBatchno + ' 】'  }}</i>的设备退回吗？</p>
+			                                     <el-form-item label="退回库房" prop="storagename">
+							<el-select v-model="rejectForm.storagename" @visible-change="parChange" :loading="parLoading" filterable placeholder="请选择退回库房" clearable>
+								<el-option v-for="item in parlist" :key="item.storagename" :label="item.storagename+'（库管：'+item.managername+'）'" :value="item.id">
+								</el-option>
+							</el-select>
+						</el-form-item>
+						<el-form-item label="退回原因" prop="reason">
+							<el-select v-model="rejectForm.reason" @visible-change="parChange" :loading="parLoading" filterable placeholder="请选择退回原因" clearable>
+								<el-option v-for="item in parlist" :key="item.storagename" :label="item.storagename" :value="item.id">
+								</el-option>
+							</el-select>
+						</el-form-item>
+						<el-form-item label="退回方式" prop="type">
+							<el-select v-model="rejectForm.type" @visible-change="parChange" :loading="parLoading" filterable placeholder="请选择退回方式" clearable>
+								<el-option v-for="item in parlist" :key="item.storagename" :label="item.storagename" :value="item.id">
+								</el-option>
+							</el-select>
+						</el-form-item>
+						<el-form-item label="物流号" prop="">
+							<el-input placeholder="请输入物流号"  v-model="noteForm.remark"> </el-input>
+						</el-form-item>
+						<el-form-item label="车牌号" prop="">
+							<el-input placeholder="请输入车牌号"  v-model="noteForm.remark"> </el-input>
+						</el-form-item>
+						<el-form-item label="发生费用">
+							<el-input placeholder="请输入发生费用"  v-model="noteForm.remark"> </el-input>
+						</el-form-item>
+	                            		</el-col>
+	                         	</el-row>
+	                    	</el-form>
+	                    	<span slot="footer" class="dialog-footer">
+                            		<el-button @click="rejectDialogVisible = false">取 消</el-button>
+                           		<el-button type="primary" @click="comfirmBack()">确 定</el-button>
+	                    	</span>
+		</el-dialog>
+
+		<!-- 物流弹窗 -->
+		<el-dialog title="物流信息" :visible.sync="distributionVisible">
+		            <div class="logistice_content" style="overflow: hidden" v-loading="expandLoading" element-loading-text="物流信息加载中..." element-loading-spinner="el-icon-loading"
+		                 element-loading-background="rgba(0, 0, 0, 0.7)">
+		                <article v-if="logisticsList.length">
+		                    <section v-for="(item,index) in logisticsList" :key="index">
+		                        <span :class="[index === logisticsList.length -1 ? 'point-green': '', 'point-time']"></span>
+		                        <div class="aside">
+		                            <p class="things">{{ item.acceptTime }}</p>
+		                            <p class="brief"><span :class="[index === logisticsList.length -1 ? 'text-green': '']">{{ item.acceptStation }}</span></p>
+		                        </div>
+		                    </section>
+		                </article>
+		                <div v-else="notext" style="text-align: center;color: #555;margin-top: 40px;">
+		                    <span class="iconfont icon-notfind01" style="font-size:8rem;dispaly:block;color:#555"></span>
+		                    <p>{{ notext || '暂无物流信息' }}</p>
+		                </div>
+		            </div>
+		            <div slot="footer" class="dialog-footer">
+		                <el-button @click="distributionVisible = false">关 闭</el-button>
+		            </div>
+		</el-dialog>
+
+	</section>
+</template>
+
+<style type="text/css" media="screen">
+</style>
+
+<script src="./index.js"></script>

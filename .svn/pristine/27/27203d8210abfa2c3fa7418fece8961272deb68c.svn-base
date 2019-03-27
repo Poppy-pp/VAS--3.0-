@@ -1,0 +1,80 @@
+import axios from 'axios'
+let base = '/vasms-web';
+
+//设备接入接口
+export const getPlatProdList = params => {
+    return axios.get(`${base}/api/v1/instruct/Plat/query/prod/vw`, {
+        params: params
+    });
+};
+
+export const addPlatProd = params => {
+    return axios.post(`${base}/api/v1/instruct/Plat/add`, params);
+};
+
+export const modifyPlatProd = params => {
+    return axios.put(`${base}/api/v1/instruct/Plat/update`, params);
+};
+
+export const removePlatProd = params => {
+    return axios.post(`${base}/api/v1/instruct/Plat/batch`, Qs.stringify(params));
+};
+
+/* 设备接入搜索模糊查询接口*/
+export const getSelectPlatProdList = params => {
+    return axios.get(`${base}/api/v1/instruct/Plat/query/prod/like`, {
+        params: params
+    });
+};
+
+//获取设备型号
+export const getMoNameList = params => {
+    return axios.get(`${base}/api/v1/device/productModel?prodcategory=E&showCount=1000`);
+};
+
+//获取库房名称列表
+export const getStoNameList = params => {
+    return axios.get(`${base}/api/v1/sto/storageInfo`, {
+        params: params
+    });
+};
+
+//获取客户和银行列表
+export const getCorpList = params => {
+    return axios.get(`${base}/api/v1/org/corporateInfo?flag=万网公司&showCount=1000`, {
+        params: params
+    });
+};
+
+// 通讯平台接口
+export const getPlatList = params => {
+    return axios.get(`${base}/api/v1/instruct/Plat/query/vw`, {
+        params: params
+    });
+};
+
+// 设备型号自动匹配设备编号
+export const getProdList = params => {
+    return axios.get(`${base}/api/v1/device/productInfo/query/vw`, {
+        params: params
+    });
+};
+
+//车辆信息管理接口
+export const getVehicleInfoList = params => {
+    return axios.get(`${base}/api/v1/car/vehicleInfo/query/vw`, {
+        params: params
+    });
+};
+
+// 协议管理接口
+export const getProtocolList = params => {
+    return axios.get(`${base}/api/v1/sys/ProtocolInfo/`, {
+        params: params
+    })
+};
+
+// 设备关联车辆接口
+export const getProductOwnerList = params => {
+    return axios.get(`${base}/api/v1/device/productInfo/query/otherInfo/` + params.PRODID, params);
+};

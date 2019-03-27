@@ -1,0 +1,11 @@
+import axios from 'axios';
+import Qs from 'qs';
+
+export const getTodoInfoList = params => {
+    return axios.get(`/sto/stoProduct/page`, {params: params})
+};
+
+export const getPartsList = params => {
+    return axios.get(`/sto/stoModel/parts/query/page`, {params: params})
+};
+

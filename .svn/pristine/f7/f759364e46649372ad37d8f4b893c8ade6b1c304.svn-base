@@ -1,0 +1,710 @@
+import util from 'utils/tools';
+import async from 'async';
+import {  getOperationRecord, getNodesCount, getProdModels, getModelProds, setStartFormRules, getTodoInfoList, getInstallPositionCode, startInstall, finishInstall, validateVinVeh,  } from './service';
+import { getVehList } from "@/views/basicManage/ownerVehicleManage/service";
+import { getAllColorList, getCarModel } from '@/views/basicManage/ownerVehicleManage/service'
+import { getParentInfoList } from '@/views/sysManage/organizationManage/service'
+import { getToken } from '@/utils/auth'
+
+ export default {
+        props:['windowOutHeight'],
+        data() {
+            return {
+                util:util,
+                Dayjs:dayjs,
+                token: getToken(),
+                accept: '.jpg,.png',
+                //搜索 筛选信息
+                filters: {
+                    domSearch: [{
+                        select: ['orderno'],
+                        content: ''
+                    }], //查询框
+                    timeScope: '',
+                },
+                // 完成安装弹窗
+                finishInstallDialogVisible:false,
+                rowFinishData:[],//存储当前行的数据
+                installStep:'1',//第一步第二步，步骤状态
+                picLargedialogVisible:false,//图片放大
+                picLargeImageUrl:'',//图片路径
+                isdisabled:true,//禁用
+                startForm:{//第一步
+                    // 默认
+                    vin:'',
+                    licenseplatenum:'',
+                    vehicletype:'',
+                    picinvoice:[],
+                    // 带出其他信息
+                    ownername:'',
+                    mobile:'',
+                    idcard:'',
+                    model:'',
+                    price:'',
+                    vehiclecategory:'',
+                    vehicletype:'',
+                    enginenum:'',
+                    color:'',
+                    colorname:'',
+                    vehiclepower:'',
+                    firstregisterdate:'',
+                    indemnitylimit:'',
+                    priceInsucorp:'',
+                    beneficiary:'',
+                    addresshome:'',
+                },
+                startFormRules:setStartFormRules,
+                isSameVin:true,//判断车架号是否一致
+                isExistVin:true,//判断车架号是否存在系统
+                vehlist:[],//车辆类型
+                modellist:[],//完成安装-选择设备型号
+                vehiclecategoryList: {//车辆分类列表
+                    1: '新车',
+                    2: '二手车',
+                    3: '资管追回'
+                },
+                vehiclepowerList: {//能源类型1=汽油，2=柴油，3=纯电，4=混动
+                    1: '汽油',
+                    2: '柴油',
+                    3: '纯电',
+                    4: '混动'
+                },
+                checkedParts:[],//多选的配件组
+                checkAll: false,
+                isIndeterminate: true,
+                tableData:[],
+                codeloading:false,
+                InstallPositionArray: [],//设备安装位置
+                endForm:{//第二步
+                    modelname:'',
+                    prodnum:'',
+                    simnum:'',
+                    simmodelname:'',
+                    position:'',
+                    pic:[],
+                },
+                endFormRules:{},
+                prodData: [],//设备选择列表
+                prodLoading:false,
+                activities: [{
+                  content: '上线质量',
+                }, {
+                  content: '定位方式',
+                }, {
+                  content: '卫星或基站数量',
+                }, {
+                  content: '卫星或基站型号强度',
+                }, {
+                  content: '定位地址',
+                }],
+
+                todo:[],//列表数据
+                total: 0,
+                pageSize:15,
+                currentPage: 1,
+                listLoading: false,
+                dtotal:0,
+                dpageSize:15,
+                dcurrentPage:1,
+                nodesList:[],//节点数量
+                stepState: 0,//当前tab页状态
+                realTimeRefreshLoading:false,
+                //新装数量
+                fromNum:{ num0:0, num1:0, num2:0,
+                    num3:0, num4:0, num5:0},
+                curStateData:{id0:0, id1:0, id2:0, id3:0, id4:0, id5:0},//当前新装节点状态值
+                flowNodeId:'',//状态值传参
+                delorder:{//废单、退单
+                    orderReasonDialogVisible:false,
+                    reson:'',
+                    delOrderLoading:false,
+                },
+                expandLoading:false,//表格详情
+                opHistoryData:[],//操作记录
+                activeName:'1',
+
+                copName:[],//公司下拉
+                copLoading:false,
+                isExpandeds:true,
+                indDe:0,
+                curTaskId:'',//当前流程任务id
+                accept:"jpg,png,jpeg",
+                
+                //静态数据详情展现
+                ruleFormStatic:{
+                    vehicleInfo:{
+                        model:'',
+                        color:'',
+                        licenseplatenum:'',
+                        vin:'',
+                        price:'',
+                        yearsofservice:'',
+                        receivingbank:{}
+                    },
+                    ownerInfo:{
+                        name:'',
+                        idcard:'',
+                        mobile:''
+                    },
+                    flowData:{
+                        verify_result:'',
+                        apply_remark:''
+                    },
+                    installEmployee:{
+                        employeename:''
+                    },
+                    installGroupInfo:{
+                        groupname:''
+                    },
+                    pictures:[]
+                },
+                expandRuleFormStatic:{
+                    vehicleInfo:{
+                        model:'',
+                        color:'',
+                        licenseplatenum:'',
+                        vin:'',
+                        price:'',
+                        yearsofservice:'',
+                        receivingbank:{}
+                    },
+                    ownerInfo:{
+                        name:'',
+                        idcard:'',
+                        mobile:''
+                    },
+                    flowData:{
+                        verify_result:'',
+                        apply_remark:''
+                    },
+                    installEmployee:{
+                        employeename:''
+                    },
+                    installGroupInfo:{
+                        groupname:''
+                    },
+                    pictures:[]
+                },
+
+            }    
+        },
+        methods: {
+            // -------------------------------------------------------------------施工节点---------------------------------------------------------------------------------
+            // 图片上传成功
+            uploadSuccessInvoice (res, file) {
+                this.startForm.picinvoice = res.data
+            },
+            // 放大图片
+            handlePictureCardPreview(file) {
+                $(".v-modal").css('height','0');//隐藏图片的dialog遮罩层
+                this.picLargeImageUrl = file.url;
+                this.picLargedialogVisible = true;
+            },
+            // 关闭放大图片
+            closeLargePic(){
+                this.picLargedialogVisible = false;
+                $(".v-modal").css('height','100%');//显示外部dialog遮罩层
+            },
+            handleRemove(file) {
+                console.log(file);
+            },
+            // 开始安装—确认消息
+            startInstall(row){
+                this.$confirm('确定当前订单开始安装？', '提示', {
+                  confirmButtonText: '确定',
+                  cancelButtonText: '取消',
+                  type: 'warning'
+                }).then(() => {
+                  startInstall({id:row.id}).then((res) => {
+                    this.$message.success('开始安装成功，订单状态变更为施工中！');
+                    this.getTodo()
+                  })
+                }).catch(() => {});
+            },
+            // 完成安装—点击
+            finishInstall(index,row){
+                this.finishInstallDialogVisible = true;
+                this.rowFinishData = row;
+            },
+            // 校验车架号
+            checkVin(val){
+                if (val.length == 17) {//车架号数量正确时
+                    var para = {
+                        vin:val,
+                        declarationid:74664 
+                    }
+                    validateVinVeh(para).then((res) => {
+                        if (res.data.data.localVehicle == res.data.data.vin) {//车架号与派单一致
+                            this.isSameVin = true;
+                            this.startForm = res.data.data;
+                        }else{//车架号与派单不一致，且存在时
+                            this.isSameVin = false;
+                            this.isExistVin = true;
+                            this.isdisabled = true;
+                            this.startForm = res.data.data;
+                        }
+                        this.startForm.vin = val;
+                    }).catch((err) =>{
+                        // 系统不存在-新增
+                        this.$message.error('系统不存在当前车架号，请完善相关车主车辆信息！');
+                        this.intStartForm(val);//初始化
+                        this.isSameVin = false;
+                        this.isExistVin = false;
+                        this.isdisabled = false;
+                    });
+                }else if(val.length == 0){
+                    this.intStartForm('');
+                }
+            },
+            // 变更车主车辆信息
+            changeOwnerVeh(val){
+                if (val) {          //勾选变更
+                    this.isdisabled = false;
+                }else{              //取消变更
+                    this.isdisabled = true;
+                }
+            },
+            // 初始化现场车辆信息
+            intStartForm(vinVal){
+                this.isSameVin = true;
+                this.isExistVin = true;
+                this.isdisabled = true;
+                this.startForm = {
+                    vin:vinVal,
+                    licenseplatenum:'',
+                    vehicletype:'',
+                    vehiclePic:[],
+                    ownername:'',
+                    mobile:'',
+                    idcard:'',
+                    model:'',
+                    price:'',
+                    vehiclecategory:'',
+                    vehicletype:'',
+                    enginenum:'',
+                    color:'',
+                    colorname:'',
+                    vehiclepower:'',
+                    firstregisterdate:'',
+                    indemnitylimit:'',
+                    priceInsucorp:'',
+                    beneficiary:'',
+                    addresshome:'',
+                }
+            },
+            // 开始安装下一步
+            nextStep(){
+                this.installStep = '2';
+            },
+            // 完成安装上一步
+            previousStep(){
+                this.installStep = '1';
+            },
+            // 开始安装-取消按钮
+            cancelInstall(){
+                this.finishInstallDialogVisible = false;
+                this.intStartForm('');
+            },
+            // 完成安装-关闭弹窗
+            closeFinish(){
+                this.installStep = '1';
+            },
+            // 开始
+            startConfirm(){
+                this.startInstallDialogVisible = false;
+                this.finishInstallDialogVisible = true;
+            },
+            // 全选配件
+            handleCheckAllChange(val) {
+                console.log(this.vehiclecategoryList)
+                this.checkedParts = val ? this.vehiclecategoryList : [];
+                this.isIndeterminate = false;
+            },
+            // 勾选配件
+            handleCheckedPartsChange(value) {
+                let checkedCount = value.length;
+                this.checkAll = checkedCount === this.vehiclecategoryList.length;
+                this.isIndeterminate = checkedCount > 0 && checkedCount < this.vehiclecategoryList.length;
+            },
+            // 获取设备列表
+            getProds(){
+                this.prodLoading = true;
+                const params = {
+                    page: this.dcurrentPage,
+                    limit: this.dpageSize,
+                }
+                getModelProds(params).then((res) => {
+                    this.prodLoading = false;
+                    this.prodData = res.data.data.data.records;
+                    this.dtotal = res.data.data.data.total;
+                });
+            },
+            //设备切换当前页
+            dhandleCurrentChange(val) {
+                this.dcurrentPage = val;
+                this.getProds();
+            },
+            //设备切换每页显示数量
+            dhandleSizeChange(val) {
+                this.dpageSize = val;
+                this.getProds();
+            },
+            // 双击选择设备
+            deviceClickHandle(val){
+                console.log(val)
+                this.endForm = val;
+            },
+            // 完成安装
+            confirmFinishInstall(){
+
+            },
+
+
+
+
+
+
+
+            //---------------------------------------------------------------------------废除订单-----------------------------------------------------------------
+            deleteOrder(index,row){
+                this.delorder.processInstanceId = row.processInstanceId;
+                this.delorder.orderReasonDialogVisible = true;
+            },
+            // 确认废单
+            comfirDelOrder(){
+                let para = {
+                    id:this.delorder.processInstanceId,
+                    reson:this.delorder.reson
+                }
+                this.delorder.delOrderLoading = true;
+                deleteProcess(para).then((res) => {
+                    this.delorder.delOrderLoading = false;
+                    this.delorder.orderReasonDialogVisible = false;
+                    this.getTodo();
+                });
+            },
+
+
+
+            //-----------------------------------------------------------------------列表数据展开查看详情---------------------------------------------------------
+            expandHandle(row, expandeds){
+                if(!this.isExpandeds){
+                    this.isExpandeds = true;
+                    return;
+                }
+                if(expandeds.length != 0){//有数据时
+                    this.getOperation(row);
+                };
+                if(expandeds.length > 1) {
+                    this.isExpandeds = false;
+                    this.$refs.todeTable.toggleRowExpansion(expandeds[0],false);
+                };
+            },
+            // 操作记录
+            getOperation(row){
+                let para = {
+                    id:row.executionId
+                }
+                this.expandLoading = true;
+                getOperationRecord(para).then((res) => {
+                    this.expandLoading = false;
+                    this.opHistoryData = res.data.data;
+                }).catch((err)=>{
+                    this.expandLoading = false;
+                });
+            },
+
+
+
+            
+            
+            
+            
+            
+          
+            
+            //实时获取设备位置 和 在线情况
+            realTimeRefreshPro(gmapname){
+                let _this = this,
+                pro = _this.ruleFormStatic,
+                len = pro.installDetails.length;
+                console.log(pro)
+                if(_this.$refs[gmapname]) _this.$refs[gmapname].clearMap();
+                if(len > 0){
+                    let i = _this.indDe,
+                    para = {id:pro.installDetails[i].packInfo.E_PRODUNUM};
+                    _this.realTimeRefreshLoading = true;
+                    async.waterfall([
+                        function(callback) {
+                            cldeviceIsOnstate(para).then((res) => {
+                                let data = res.data.data.realdata;
+                               
+                                callback(null, data);
+                            });
+                            
+                        },
+                        function(data, callback) {
+                            if(data){
+                                if(data.lng == 0 || data.lat == 0){
+                                    _this.ruleFormStatic.installDetails[i].curaddress = "无定位";
+                                    callback(null, data);
+                                }else{
+                                    _this.$refs[gmapname].getAddress(util.transformWGStoGCJ(data.lng,data.lat),para.id,(res)=>{
+                                        _this.ruleFormStatic.installDetails[i].curaddress = res;
+                                        callback(null, data);
+                                    });
+                                }
+                            }else{
+                                _this.ruleFormStatic.installDetails[i].curaddress = "无定位";
+                                callback(null, data);
+                            }
+                        },
+                    ], function (err, data) {
+                        console.log(data)
+                        if(data){
+                            switch(data.istate){
+                                case 0:
+                                    _this.ruleFormStatic.installDetails[i].curonlinestatus = "行驶";
+                                break;
+                                case 1:
+                                    _this.ruleFormStatic.installDetails[i].curonlinestatus = "离线";
+                                break;
+                                case 2:
+                                    _this.ruleFormStatic.installDetails[i].curonlinestatus = "停车";
+                                break;
+                                case 3:
+                                    _this.ruleFormStatic.installDetails[i].curonlinestatus = "报警";
+                                break;
+                                case 4:
+                                    _this.ruleFormStatic.installDetails[i].curonlinestatus = "无效定位";
+                                break;
+                                case 5:
+                                    _this.ruleFormStatic.installDetails[i].curonlinestatus = "未定位";
+                                break;
+                            }
+                            _this.ruleFormStatic.installDetails[i].recvtime = data.recvtime;
+                        }else{
+                            _this.ruleFormStatic.installDetails[i].curaddress = "无定位";
+                            _this.ruleFormStatic.installDetails[i].curonlinestatus ="未在线";
+                        }
+                         _this.realTimeRefreshLoading = false;
+                        _this.indDe++;
+                        if(_this.indDe < len) _this.realTimeRefreshPro(gmapname);
+                        if(_this.indDe == len) _this.indDe = 0;
+                    });
+                }
+            },
+           
+        
+            //改变新装状态获取对应数据列表
+            changeStateHandle(v){
+                if(v == 0) this.flowNodeId = this.curStateData.id0; //全部
+                if(v == 1) this.flowNodeId = this.curStateData.id1;//派单
+                if(v == 2) this.flowNodeId = this.curStateData.id2;//接单
+                if(v == 3) this.flowNodeId = this.curStateData.id3;//施工
+                if(v == 4) this.flowNodeId = this.curStateData.id4;//保险出单
+                if(v == 5) this.flowNodeId = this.curStateData.id5;//订单完成
+                
+                this.getTodo();
+            },
+            // 获取节点数量
+            getNodes(){
+                this.listLoading = true;
+                getNodesCount().then((res) => {
+                    this.nodesList = res.data.data;
+                    this.nodesList.forEach((item,index) => {
+                        if (item.name == '全部') {
+                            this.fromNum.num0 = item.num;
+                            this.curStateData.id0 = item.id;
+                        }
+                        if (item.name == '派单') {
+                            this.fromNum.num1 = item.num;
+                            this.curStateData.id1 = item.id;
+                        }
+                        if(item.name == '接单'){
+                            this.fromNum.num2 = item.num;
+                            this.curStateData.id2 = item.id;
+                        }
+                        if(item.name == '施工'){
+                            this.fromNum.num3 = item.num;
+                            this.curStateData.id3 = item.id;
+                        }
+                        if(item.name == '保险出单'){
+                            this.fromNum.num4 = item.num;
+                            this.curStateData.id4 = item.id;
+                        }
+                        if(item.name == '订单完成'){
+                            this.fromNum.num5 = item.num;
+                            this.curStateData.id5 = item.id;
+                        }
+                    });
+                    this.getTodo();
+                });
+            },
+            //获取列表
+            getTodo() {
+                this.listLoading = true;
+                let para = {
+                    page   : this.currentPage,
+                    limit   : this.pageSize,
+                    domSearch   : this.filters.domSearch,
+                    startTime     : this.filters.timeScope?(this.filters.timeScope[0]?util.formatDate.format(new Date(this.filters.timeScope[0]), 'yyyy-MM-dd hh:mm:ss'):''):'',
+                    endTime        : this.filters.timeScope?(this.filters.timeScope[1]?util.formatDate.format(new Date(this.filters.timeScope[1]), 'yyyy-MM-dd hh:mm:ss'):''):'',
+                    flowNodeId  :this.flowNodeId
+                };
+                para = Object.assign(para);
+                getTodoInfoList(para).then((res) => {
+                    this.listLoading = false;
+                    this.total = res.data.data.total;
+                    this.todo  = res.data.data.records;
+                }).catch((error) => {
+                    this.listLoading = false;
+                });
+            },
+            //切换当前页
+            handleCurrentChange(val) {
+                this.currentPage = val;
+                this.getTodo();
+            },
+            //切换每页显示数量
+            handleSizeChange(val) {
+                this.pageSize = val;
+                this.getTodo();
+            },
+           
+            //清空查询表单
+            resetForm(formName) {
+                this.$refs[formName].resetFields();
+            },
+           
+            // 添加查询条件
+            addSelect () {
+                this.filters.domSearch.push({
+                    select: [],
+                    content: ''
+                });
+            },
+            // 移除查询条件
+            removeSelect (index) {
+                this.filters.domSearch.splice(index, 1); //从当前index位置开始，删除一项
+            },
+            //格式化后台传来的时间戳
+            dateFormatter(row,col){
+                return util.formatDate.format(new Date(row.declaredate), 'yyyy-MM-dd hh:mm');
+            },
+        // ----------------------------------------------下拉框------------------------------
+        /**
+         * 获取车辆颜色
+         * @param queryString
+         * @param cb
+         */
+        handleColorChange (queryString, cb) {
+            let para = {
+                model: this.startForm.model,
+                color: queryString,
+                limit: 100
+            }, colorArray = [];
+            getAllColorList(para).then((res) => {
+                if (res.data.data.records) {
+                    res.data.data.records.forEach(function (item, index) {
+                        if (item && item.color) {
+                            colorArray.push({
+                                value: item.color,
+                                color_rgb: item.color_rgb,
+                            });
+                        }
+                    });
+                    cb(colorArray);
+                }
+            });
+        },
+        /**
+         * 选择车辆颜色
+         * @param v
+         */
+        changeCarColor (v) {
+            if (typeof v != "object") return;
+            this.startForm.colorname = v.value; //存colorname汉字
+            this.startForm.color = v.color_rgb; //存color码
+        },
+        //选择车型查询颜色
+        handleSelectColor (v) {
+            this.startForm.model = v.value;
+            this.startForm.color = '';
+            this.startForm.colorname = '';
+        },
+        //车型选择
+        handleItemChange (queryString, cb) {
+            let para = {
+                    model: queryString,
+                    viewName: "VW_VAS_WEB_VAS_VEHICLE_MODEL",
+                    limit: 30,
+                },
+                ownerArray = [];
+            getCarModel(para).then((res) => {
+                if (res.data.data != null) {
+                    res.data.data.records.forEach(function (item, index) {
+                        ownerArray.push({
+                            value: item.model,
+                            brand: item.brand,
+                            serious: item.serious
+                        });
+                    });
+                    cb(ownerArray);
+                }
+            });
+        },
+        // 获取车辆类型
+        vehChange (r) {
+            const params = {
+                page: 1,
+                limit: 10000,
+                isactive: 1
+            }
+            getVehList(params).then((res) => {
+                this.vehlist = res.data.data;
+            });
+        },
+        // 获取设备型号
+        modelChange (r) {
+            const params = {
+                page: 1,
+                limit: 10000,
+                modelspec:'P1'
+            }
+            getProdModels(params).then((res) => {
+                this.modellist = res.data.data;
+            });
+        },
+        /**
+         * 获取第一受益人
+         * @param parm
+         */
+        async getCorpList (parm, cb) {
+            let param = {
+                page: 1,
+                limit: 10000,
+                corpcategory: 'BANK',
+                corpname: parm
+            }
+            try {
+                const {data} = await getParentInfoList(param)
+                cb(data.data.records)
+            } catch (e) {
+            }
+        },
+        //安装位置初始化
+        changeInstallDecode(r) {
+            if(!r || this.InstallPositionArray.length > 0) return;
+            this.codeloading = true;
+            getInstallPositionCode().then((res) => {
+                this.InstallPositionArray = res.data.data.records;
+                this.codeloading = false;
+            });
+        },
+    },
+        //初始化数据
+        created(){
+            this.getNodes();
+        },
+    }

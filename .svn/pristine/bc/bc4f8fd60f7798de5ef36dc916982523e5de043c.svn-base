@@ -1,0 +1,327 @@
+<template>
+    <!--<div>-->
+    <!--维修/拆除单-->
+    <!--</div>-->
+    <el-form>
+        <el-row>
+            <el-col :span="24" class="cbstyle">
+                <el-collapse class="bdcoll rpShowimgDialog" ref="rpShowimgDialog" v-model="activeNames">
+                    <el-collapse-item title="请选择车辆" class="lefw10 wzpdt10" name="1">
+                        <el-row :gutter="20">
+                            <el-col :span="8">
+                                <el-form-item label="车架号" prop="vehiclevin">
+                                    <el-autocomplete class="inline-input searchInput" popper-class="my-autocomplete" v-model="vehiclevin"
+                                                     :fetch-suggestions="querySearchVins" custom-item="my-item-zh" placeholder="请输入车牌号/车架号"
+                                                     @select="handleSelectVin">
+                                        <template slot-scope="props">
+                                            <div class="name">{{ props.item.model }}</div>
+                                            <div class="addr">{{ props.item.licenseplatenum }}</div>
+                                            <span class="addr">{{ props.item.vin }}</span>
+                                        </template>
+                                    </el-autocomplete>
+                                </el-form-item>
+                            </el-col>
+                        </el-row>
+                        <template v-if="form">
+                            <el-row class="mt2 pt2 bt1">
+                                <el-col :span="8">
+                                    <dl class="dllist">
+                                        <dt>厂牌型号:</dt>
+                                        <dd>{{form.vehiclemodel}}</dd>
+                                    </dl>
+                                </el-col>
+                                <el-col :span="8">
+                                    <dl class="dllist">
+                                        <dt>车架号:</dt>
+                                        <dd>{{form.vehiclevin}}</dd>
+                                    </dl>
+                                </el-col>
+                                <el-col :span="8">
+                                    <dl class="dllist">
+                                        <dt>车牌号:</dt>
+                                        <dd>{{form.licenseplatenum}}</dd>
+                                    </dl>
+                                </el-col>
+                                <el-col :span="8">
+                                    <dl class="dllist">
+                                        <dt>车辆分类:</dt>
+                                        <dd>{{form.vehiclecategory}}</dd>
+                                    </dl>
+                                </el-col>
+                                <el-col :span="8">
+                                    <dl class="dllist">
+                                        <dt>车辆类型:</dt>
+                                        <dd>{{form.vehicletype}}</dd>
+                                    </dl>
+                                </el-col>
+                                <el-col :span="8">
+                                    <dl class="dllist">
+                                        <dt>车辆颜色:</dt>
+                                        <dd>{{form.vehiclecolor}}</dd>
+                                    </dl>
+                                </el-col>
+                                <el-col :span="8">
+                                    <dl class="dllist">
+                                        <dt>车主姓名:</dt>
+                                        <dd>{{form.vehicleowner}}</dd>
+                                    </dl>
+                                </el-col>
+                                <el-col :span="8">
+                                    <dl class="dllist">
+                                        <dt>车主电话:</dt>
+                                        <dd>{{form.vehicleownermobile}}</dd>
+                                    </dl>
+                                </el-col>
+                            </el-row>
+                            <el-row :gutter="20" class="bt1" style="margin-top: 10px; padding-top: 10px;">
+                                <el-col :span="8">
+                                    <el-cascader
+                                            placeholder="请选择维护类型和原因"
+                                            :options="options"
+                                            v-model="selectedOptions">
+                                    </el-cascader>
+                                </el-col>
+                                <el-col :span="8">
+                                    <el-input type="textarea" :rows="4" v-model="form.rpFaultremark" placeholder="请填写故障现象/原因说明"></el-input>
+                                </el-col>
+                                <el-col :span="8">
+                                    <el-popover
+                                            placement="bottom"
+                                            width="1200"
+                                            trigger="click">
+                                        <div>信号检测结果:
+                                            <el-button style="margin-left: 10px;" type="primary" size="mini">再次检测</el-button>
+                                        </div>
+                                        <table class="kv-table" v-loading="signalLoading" style="margin-top: 10px;">
+                                            <tr>
+                                                <td class="kv-label">
+                                                    设备实时状态：
+                                                </td>
+                                                <td class="kv-content">
+                                                    上线
+                                                </td>
+                                                <td class="kv-label">
+                                                    上线质量：
+                                                </td>
+                                                <td class="kv-content">
+                                                    优
+                                                </td>
+                                                <td class="kv-label">
+                                                    定位方式：
+                                                </td>
+                                                <td class="kv-content">
+                                                    LBS
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td class="kv-label">
+                                                    卫星或基站数量：
+                                                </td>
+                                                <td class="kv-content">
+                                                    2
+                                                </td>
+                                                <td class="kv-label">
+                                                    卫星或基站信号强度：
+                                                </td>
+                                                <td class="kv-content">
+                                                    强
+                                                </td>
+                                                <td class="kv-label"></td>
+                                                <td class="kv-content"></td>
+                                            </tr>
+                                            <tr>
+                                                <td class="kv-label">
+                                                    定位地址：
+                                                </td>
+                                                <td class="kv-content" colspan="5">
+                                                    广西壮族自治区南宁市西乡塘区北湖街道中国建设银行(南宁安吉路支行)乐童幼儿园
+                                                </td>
+                                            </tr>
+                                        </table>
+                                        <el-button slot="reference">信号检测</el-button>
+                                    </el-popover>
+                                    <el-popover
+                                            placement="bottom"
+                                            width="1200"
+                                            trigger="click">
+                                        <div>123</div>
+                                        <el-button slot="reference" style="margin-left: 10px;">历史订单信息</el-button>
+                                    </el-popover>
+                                </el-col>
+                            </el-row>
+                        </template>
+                    </el-collapse-item>
+                    <el-collapse-item v-if="form" title="选择拆除设备" class="lefw10 wzpdt10" name="2">
+                        <ul>
+                            <li v-for="(item, index) in installDetails">
+                                <el-checkbox v-model="item.checked">{{item.packInfo.E_PRODTYPE+'设备'+item.packInfo.E_PRODMODEL}}</el-checkbox>
+                                <el-popover
+                                        placement="right"
+                                        width="800"
+                                        trigger="click">
+                                    <div style="font-size: 20px;">设备信息</div>
+                                    <el-row class="mt5">
+                                        <el-col :span="24" v-if="item.isActive == 0">
+                                            <dl class="dllist">
+                                                <dd style="color:red;">无效设备</dd>
+                                            </dl>
+                                        </el-col>
+                                        <el-col :span="8">
+                                            <dl class="dllist">
+                                                <dt>设备类别:</dt>
+                                                <dd>{{ item.packInfo.E_PRODTYPE }}</dd>
+                                            </dl>
+                                        </el-col>
+                                        <el-col :span="8">
+                                            <dl class="dllist">
+                                                <dt>设备型号:</dt>
+                                                <dd>{{ item.packInfo.E_PRODMODEL }}</dd>
+                                            </dl>
+                                        </el-col>
+                                        <el-col :span="8">
+                                            <dl class="dllist">
+                                                <dt>设备编号:</dt>
+                                                <dd>{{ item.packInfo.E_PRODUNUM }}</dd>
+                                            </dl>
+                                        </el-col>
+                                        <el-col :span="8">
+                                            <dl class="dllist">
+                                                <dt>SIM卡号:</dt>
+                                                <dd>{{ item.packInfo.C_PRODUNUM }}</dd>
+                                            </dl>
+                                        </el-col>
+                                        <el-col :span="8">
+                                            <dl class="dllist">
+                                                <dt>安装位置:</dt>
+                                                <dd>{{ item.installpositionname }}</dd>
+                                            </dl>
+                                        </el-col>
+                                        <el-col :span="24" style="margin-top: 10px;" :id="'installDetail' + index">
+                                            <dl class="dllist lh55_mb10">
+                                                <dd>
+                                                    <div class="imgMd mr4 mt5" v-for="(item,index) in item.pictures">
+                                                        <img :title="item.picdesc" class="image" :src="$store.state.ORIGINAL_URL+item.piclink">
+                                                        <span>{{ item.picdesc }}</span>
+                                                    </div>
+                                                </dd>
+                                            </dl>
+                                        </el-col>
+                                    </el-row>
+                                    <el-button type="text" slot="reference" style="margin-left: 10px;" @click="viewPackInfo(index)">查看设备信息</el-button>
+                                </el-popover>
+                            </li>
+                            <!--<li>-->
+                            <!--<el-checkbox v-model="checked">无线WH，46151311585</el-checkbox>-->
+                            <!--<el-button type="text">查看设备信息</el-button>-->
+                            <!--</li>-->
+                        </ul>
+                    </el-collapse-item>
+                    <el-collapse-item v-if="form" title="预约维护信息" class="lefw10 wzpdt10" name="3">
+                        <el-row :gutter="20">
+                            <el-col :span="8">
+                                <el-form-item label="维护联系人" prop="vehicleenginenum">
+                                    <el-input type="text" placeholder="请输入安装联系人" v-model="form.vehicleenginenum"></el-input>
+                                </el-form-item>
+                            </el-col>
+                            <el-col :span="8">
+                                <el-form-item label="维护联系方式" prop="vehicleenginenum">
+                                    <el-input type="text" placeholder="请输入安装联系方式" v-model="form.vehicleenginenum"></el-input>
+                                </el-form-item>
+                            </el-col>
+                            <el-col :span="8">
+                                <el-form-item label="预约维护时间" prop="vehicleenginenum">
+                                    <el-date-picker type="date" placeholder="选择初登日期" v-model="form.createdate"
+                                                    value-format="yyyy-MM-dd"
+                                                    style="width: 100%;"></el-date-picker>
+                                </el-form-item>
+                            </el-col>
+                        </el-row>
+                        <el-row :gutter="20">
+                            <el-col :span="16">
+                                <el-form-item label="维护地址">
+                                    <el-select
+                                            v-model="address"
+                                            filterable
+                                            remote
+                                            reserve-keyword
+                                            placeholder="请输入关键词"
+                                            :remote-method="autoInput"
+                                            value-key="name"
+                                            @change="changeAdress"
+                                            @focus="autoInput(address)"
+                                            :loading="loading">
+                                        <el-option
+                                                v-for="(item, index) in addressList"
+                                                :key="index"
+                                                :label="item.name + '-' + item.district"
+                                                :value="item">
+                                        </el-option>
+                                    </el-select>
+                                </el-form-item>
+                            </el-col>
+                        </el-row>
+                        <el-row :gutter="20">
+                            <gdmap @draggerMapMarker="draggerMapMarker" ref="vueAmap"></gdmap>
+                        </el-row>
+                        <el-row :gutter="20">
+                            <el-col :span="8">
+                                <el-form-item label="维护人员" prop="vehicleenginenum">
+                                    <el-input type="text" placeholder="选择维护人员" v-model="form.vehicleenginenum"></el-input>
+                                </el-form-item>
+                            </el-col>
+                        </el-row>
+                        <el-row :gutter="20">
+                            <el-col :span="24">
+                                <el-form-item label="备注" prop="vehicleenginenum">
+                                    <el-input type="textarea" :rows="2" placeholder="请输入派单备注" v-model="form.vehicleenginenum"></el-input>
+                                </el-form-item>
+                            </el-col>
+                        </el-row>
+                        <el-row :gutter="20">
+                            <el-button type="primary" style="float: right; margin: 10px;">提交派单</el-button>
+                        </el-row>
+                    </el-collapse-item>
+                </el-collapse>
+            </el-col>
+        </el-row>
+    </el-form>
+</template>
+
+<script src="./index.js">
+
+</script>
+
+<style scoped lang="stylus">
+
+    .kv-table {
+        width: 100%;
+        border-top: 1px solid #e7eaec;
+        border-left: 1px solid #e7eaec;
+        color: #606266;
+    }
+
+    .kv-table {
+        td {
+            line-height: 38px;
+        }
+    }
+
+    .kv-label {
+        background: #FAFAFA;
+        border-bottom: 1px solid #e7eaec;
+        border-right: 1px solid #e7eaec;
+        text-align: right;
+        padding-right: 30px;
+        font-size: 16px;
+        color: #000;
+        width: 17%;
+    }
+
+    .kv-content {
+        border-right: 1px solid #e7eaec;
+        border-bottom: 1px solid #e7eaec;
+        padding-left: 20px;
+        width: 17%;
+    }
+
+</style>

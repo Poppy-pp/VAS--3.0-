@@ -1,0 +1,468 @@
+import util from 'utils/tools';
+import {
+    cldeviceIsOnstate,
+    addInsuranceDetail,
+    addInsuranceIssue,
+    checkAllMobile,
+    checkNum,
+    get,
+    getInsurancePolicyno
+    // add,
+    // getSearchVinNum
+} from './service';
+import { getVehList } from "@/views/basicManage/ownerVehicleManage/service";
+import { getParentInfoList } from '@/views/sysManage/organizationManage/service'
+import { getToken } from '@/utils/auth'
+import { getMoreInfo, modifyInsuranceInfo } from '../insuranceList/service'
+
+export default {
+    name: 'addInsurance',
+    data () {
+        return {
+            loading: false,
+            ruleFormStatic: {
+                vehicleInfo: {
+                    model: '',
+                    color: '',
+                    licenseplatenum: '',
+                    vin: '',
+                    price: '',
+                    yearsofservice: '',
+                    receivingbank: {
+                        corpname: ''
+                    }
+                },
+                corporateInfo: {
+                    corpname: ''
+                },
+                insuranceInfo: {
+                    insurancecorpid: ''
+                },
+                ownerInfo: {
+                    name: '',
+                    idcard: '',
+                    mobile: ''
+                },
+                flowData: {
+                    verify_result: '',
+                    apply_remark: ''
+                },
+                declarEmployee: {},
+                installEmployee: {
+                    employeename: ''
+                },
+                installGroupInfo: {
+                    groupname: ''
+                },
+                declaretype: ''
+            },
+            //启动报单提交表单信息
+            ruleForm: {
+                insurancecorpid: '',
+                policyno: '',
+                issuedate: new Date().format('yyyy-MM-dd'),
+                effectivedate: util.addReduceDate(new Date(), +1).format('yyyy-MM-dd'),
+                expiredate: util.getDateThreeYers(util.addReduceDate(new Date(), -1), 3),
+                indemnitylimit: '',
+                price: '',
+                insurancestatus: '出单',
+                vehicleowneridcard: '',
+                vehicleowner: '',
+                owneraddress: '',
+                vehicleownercontact: '',
+                vehicleenginenum: '',
+                vehiclemodel: '',
+                vehicleplate: '',
+                createdate: new Date().format('yyyy-MM-dd'),
+                remark: '',
+                // bankname: '',
+                beneficiary: '',
+            },
+            ruleFormrules: {
+                insurancecorpid: [{required: true, message: '请选择保险公司', trigger: 'change'}],
+                policyno: [{required: true, message: '请输入保单编号', trigger: 'blur'}],
+                issuedate: [{required: true, message: '请选择出单日期', trigger: 'change'}],
+                effectivedate: [{required: true, message: '请选择保险生效日期', trigger: 'change'}],
+                expiredate: [{required: true, message: '请选择失效日期', trigger: 'change'}],
+                indemnitylimit: [{required: true, message: '请输入保单赔偿限额', trigger: 'blur'}, {validator: checkNum, trigger: 'blur'}],
+                price: [{required: true, message: '请输入万网盗抢保障服务费', trigger: 'blur'}, {validator: checkNum, trigger: 'blur'}],
+                vehicleowner: [{required: true, message: '请输入车主姓名', trigger: 'blur'}],
+                vehicleowneridcard: [{required: true, message: '请输入身份证号', trigger: 'blur'}],
+                vehicleownercontact: [{required: true, message: '请输入手机号', trigger: 'blur'}, {validator: checkAllMobile, trigger: 'blur'}],
+                vehicleenginenum: [{required: true, message: '请输入发动机号', trigger: 'blur'}],
+                vehiclemodel: [{required: true, message: '请输入厂牌型号', trigger: 'blur'}],
+                beneficiary: [{required: true, message: '请选择第一受益人', trigger: 'change'}],
+            },
+            form: {
+                vehiclevin: '',
+                vehicleowner: '',
+                vehicleplate: '',
+                vehicleownercontact: '',
+                vehicleowneridcard: '',
+                vehiclemodel: '',
+                vehiclecategory: '',
+                vehiclecolor: '',
+                vehicleprice: '',
+                picinvoice: '',
+                picvehiclelicense: '',
+                picidcard: '',
+                picregistration: '',
+                piccertificate: '',
+                picimport: '',
+                busicorpname: '',
+                corpid: '',
+                vehicleid: ''
+            },
+            //启动报单表单验证信息
+            rules: {
+                vehiclevin: [{required: true, message: '请输入车架号', trigger: 'change'}],
+                vehicleowner: [{required: true, message: '请输入车主姓名', trigger: 'blur'}],
+                vehicleownercontact: [{required: true, message: '请输入车主电话', trigger: 'blur'}],
+                vehicleowneridcard: [{required: true, message: '请输入车主证件号码', trigger: 'blur'}],
+                vehiclemodel: [{required: true, message: '请输入车辆型号', trigger: 'blur'}],
+                vehiclecategory: [{required: true, message: '请选择车类型', trigger: 'change'}],
+                vehicleprice: [{required: true, message: '请输入车价', trigger: 'blur'}],
+            },
+            activeNames: ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '10086'],
+            addLoading: false,
+            accept: '.jpg,.png',
+            util: util,
+            vinList: [
+                {
+                    // id: '11280074',
+                    vin: 'LBV2A3408HMJ20454'
+                }, {
+                    // id: '11222887',
+                    vin: 'JTEBH9FJXHK192206'
+                }
+            ],
+            currentVehicleVin: '10011154',
+            insuranceId: '69391',
+            vehlist: [],
+            carColor: [],
+            corplist: [],
+            token: getToken(),
+            isEdit: false,
+            insuranceCompany: [],   //保险公司
+            serialnumList: [],  //保单编号
+            sendBackVisible: false,
+            sendBackRemark: ''
+        };
+    },
+    methods: {
+        /* 提交表单数据 */
+        submitForm () {
+            this.$confirm('确定保险出单？', '提示', {
+                type: 'warning '
+            }).then(() => {
+                this.$refs.ruleForm.validate(async (valid) => {
+                    if (valid) {
+                        const params = Object.assign({}, this.ruleForm)
+                        params.vehiclevin = this.form.vehiclevin
+                        params.id = this.form.id
+                        params.vehiclemodel = this.form.vehiclemodel
+                        params.vehiclecategory = this.form.vehiclecategory
+                        params.vehiclecolor = this.form.vehiclecolor
+                        params.vehicleprice = this.form.vehicleprice
+
+                        params.picinvoice = this.form.picinvoice
+                        params.picvehiclelicense = this.form.picvehiclelicense
+                        params.picidcard = this.form.picidcard
+                        params.picregistration = this.form.picregistration
+                        params.piccertificate = this.form.piccertificate
+                        params.picimport = this.form.picimport
+                        await addInsuranceIssue(params)
+                        this.$message.success('出单成功!')
+                        this.$router.push('/insuranceManage/insuranceList')
+                    } else {
+                        this.$message.warning('请完善信息')
+                        return false;
+                    }
+                })
+            })
+        },
+        getCustoHistoryInfo (defaultData, flowData) {
+            _.forEach(defaultData.installDetails, item => {
+                item.curonlinestatus = ''
+                item.recvtime = ''
+                item.curaddress = ''
+            })
+            delete flowData.updatedate
+            delete flowData.createdate
+            this.form = flowData
+
+            this.ruleFormStatic.corporateInfo.corpname = flowData.busicorpname
+
+            // 将显示的数据修改为保单的信息，有可能与原数据不同，主要是用来显示设备信息
+            defaultData.vehicleInfo.vin = flowData.vehiclevin
+            defaultData.ownerInfo.name = flowData.vehicleowner
+            defaultData.vehicleInfo.licenseplatenum = flowData.vehicleplate
+            defaultData.ownerInfo.mobile = flowData.vehicleownercontact
+            defaultData.ownerInfo.idcard = flowData.vehicleowneridcard
+            defaultData.vehicleInfo.model = flowData.vehiclemodel
+            defaultData.vehicleInfo.vehiclePlateColor.typedesc = flowData.vehiclecategory
+            defaultData.vehicleInfo.color = flowData.vehiclecolor
+            defaultData.vehicleInfo.price = flowData.vehicleprice
+
+            this.ruleFormStatic = defaultData;
+
+            // 保险信息赋值
+            let dayjia = util.addReduceDate(new Date(defaultData.installactualdate), 1);
+            this.ruleForm.vehicleowneridcard = flowData.vehicleowneridcard;
+            this.ruleForm.vehicleowner = flowData.vehicleowner;
+            this.ruleForm.vehicleownercontact = flowData.vehicleownercontact;
+            this.ruleForm.vehiclemodel = flowData.vehiclemodel;
+            // this.ruleForm.vehicleplate = flowData.vehicleplate;
+            this.ruleForm.beneficiary = flowData.beneficiary;
+            this.ruleForm.effectivedate = util.formatDate.format(dayjia, 'yyyy-MM-dd');
+            this.ruleForm.expiredate = util.getDateThreeYers(util.addReduceDate(new Date(dayjia), -1), 3);
+
+            _.forEach(this.ruleFormStatic.installDetails, item => {
+                this.cldeviceIsOnstateItem(item)
+            })
+
+            if (!defaultData.installGroupInfo)
+                this.ruleFormStatic.installGroupInfo = {}
+            this.initViewer()
+        },
+        getAddress (lnglatXY, proname, callback) {
+            var geocoder = new AMap.Geocoder({
+                radius: 1000 //范围，默认：500
+            });
+            geocoder.getAddress(lnglatXY, (status, result) => {
+                if (status === 'complete' && result.info === 'OK') {
+                    //获得了有效的地址信息:
+                    callback(result.regeocode.formattedAddress, 2);
+                } else {
+                    //获取地址失败
+                }
+            });
+        },
+        async cldeviceIsOnstateItem (item) {
+            const para = {
+                id: item.packInfo.E_PRODUNUM
+            };
+            const {data} = await cldeviceIsOnstate(para)
+            switch (data.data.realdata && data.data.realdata.istate) {
+                case 0:
+                    item.curonlinestatus = "行驶";
+                    break;
+                case 1:
+                    item.curonlinestatus = "离线";
+                    break;
+                case 2:
+                    item.curonlinestatus = "停车";
+                    break;
+                case 3:
+                    item.curonlinestatus = "报警";
+                    break;
+                case 4:
+                    item.curonlinestatus = "无效定位";
+                    break;
+                default:
+                    item.curonlinestatus = "未定位";
+            }
+            if (data.data.realdata) {
+                item.recvtime = data.data.realdata.recvtime
+                item.curaddress = '无定位';
+                this.getAddress([data.data.realdata.lng, data.data.realdata.lat], para.id, (res) => {
+                    item.curaddress = res
+                })
+            }
+        },
+        changeCorp (corpid) {
+            this.form.corpid = corpid
+        },
+        uploadSuccessInvoice (res, file) {
+            this.form.picinvoice = res.data
+            this.initViewer()
+        },
+        uploadSuccessVehiclelicense (res, file) {
+            this.form.picvehiclelicense = res.data
+            this.initViewer()
+        },
+        uploadSuccessIdcard (res, file) {
+            this.form.picidcard = res.data
+            this.initViewer()
+        },
+        uploadRegistration (res, file) {
+            this.form.picregistration = res.data
+            this.initViewer()
+        },
+        uploadSuccessCertificate (res, file) {
+            this.form.piccertificate = res.data
+            this.initViewer()
+        },
+        uploadSuccessImport (res, file) {
+            this.form.picimport = res.data
+            this.initViewer()
+        },
+        async init () {
+            this.loading = true
+            try {
+                let insurance = await getMoreInfo({id: this.insuranceId})
+                this.currentVehicleVin = insurance.data.data.vehicleid
+                const params = {
+                    vehicleId: this.currentVehicleVin
+                }
+                const {data} = await get(params)
+                this.getCustoHistoryInfo(data.data, insurance.data.data)
+                this.loading = false
+            } catch (e) {
+                this.loading = false
+            }
+        },
+        initForm () {
+            const vehiclevin = this.form.vehiclevin
+            // this.currentVehicleVin = '';
+            this.form.picinvoice = ''
+            this.form.picvehiclelicense = ''
+            this.form.picidcard = ''
+            this.form.picregistration = ''
+            this.form.piccertificate = ''
+            this.form.picimport = ''
+            this.$refs.form.resetFields();
+            this.form.vehiclevin = vehiclevin
+        },
+        vehChange (r) {
+            if (!r || this.vehlist.length > 0) return;
+            this.vehLoading = true;
+            const params = {
+                page: 1,
+                limit: 10000,
+                isactive: 1
+            }
+            getVehList(params).then((res) => {
+                this.vehlist = res.data.data;
+                this.vehLoading = false;
+            });
+        },
+        initViewer () {
+            if (this.viewer)
+                this.viewer.destroy()
+            const el = this.$refs['rpShowimgDialog'].$el
+            this.$nextTick(() => {
+                this.viewer = new Viewer(el)
+            });
+        },
+        insuranceCompanyList (show) { //每次请求以免新添加保险公司 刷新表单
+            if (!show) return
+            this.getInsurancePolicyno();
+        },
+        chooseInsCorp (insucorpid) {
+            const insucorp = _.find(this.insuranceCompany, {insucorpid})
+            this.ruleForm.policyno = insucorp.policyno;
+            this.$refs.policyno.clearValidate();
+        },
+        effectivedateChange (val) {
+            const dayjian = util.addReduceDate(new Date(val), -1);
+            this.ruleForm.issuedate = new Date(dayjian).format('yyyy-MM-dd');//出单日期
+            this.ruleForm.expiredate = util.getDateThreeYers(dayjian, 3);//失效日期
+        },
+        async getCorpList (show) {
+            if (!show) return
+            let param = {
+                page: 1,
+                limit: 10000,
+                corpcategory: 'BANK'
+            }
+            try {
+                const {data} = await getParentInfoList(param)
+                this.corplist = data.data.records;
+            } catch (e) {
+
+            }
+        },
+        issuedateChange (val) {
+            const dayjian = util.addReduceDate(new Date(val), 0);
+            this.ruleForm.effectivedate = new Date(util.addReduceDate(new Date(val), +1)).format('yyyy-MM-dd');//生效日期
+            this.ruleForm.expiredate = util.getDateThreeYers(dayjian, 3);//失效日期
+        },
+        removePic (picName) {
+            this.$confirm('确定删除图片？', '提示', {
+                type: 'warning '
+            }).then(() => {
+                this.form[picName] = ''
+                this.initViewer()
+            }).catch(() => {
+
+            })
+        },
+        // 弃保
+        giveUpInsurance () {
+            this.$confirm('弃保后，想为车主出单，请通过新建保单操作？', '确定车主放弃购买保险', {
+                type: 'warning '
+            }).then(() => {
+                let addformpara = {
+                    taskId: this.currentVehicleVin,
+                    properties: {
+                        insurancestatus: '无保险',
+                        insuranceInfo: {
+                            insurancestatus: '无保险',
+                            declaration_id: this.ruleFormStatic.id
+                        }
+                    },
+                }
+                this.addLoading = true;
+                //提交审核结果
+                addInsuranceDetail(addformpara).then((res) => {
+                    this.addLoading = false;
+                    if (res.data.result.code === 0) {
+                        this.$message({
+                            message: '处理成功！',
+                            type: 'success'
+                        });
+                    }
+                }, () => {
+                    this.addLoading = false;
+                });
+            }).catch(() => {
+
+            })
+        },
+        // 保存基本信息
+        async modifyInsuranceInfo () {
+            try {
+                const params = {
+                    vehiclevin: this.form.vehiclevin,
+                    id: this.form.id,
+                    vehicleowner: this.form.vehicleowner,
+                    vehicleplate: this.form.vehicleplate,
+                    vehicleownercontact: this.form.vehicleownercontact,
+                    vehicleowneridcard: this.form.vehicleowneridcard,
+                    vehiclemodel: this.form.vehiclemodel,
+                    vehiclecategory: this.form.vehiclecategory,
+                    vehiclecolor: this.form.vehiclecolor,
+                    vehicleprice: this.form.vehicleprice
+                };
+                await modifyInsuranceInfo(params)
+                this.isEdit = false
+                this.init();
+                this.$message.success('保存保单信息成功!')
+            } catch (e) {
+
+            }
+        },
+        sendBack () {
+            this.$message.success('退回成功!')
+            this.$router.push('/insuranceManage/insuranceBacklog')
+        },
+        async getInsurancePolicyno () {
+            const params = {
+                page: 1,
+                limit: 10000,
+                isactive: 1
+            }
+            try {
+                const {data} = await getInsurancePolicyno(params)
+                this.insuranceCompany = data.data.records
+            } catch (e) {
+
+            }
+        }
+    },
+    /*初始化页面数据*/
+    mounted () {
+        this.init();
+    }
+}

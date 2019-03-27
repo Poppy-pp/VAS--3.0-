@@ -1,0 +1,336 @@
+import { mapState } from 'vuex'
+import { addReturnFactory, facilityFormRules, getDeliveryCorps, getDeliveryaddress, getReceiptno } from './service'
+import { getEmployeeInfoList } from "@/views/basicManage/employeeManage/service";
+import { getSupplierList } from '../basicSetting/supplierList/service'
+import { getProductInfoList } from "../equipmentAllocation/service";
+
+export default {
+    name: "invoice-detail",
+    data () {
+        return {
+            facilityForm: null, // 返厂表单
+            facilityFormRules: facilityFormRules, // 返厂表单规则
+            employeeInfoLis: [],//经办人列表
+            deliveryCorps: [],//物流公司
+            supplierList: [],//供应商列表
+            linkman: '',//联系人
+            contactno: '',//联系方式
+            deliveryaddress: [],//地址列表
+            selectLoading: false,
+            submitLoading: false,
+            storageAreaVisible: false,
+            activeStorage: '',
+            productInfoList: [],
+            listLoading: false,
+            pagination: {
+                page: 1,
+                limit: 15,
+                total: 0
+            },
+            multipleSelection: [], //选中设备
+            selectMap: {}, // 验证重复
+        }
+    },
+    props: {
+        itemInvoice: {
+            default: function () {
+                return {}
+            },
+            type: Object
+        },
+        storageInvoice: {
+            default: function () {
+                return {}
+            },
+            type: Object
+        }
+    },
+    computed: {
+        ...mapState({
+            user: state => {
+                return state.user
+            },
+            storages: state => {
+                return state.user.employeeinfo.storages
+            },
+        }),
+        isView () {
+            return this.storageInvoice.isView
+        },
+        productNum () {
+            return _.sumBy(this.facilityForm.listUpload, item => {
+                return item.list.length
+            })
+        }
+    },
+    methods: {
+        // ...mapActions(['setPutInData']),
+        async init () {
+            if (!this.itemInvoice.stoStorageDto) {
+                this.itemInvoice.stoStorageDto = {}
+            }
+
+            if (!this.itemInvoice.listUpload) {
+                this.itemInvoice.listUpload = []
+            }
+
+            this.facilityForm = Object.assign(_.cloneDeep(this.itemInvoice), {
+                username: this.itemInvoice.operator || this.user.name,
+                userid: this.itemInvoice.operator || this.user.id,
+                actiondate: new Date().format('yyyy-MM-dd'),
+                createDate: new Date().format('yyyy-MM-dd'),
+                storageid: '',
+                batchno: '',
+                suppliername: '', //供应商
+                supplierid: '', //供应商Id
+                delivery: this.itemInvoice.delivery || {
+                    deliverytype: '1'
+                },
+                supplieraddress: ''
+            })
+
+            if (this.itemInvoice.delivery) {
+                this.facilityForm.delivery.deliverycorp = this.itemInvoice.delivery.deliverycorpname
+            }
+
+            try {
+                const {data} = await getReceiptno()
+                this.facilityForm.batchno = data.data
+                JsBarcode(this.$refs['invoice-bar-code'], data.data, {
+                    height: 30,
+                    fontSize: 12,
+                });
+            } catch (e) {
+                console.log(e)
+            }
+        },
+        // 选择经办人
+        changeUser (item) {
+            if (!item.userid) {
+                this.$message.warning('该用户userid为空!请重新选择')
+                this.facilityForm.username = ''
+                this.facilityForm.userid = ''
+                return
+            }
+            this.facilityForm.username = item.employeename
+            this.facilityForm.userid = item.userid
+        },
+        remove (index) {
+            this.facilityForm.listUpload.splice(index, 1)
+            this.initSelectMap()
+        },
+        // 行点击事件
+        rowClick (row) {
+            // if (!this.isView) {
+            //     _.forEach(this.facilityForm.listUpload, item => {
+            //         item.isEdit = false
+            //     })
+            //     row.isEdit = true
+            // }
+        },
+        // 提交数据
+        submit () {
+            this.$refs.facilityForm.validate(async valid => {
+                if (valid) {
+                    this.submitLoading = true
+                    try {
+                        await addReturnFactory(this.facilityForm)
+                        this.submitLoading = false
+                        this.$message.success('提交成功')
+                    } catch (e) {
+                        this.submitLoading = false
+                    }
+                    return
+                }
+                this.$message.warning('请检查表单完善信息')
+            })
+        },
+        // 搜索员工
+        remoteMethod (query) {
+            let para = {
+                page: this.currentPage,
+                limit: this.pageSize,
+                isactive: '1',
+                domSearch: [{
+                    select: ['employeename'],
+                    content: query
+                }],
+            };
+            this.selectLoading = true;
+            getEmployeeInfoList(para).then(({data}) => {
+                this.selectLoading = false
+                this.employeeInfoLis = data.data.records
+            })
+        },
+        // 经办人下拉
+        userChange (r) {
+            this.selectLoading = true;
+            getEmployeeInfoList({limit: 1000, isactive: 1}).then((res) => {
+                this.employeeInfoLis = res.data.data.records;
+                this.selectLoading = false;
+            });
+        },
+        async getDeliveryCorps () {
+            try {
+                const params = {
+                    dictvalue: 'ExpressCompany',
+                    limit: 1000,
+                    page: 1
+                }
+                const {data} = await getDeliveryCorps(params)
+                this.deliveryCorps = data.data.records
+            } catch (e) {
+
+            }
+        },
+        // 获取供应商列表
+        async getSupplierList () {
+            try {
+                const params = {
+                    limit: 1000,
+                    page: 1
+                }
+                const {data} = await getSupplierList(params)
+                this.supplierList = data.data.records
+            } catch (e) {
+                console.log(e)
+            }
+        },
+        // 选择供应商显示联系人和地址
+        changeSupplier (supplier) {
+            this.facilityForm.supplierid = supplier.id
+            this.facilityForm.supplieraddress = supplier.supplieraddress
+            this.deliveryaddress = []
+            this.linkman = supplier.linkman
+            this.contactno = supplier.contactno
+        },
+        // 获取地址列表
+        async getDeliveryAddress () {
+            try {
+                const params = {
+                    supplierid: this.facilityForm.supplierid
+                }
+                const {data} = await getDeliveryaddress(params)
+                this.deliveryaddress = data.data.records
+            } catch (e) {
+                console.log(e)
+            }
+        },
+        // 添加设备
+        addFacility () {
+            this.storageAreaVisible = true
+            this.pagination.page = 1
+            this.activeStorage = this.storages[0].id.toString()
+            this.productInfoList = []
+            this.getProductInfoList()
+        },
+        // 获取设备列表
+        async getProductInfoList () {
+            this.listLoading = true
+            try {
+                const params = {
+                    storageid: this.activeStorage,
+                    limit: this.pagination.limit,
+                    page: this.pagination.page
+                }
+                const {data} = await getProductInfoList(params)
+                this.productInfoList = data.data.records
+                this.pagination.total = data.data.total
+                this.listLoading = false
+            } catch (e) {
+                this.listLoading = false
+                console.log(e)
+            }
+        },
+        // 切换仓库
+        handleClick () {
+            this.productInfoList = []
+            this.pagination.page = 1
+            this.getProductInfoList()
+        },
+        handleSizeChange (size) {
+            this.pagination.limit = size
+            this.getProductInfoList()
+        },
+        handleCurrentChange (page) {
+            this.pagination.page = page
+            this.getProductInfoList()
+        },
+        // 选择设备
+        handleSelectionChange (val) {
+            this.multipleSelection = val
+        },
+        initSelectMap () {
+            this.selectMap = {}
+            _.forEach(this.facilityForm.listUpload, item => {
+                _.forEach(item.list, itemBean => {
+                    this.selectMap[itemBean.prodnum] = 1
+                })
+            })
+        },
+        confirmSelect () {
+            let flag = false
+            const arr = []
+            this.initSelectMap()
+            // 组装设备返厂信息列表，以设备型号分类
+            const list = _.chain(this.multipleSelection)
+                .map(item => {
+                    return Object.assign(item, {
+                        modelname: item.modelname || item.simmodelname,
+                        modelspec: item.modelspec || item.simmodelspec,
+                        prodnum: item.prodnum || item.simnum
+                    })
+                })
+                .groupBy(item => item.modelname)
+                .map((value, key) => {
+                    _.forEach(value, item => {
+                        if (this.selectMap[item.prodnum]) {
+                            flag = true
+                            arr.push(item.prodnum)
+                        }
+                    })
+                    return Object.assign({
+                        storageid: this.activeStorage,
+                        list: value
+                    }, value[0])
+                })
+                .value()
+
+            if (flag) {
+                this.$message.warning(`以下 ${arr.join(',')} 设备型号重复添加!`)
+                return
+            }
+            _.forEach(list, item => {
+                let flagBean = true
+                _.forEach(this.facilityForm.listUpload, itemBean => {
+                    if (item.storageid === itemBean.storageid && item.modelname === itemBean.modelname) {
+                        itemBean.list = item.list.concat(itemBean.list)
+                        flagBean = false
+                    }
+                })
+                if (flagBean) {
+                    this.facilityForm.listUpload.push(item)
+                }
+            })
+            // this.facilityForm.listUpload = this.facilityForm.listUpload.concat(list)
+            this.storageAreaVisible = false
+        },
+        // 删除设备详情中设备
+        removeFacility (list, index, indexBean) {
+            list.splice(index, 1)
+            if (!list.length) {
+                this.facilityForm.listUpload.splice(indexBean, 1)
+            }
+            this.initSelectMap()
+        },
+        // 添加配件
+        addPart () {
+            this.facilityForm.listUpload.push({
+                list: []
+            })
+        }
+    },
+    mounted () {
+        this.init()
+    }
+}

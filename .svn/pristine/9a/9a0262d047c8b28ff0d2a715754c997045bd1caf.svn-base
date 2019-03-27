@@ -1,0 +1,53 @@
+import {get} from './service'
+
+export default {
+    name: 'organizationManage',
+    data () {
+        return {
+            treeData: [],
+            aExpandedKeys: [],
+            defaultProps: {
+                children: 'children',
+                label: 'name'
+            },
+            labelPosition: 'right',
+            form: {},
+            formEdit: true,
+            typeOptions: ['0', '1'],
+            formStatus: '',
+            currentId: -1,
+            currentData: {}
+        }
+    },
+    methods: {
+        handlerAdd () {
+
+        },
+        handlerEdit () {
+
+        },
+        handleDelete () {
+
+        },
+        // filterNode (value, data) {
+        //     if (!value) return true
+        //     return data.label.indexOf(value) !== -1
+        // },
+        getNodeData () {
+
+        },
+        nodeExpand () {
+
+        },
+        nodeCollapse () {
+
+        },
+        init () {
+            const params = {}
+            get(params)
+        }
+    },
+    created() {
+        this.init();
+    }
+}

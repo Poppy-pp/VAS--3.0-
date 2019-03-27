@@ -1,0 +1,236 @@
+<template>
+    <el-form label-position="right" label-width="110px" :model="form" ref="form" v-loading="loading">
+        <el-form-item label="公司名称" prop="corpname">
+            <el-input v-model="form.corpname" :disabled="formEdit" placeholder="请输入公司名称"></el-input>
+        </el-form-item>
+        <el-form-item label="公司名称缩写" prop="corpshortname">
+            <el-input v-model="form.corpshortname" :disabled="formEdit" placeholder="请输入公司名称缩写"></el-input>
+        </el-form-item>
+        <el-form-item label="组织级别" prop="corplevel">
+            <el-select v-model="form.corplevel" :disabled="formEdit" filterable placeholder="请选择公司级别" clearable>
+                <el-option v-for="item in corpOptions" :key="item.value" :label="item.label" :value="item.value">
+                </el-option>
+            </el-select>
+        </el-form-item>
+        <el-form-item label="父级公司名称" prop="parentname" v-if="form.corplevel === '2' || form.corplevel === '3'">
+            <el-select v-model="form.parentname" :disabled="formEdit" @visible-change="parChange" :loading="parLoading" filterable placeholder="请选择父级公司名称"
+                       clearable remote
+                       :remote-method="parChangeSelsect">
+                <el-option v-for="item in parlist" :key="item.id" :label="item.corpname" :value="item.corpcode">
+                </el-option>
+            </el-select>
+        </el-form-item>
+        <!-- 分公司时 判断是否有父级公司 -->
+        <el-form-item label="是否有父级公司" prop="hasParent" v-if="form.corplevel === '1'">
+            <el-switch v-model="form.hasParent" active-color="#00C1DE" inactive-color="#ff4949" active-value="1" active-text="有" inactive-value="0"
+                       inactive-text="无"></el-switch>
+            <el-select v-model="form.parentname" :disabled="formEdit" @visible-change="parChange" :loading="parLoading" filterable placeholder="请选择父级公司名称"
+                       clearable
+                       v-show="form.hasParent === '1'" remote :remote-method="parChangeSelsect">
+                <el-option v-for="item in parlist" :key="item.id" :label="item.corpname" :value="item.corpcode">
+                </el-option>
+            </el-select>
+        </el-form-item>
+        <el-form-item label="公司类型" prop="corptype">
+            <el-select v-model="form.corptype" :disabled="formEdit" @visible-change="corpChange" :loading="corpLoading" filterable placeholder="请选择公司类型"
+                       clearable>
+                <el-option v-for="item in corplist" :key="item.id" :label="item.dictdatavalue" :value="item.dictdataname">
+                </el-option>
+            </el-select>
+        </el-form-item>
+        <el-form-item label="公司电话" prop="tel1">
+            <el-input v-model="form.tel1" :disabled="formEdit" auto-complete="off"></el-input>
+        </el-form-item>
+        <el-form-item label="公司地址" prop="addressAll">
+            <el-cascader placeholder="请选择省/市/区" :disabled="formEdit" v-model="form.addressAll" :options="prOptions" filterable clearable
+                         change-on-select></el-cascader>
+        </el-form-item>
+        <el-form-item label="详细地址" prop="address">
+            <el-input v-model="form.address" :disabled="formEdit" auto-complete="off"></el-input>
+        </el-form-item>
+        <el-form-item v-if="formStatus === 'update'">
+            <el-button type="primary" @click="update">更新</el-button>
+            <el-button @click="onCancel">取消</el-button>
+        </el-form-item>
+        <el-form-item v-if="formStatus === 'create'">
+            <el-button type="primary" @click="create">保存</el-button>
+            <el-button @click="onCancel">取消</el-button>
+        </el-form-item>
+    </el-form>
+</template>
+
+<script>
+    import util from 'utils/tools.js';
+    import { getParentInfoList, getCorpType } from './service'
+
+    export default {
+        name: "org-form",
+        props: ['formEdit', 'formStatus', 'data'],
+        data () {
+            return {
+                //新增界面数据
+                form: {
+                    corpcode: '',
+                    corpname: '',
+                    corpshortname: '',
+                    corplevel: '',
+                    parentcorpcode: '',
+                    tel1: '',
+                    address: '',
+                    area: '',
+                    addressAll: [],
+                    parentname: '',
+                    corptype: '',
+                    corptypeid: '',
+                    showorder: 0,
+                    isdelete: 0,
+                    hasParent: 1,
+                },
+                corpOptions: [{
+                    value: '0',
+                    label: '集团'
+                }, {
+                    value: '1',
+                    label: '分公司'
+                }, {
+                    value: '2',
+                    label: '子公司'
+                }, {
+                    value: '3',
+                    label: '门店'
+                }],
+                parlist: [], //父级车名称列表,.
+                corplist: [], //公司类型列表,
+                prOptions: util.initProvince(),
+                parLoading: false,
+                corpLoading: false,
+                loading: false,
+                editFormId: {
+                    parentcorpcode: '',
+                    parentname: '',
+                    value: '',
+                }
+            }
+        },
+        watch: {
+            data (newData) {
+                this.initForm()
+            },
+            formStatus () {
+                this.initForm()
+            }
+        },
+        mounted () {
+            this.initForm()
+        },
+        methods: {
+            initForm () {
+                if (this.data) {
+                    if (this.formStatus === 'create') {
+                        this.init();
+                    } else {
+                        this.form = _.cloneDeep(this.data)
+                        this.editFormId = {
+                            parentcorpcode: this.data.parentcorpcode,
+                            parentname: this.data.parentname,
+                            corptype: this.data.corptype,
+                            corptypeid: this.data.corptypeid,
+                            value: this.data.value,
+                            corplevel: this.data.corplevel
+                        }
+                    }
+                }
+            },
+            init () {
+                this.form = {
+                    corpcode: '',
+                    corpname: '',
+                    corpshortname: '',
+                    corplevel: '',
+                    parentcorpcode: '',
+                    tel1: '',
+                    address: '',
+                    area: '',
+                    addressAll: [],
+                    parentname: '',
+                    corptype: '',
+                    corptypeid: '',
+                    showorder: 0,
+                    isdelete: 0,
+                    hasParent: 1,
+                }
+            },
+            /*父级公司名称——搜索下拉*/
+            parChangeSelsect (query) {
+                let para = {
+                    showCount: 30,
+                    corpname: query,
+                    hascorpcode: 'Y',
+                }
+                getParentInfoList(para).then((res) => {
+                    this.parlist = res.data.data.records;
+                    this.parLoading = false;
+                });
+            },
+            /*父级公司名称——下拉*/
+            parChange (r) {
+                if (!r || this.parlist.length > 0) return;
+                this.parLoading = true;
+
+                let para = {
+                    hascorpcode: 'Y',
+                }
+                getParentInfoList(para).then((res) => {
+                    this.parlist = res.data.data.records;
+                    this.parLoading = false;
+                });
+            },
+            /*公司类型——下拉*/
+            corpChange (r) {
+                if (!r || this.corplist.length > 0) return;
+                this.corpLoading = true;
+                getCorpType().then((res) => {
+                    this.corplist = res.data.data.records;
+                    this.corpLoading = false;
+                });
+            },
+            onCancel () {
+                this.initForm()
+                this.$emit('onCancel');
+            },
+            update () {
+                this.$refs.form.validate((valid) => {
+                    if (valid) {
+                        this.loading = true;
+                        let para = _.clone(this.form)
+                        if (this.editFormId.parentname === para.parentname) {
+                            para.parentcorpcode = this.editFormId.parentcorpcode;
+                        } else {
+                            para.parentcorpcode = para.parentname;
+                        }
+                        if (this.editFormId.corptype === para.corptype) {
+                            para.corptype = this.editFormId.corptypeid;
+                        }
+                        if (this.editFormId.corplevel === para.corplevel) {
+                            para.corplevel = this.editFormId.value;
+                        }
+                        // modifyCorporateInfo(para).then((res) => {
+                        setTimeout(() => {
+                            this.$emit('update', this.form)
+                            this.loading = false;
+                            this.$refs['form'].clearValidate();
+                        }, 500)
+                        // });
+                    }
+                });
+            },
+            create () {
+                this.$emit('create', this.form);
+            }
+        }
+    }
+</script>
+
+<style scoped>
+
+</style>

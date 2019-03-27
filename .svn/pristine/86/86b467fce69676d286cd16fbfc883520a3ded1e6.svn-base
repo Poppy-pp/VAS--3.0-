@@ -1,0 +1,348 @@
+<template>
+    <!--<div>-->
+    <!--维修/拆除单-->
+    <!--</div>-->
+    <el-form :model="form" ref="form" :rules="rules">
+        <el-row>
+            <el-col :span="24" class="cbstyle">
+                <el-collapse class="bdcoll rpShowimgDialog" ref="rpShowimgDialog" v-model="activeNames">
+                    <el-collapse-item title="请选择车辆" class="lefw10 wzpdt10" name="1">
+                        <el-row :gutter="20">
+                            <el-col :span="8">
+                                <el-form-item label="车架号" prop="vehiclevin">
+                                    <el-autocomplete class="inline-input searchInput" popper-class="my-autocomplete" v-model="vehiclevin"
+                                                     :fetch-suggestions="querySearchVins" custom-item="my-item-zh" placeholder="请输入车牌号/车架号"
+                                                     @select="handleSelectVin">
+                                        <template slot-scope="props">
+                                            <div class="name">{{ props.item.vehicleInfo.model }}</div>
+                                            <div class="addr">{{ props.item.vehicleInfo.licenseplatenum }}</div>
+                                            <span class="addr">{{ props.item.vehicleInfo.vin }}</span>
+                                        </template>
+                                    </el-autocomplete>
+                                </el-form-item>
+                            </el-col>
+                        </el-row>
+                        <template v-if="vehicleInfo">
+                            <el-row class="mt2 pt2 bt1">
+                                <el-col :span="8">
+                                    <dl class="dllist">
+                                        <dt>厂牌型号:</dt>
+                                        <dd>{{vehicleInfo.vehiclemodel}}</dd>
+                                    </dl>
+                                </el-col>
+                                <el-col :span="8">
+                                    <dl class="dllist">
+                                        <dt>车架号:</dt>
+                                        <dd>{{vehicleInfo.vehiclevin}}</dd>
+                                    </dl>
+                                </el-col>
+                                <el-col :span="8">
+                                    <dl class="dllist">
+                                        <dt>车牌号:</dt>
+                                        <dd>{{vehicleInfo.licenseplatenum}}</dd>
+                                    </dl>
+                                </el-col>
+                                <el-col :span="8">
+                                    <dl class="dllist">
+                                        <dt>车辆分类:</dt>
+                                        <dd>{{vehicleInfo.vehicletype}}</dd>
+                                    </dl>
+                                </el-col>
+                                <el-col :span="8">
+                                    <dl class="dllist">
+                                        <dt>车辆类型:</dt>
+                                        <dd>{{vehicleInfo.vehiclecategory}}</dd>
+                                    </dl>
+                                </el-col>
+                                <el-col :span="8">
+                                    <dl class="dllist">
+                                        <dt>车辆颜色:</dt>
+                                        <dd>{{vehicleInfo.vehiclecolor}}</dd>
+                                    </dl>
+                                </el-col>
+                                <el-col :span="8">
+                                    <dl class="dllist">
+                                        <dt>车主姓名:</dt>
+                                        <dd>{{vehicleInfo.vehicleowner}}</dd>
+                                    </dl>
+                                </el-col>
+                                <el-col :span="8">
+                                    <dl class="dllist">
+                                        <dt>车主电话:</dt>
+                                        <dd>{{vehicleInfo.vehicleownermobile}}</dd>
+                                    </dl>
+                                </el-col>
+                            </el-row>
+                            <el-row :gutter="20" class="bt1" style="margin-top: 10px; padding-top: 10px;">
+                                <el-col :span="8">
+                                    <el-form-item prop="rpFaultcode">
+                                        <el-cascader
+                                                placeholder="请选择维护类型和原因"
+                                                @change="changeReason"
+                                                :options="options"
+                                                :props="reasonProp"
+                                                v-model="selectReason">
+                                        </el-cascader>
+                                    </el-form-item>
+                                </el-col>
+                                <el-col :span="8">
+                                    <el-form-item prop="rpFaultremark">
+                                        <el-input type="textarea" :rows="4" v-model="form.rpFaultremark" placeholder="请填写故障现象/原因说明"></el-input>
+                                    </el-form-item>
+                                </el-col>
+                                <el-col :span="8">
+                                    <el-popover
+                                            placement="bottom"
+                                            width="1200"
+                                            v-model="isShowHistory"
+                                            trigger="click">
+                                        <div id="history-orders">
+                                            <div v-if="historyOrders.length" class="history-orders" style="margin-bottom: 10px;"
+                                                 v-for="history in historyOrders">
+                                                <div class="order-title" v-if="history.ordertype === 'INSTALL'">
+                                                    新装完成：2018-11-05 10:30:30 | <span>新装单号：{{history.orderno}}</span>
+                                                </div>
+                                                <div class="order-title" v-else-if="history.ordertype === 'REPAIR'">
+                                                    维修完成：2018-11-05 10:30:30 | <span>维修单号：{{history.orderno}}</span>
+                                                </div>
+                                                <div class="order-title" v-else>
+                                                    拆除完成：2018-11-05 10:30:30 | <span>拆除单号：{{history.orderno}}</span>
+                                                </div>
+                                                <el-row class="order-content">
+                                                    <el-col :span="12" v-for="(item, index) in history.busiImpdetails" :key="index">
+                                                        <el-col :span="10">
+                                                            <div>{{item.stoPackinfoDto.promodelspecname+'设备'+item.stoPackinfoDto.promodelname}}</div>
+                                                            <div>
+                                                                <dl class="dllist">
+                                                                    <dt>设备编号：</dt>
+                                                                    <dd>{{ item.stoPackinfoDto.prodnum }}</dd>
+                                                                </dl>
+                                                            </div>
+                                                            <div>
+                                                                <dl class="dllist">
+                                                                    <dt>SIM卡号：</dt>
+                                                                    <dd>{{ item.stoPackinfoDto.simnum }}</dd>
+                                                                </dl>
+                                                            </div>
+                                                            <div>
+                                                                <dl class="dllist">
+                                                                    <dt>设备安装位置：</dt>
+                                                                    <dd>{{ item.installpositioncodename }}</dd>
+                                                                </dl>
+                                                            </div>
+                                                        </el-col>
+                                                        <el-col :span="14">
+                                                            <dl class="dllist lh55_mb10">
+                                                                <dd>
+                                                                    <div class="imgMd mr4 mt5" v-for="val in item.busiPictures"
+                                                                         @click="isShowHistory = !isShowHistory">
+                                                                        <img :title="val.picdesc" class="image" :src="$store.state.ORIGINAL_URL+val.piclink">
+                                                                        <span>{{ val.picdesc }}</span>
+                                                                    </div>
+                                                                </dd>
+                                                            </dl>
+                                                        </el-col>
+                                                    </el-col>
+                                                </el-row>
+                                            </div>
+                                            <div style="text-align: center;color: #555;margin-top: 40px;" v-if="!historyOrders.length">
+                                                <span class="iconfont icon-notfind01" style="font-size:8rem;dispaly:block;color:#555"></span>
+                                                <p>{{ '暂无历史订单信息' }}</p>
+                                            </div>
+                                        </div>
+                                        <el-button slot="reference" style="margin-left: 10px;" @click="viewHistory">历史订单信息</el-button>
+                                    </el-popover>
+                                </el-col>
+                            </el-row>
+                        </template>
+                    </el-collapse-item>
+                    <el-collapse-item v-if="vehicleInfo" title="选择设备" class="lefw10 wzpdt10" name="2">
+                        <ul v-if="installDetails.length">
+                            <li v-for="(val, index) in installDetails">
+                                <el-checkbox v-if="!val.newDeclaration || val.newDeclaration.status === '6'" v-model="val.checked" style="width: 150px;">
+                                    {{val.promodelspecname+'设备'+val.promodelname}}
+                                </el-checkbox>
+                                <span v-else>{{val.promodelspecname+'设备'+val.promodelname}}</span>
+                                <el-popover
+                                        placement="right"
+                                        width="800"
+                                        v-model="val.isShow"
+                                        trigger="click">
+                                    <div style="font-size: 20px;">设备信息</div>
+                                    <el-row class="mt5">
+                                        <el-col :span="24" v-if="val.isActive == 0">
+                                            <dl class="dllist">
+                                                <dd style="color:red;">无效设备</dd>
+                                            </dl>
+                                        </el-col>
+                                        <el-col :span="8">
+                                            <dl class="dllist">
+                                                <dt>设备类别:</dt>
+                                                <dd>{{ val.promodelspecname }}</dd>
+                                            </dl>
+                                        </el-col>
+                                        <el-col :span="8">
+                                            <dl class="dllist">
+                                                <dt>设备型号:</dt>
+                                                <dd>{{ val.promodelname }}</dd>
+                                            </dl>
+                                        </el-col>
+                                        <el-col :span="8">
+                                            <dl class="dllist">
+                                                <dt>设备编号:</dt>
+                                                <dd>{{ val.prodnum }}</dd>
+                                            </dl>
+                                        </el-col>
+                                        <el-col :span="8">
+                                            <dl class="dllist">
+                                                <dt>SIM卡号:</dt>
+                                                <dd>{{ val.simnum }}</dd>
+                                            </dl>
+                                        </el-col>
+                                        <el-col :span="8">
+                                            <dl class="dllist">
+                                                <dt>安装位置:</dt>
+                                                <dd v-if="val.busiImpdetail">{{ val.busiImpdetail.installpositioncodename }}</dd>
+                                            </dl>
+                                        </el-col>
+                                        <el-col :span="24" style="margin-top: 10px;" :id="'installDetail' + index">
+                                            <dl class="dllist lh55_mb10">
+                                                <dd>
+                                                    <div class="imgMd mr4 mt5" v-for="item in val.insuPics" @click="val.isShow = !val.isShow">
+                                                        <img :title="item.picdesc" class="image" :src="$store.state.ORIGINAL_URL+item.piclink">
+                                                        <span>{{ item.picdesc }}</span>
+                                                    </div>
+                                                </dd>
+                                            </dl>
+                                        </el-col>
+                                    </el-row>
+                                    <el-button type="text" slot="reference" style="margin-left: 10px;" @click="viewImageList('installDetail' + index)">查看设备信息
+                                    </el-button>
+                                </el-popover>
+                                <el-popover
+                                        placement="bottom"
+                                        width="1200"
+                                        trigger="click">
+                                    <div>信号检测结果:
+                                        <el-button style="margin-left: 10px;" type="primary" size="mini" @click="getSignalInfo(val.prodnum)">再次检测
+                                        </el-button>
+                                    </div>
+                                    <table class="kv-table" v-loading="signalLoading" style="margin-top: 10px;">
+                                        <tr>
+                                            <td class="kv-label">
+                                                设备实时状态：
+                                            </td>
+                                            <td class="kv-content">
+                                                {{signalInfo.curonlinestatus}}
+                                            </td>
+                                            <td class="kv-label">
+                                                上线质量：
+                                            </td>
+                                            <td class="kv-content">
+                                                {{signalInfo.onlineStatus}}
+                                            </td>
+                                            <td class="kv-label">
+                                                定位方式：
+                                            </td>
+                                            <td class="kv-content">
+                                                {{signalInfo.locationmode}}
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td class="kv-label">
+                                                卫星或基站数量：
+                                            </td>
+                                            <td class="kv-content">
+                                                {{signalInfo.gps_satellite_count < 0 ? '--' : signalInfo.gps_satellite_count}}
+                                            </td>
+                                            <td class="kv-label">
+                                                卫星或基站信号强度：
+                                            </td>
+                                            <td class="kv-content">
+                                                {{signalInfo.signalqulity}}
+                                            </td>
+                                            <td class="kv-label"></td>
+                                            <td class="kv-content"></td>
+                                        </tr>
+                                        <tr>
+                                            <td class="kv-label">
+                                                定位地址：
+                                            </td>
+                                            <td class="kv-content" colspan="5">
+                                                {{signalInfo.curaddress}}
+                                            </td>
+                                        </tr>
+                                    </table>
+                                    <el-button type="text" style="margin-left: 20px;" slot="reference" @click="getSignalInfo(val.prodnum)">信号检测
+                                    </el-button>
+                                </el-popover>
+                            </li>
+                        </ul>
+                    </el-collapse-item>
+                    <install-info v-if="vehicleInfo" :form="form" :baseGroupList="baseGroupList"></install-info>
+                    <el-row :gutter="20" v-if="vehicleInfo" style="height: 100px;">
+                        <el-button type="primary" style="float: right; margin: 10px;" @click="submit">
+                            <span v-if="flow === '2'">转派订单</span>
+                            <span v-else>提交派单</span>
+                        </el-button>
+                    </el-row>
+                </el-collapse>
+            </el-col>
+        </el-row>
+    </el-form>
+</template>
+
+<script src="./index.js">
+
+</script>
+
+<style scoped lang="stylus">
+
+    .kv-table {
+        width: 100%;
+        border-top: 1px solid #e7eaec;
+        border-left: 1px solid #e7eaec;
+        color: #606266;
+    }
+
+    .kv-table {
+        td {
+            line-height: 38px;
+        }
+    }
+
+    .kv-label {
+        background: #FAFAFA;
+        border-bottom: 1px solid #e7eaec;
+        border-right: 1px solid #e7eaec;
+        text-align: right;
+        padding-right: 30px;
+        font-size: 16px;
+        color: #000;
+        width: 17%;
+    }
+
+    .kv-content {
+        border-right: 1px solid #e7eaec;
+        border-bottom: 1px solid #e7eaec;
+        padding-left: 20px;
+        width: 17%;
+    }
+
+    .history-orders {
+
+    }
+
+    .order-title {
+        font-size 16px;
+    }
+
+    .order-content {
+        padding 10px;
+        margin 5px 0 10px 0;
+        border 1px solid #ebeef5
+        overflow: hidden;
+        box-shadow: 0 0 1px 0 rgba(0, 0, 0, .1);
+    }
+
+</style>

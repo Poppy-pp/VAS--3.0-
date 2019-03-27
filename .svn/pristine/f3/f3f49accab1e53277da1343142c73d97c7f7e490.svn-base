@@ -1,0 +1,7 @@
+import axios from 'axios';
+import Qs from 'qs';
+
+export const getTodoInfoList = params => {
+    return axios.get(`/sto/stoProduct/page`, {params: params})
+};
+

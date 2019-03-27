@@ -1,0 +1,235 @@
+<template>
+    <el-form label-position="right" label-width="110px" :model="form" ref="form" v-loading="loading" :rules="rules">
+        <el-form-item label="公司名称" prop="corpname">
+            <el-input v-model="form.corpname" :disabled="formEdit" placeholder="请输入公司名称"></el-input>
+        </el-form-item>
+        <el-form-item label="公司编码" prop="corpcode">
+            <el-input v-model="form.corpcode" :disabled="formEdit" placeholder="请输入公司名称"></el-input>
+        </el-form-item>
+        <el-form-item label="公司名称缩写" prop="corpshortname">
+            <el-input v-model="form.corpshortname" :disabled="formEdit" placeholder="请输入公司名称缩写"></el-input>
+        </el-form-item>
+        <el-form-item label="组织级别" prop="corplevel">
+            <el-select v-model="form.corplevel" disabled filterable placeholder="请选择公司级别" clearable>
+                <el-option v-for="item in corpOptions" :key="item.value" :label="item.label" :value="item.value">
+                </el-option>
+            </el-select>
+        </el-form-item>
+        <el-form-item label="父级公司名称" prop="parentname" v-if="form.corplevel !== -1">
+            <el-select v-model="form.parentname" :disabled="formEdit" @visible-change="parChange" :loading="parLoading" filterable placeholder="请选择父级公司名称"
+                       @change="onChange"
+                       clearable remote>
+                <el-option v-for="item in parlist" :key="item.id" :label="item.corpname" :value="item.corpname">
+                </el-option>
+            </el-select>
+        </el-form-item>
+        <el-form-item label="组织所属类型" prop="corptype">
+            <el-select v-model="form.corptype" disabled filterable placeholder="请选择组织所属类型"
+                       clearable>
+                <el-option v-for="(item, index) in corplist" :key="index" :label="item.label" :value="item.value">
+                </el-option>
+            </el-select>
+        </el-form-item>
+        <el-form-item label="公司类型" prop="corpcategory">
+            <el-select v-model="form.corpcategory" filterable :disabled="formEdit" placeholder="请选择公司类型" @visible-change="corpcategoryChange"
+                       clearable>
+                <el-option v-for="(item, index) in corpcategorylist" :key="item.id" :label="item.dictdatavalue" :value="item.dictdataname">
+                </el-option>
+            </el-select>
+        </el-form-item>
+        <el-form-item label="公司电话" prop="tel1">
+            <el-input v-model="form.tel1" :disabled="formEdit" auto-complete="off" placeholder="请输入公司电话"></el-input>
+        </el-form-item>
+        <el-form-item label="公司地区" prop="addressAll">
+            <el-cascader placeholder="请选择省/市/区" :disabled="formEdit" v-model="form.addressAll" :options="prOptions" filterable clearable
+                         change-on-select></el-cascader>
+        </el-form-item>
+        <el-form-item label="公司详细地址" prop="address">
+            <el-input v-model="form.address" :disabled="formEdit" auto-complete="off" placeholder="请输入详细地址"></el-input>
+        </el-form-item>
+        <el-form-item v-if="formStatus === 'update'">
+            <el-button type="primary" @click="update">更新</el-button>
+            <el-button @click="onCancel">取消</el-button>
+        </el-form-item>
+        <el-form-item v-if="formStatus === 'create'">
+            <el-button type="primary" @click="create">保存</el-button>
+            <el-button @click="onCancel">取消</el-button>
+        </el-form-item>
+    </el-form>
+</template>
+
+<script>
+    import util from 'utils/tools.js';
+    import { getParentInfoList, getCorporateById, update, create } from './service'
+    import { getSysDictionaryDataList } from '../dictionaryManage/SysDictionaryData/service'
+
+    export default {
+        name: "org-form",
+        props: ['formEdit', 'formStatus', 'data'],
+        data () {
+            return {
+                //新增界面数据
+                form: {},
+                corpOptions: [{
+                    value: -1,
+                    label: '集团'
+                }, {
+                    value: 0,
+                    label: '分公司'
+                }, {
+                    value: 1,
+                    label: '子公司'
+                }, {
+                    value: 2,
+                    label: '门店'
+                }],
+                parlist: [], //父级车名称列表,.
+                corplist: [
+                    {
+                        value: "INTERNAL",
+                        label: "体系内"
+                    }, {
+                        value: "EXTERNAL",
+                        label: "体系外"
+                    }
+                ], //公司类型列表,
+                corpcategorylist: [],
+                prOptions: util.initProvince(),
+                parLoading: false,
+                corpLoading: false,
+                loading: false,
+                rules: {
+                    corpname: [
+                        {required: true, message: '公司名称必填', trigger: 'blur'}
+                    ],
+                    corpcode: [
+                        {required: true, message: '公司编码必填', trigger: 'blur'}
+                    ],
+                    corplevel: [
+                        {required: true, message: '组织级别必填', trigger: 'blur'}
+                    ]
+                }
+            }
+        },
+        watch: {
+            data (newData) {
+                this.initForm()
+            },
+            formStatus () {
+                this.initForm()
+            }
+        },
+        mounted () {
+            this.corpcategoryChange(true)
+            this.initForm()
+        },
+        methods: {
+            initForm () {
+                if (this.data) {
+                    this.$refs['form'].clearValidate()
+                    if (this.formStatus === 'create') {
+                        this.init();
+                    } else {
+                        let addrVal = this.data.area;
+                        if (addrVal != null) {
+                            addrVal = addrVal.split(",");
+                        } else {
+                            addrVal = ["四川", "成都", "高新区"];
+                        }
+                        this.data.addressAll = addrVal
+                        this.form = _.cloneDeep(this.data)
+                    }
+                }
+            },
+            init () {
+                let corplevel = this.data.corplevel
+                if (this.data.corplevel > 2) corplevel = 2
+                this.form = {
+                    corpcode: '',
+                    corpname: '',
+                    corpshortname: '',
+                    corplevel: corplevel,
+                    parentcorpcode: '',
+                    tel1: '',
+                    address: '',
+                    area: '',
+                    addressAll: ["四川", "成都", "高新区"],
+                    parentname: this.data.corpname,
+                    parentid: this.data.id,
+                    corptype: this.data.corptype,
+                    corptypeid: '',
+                    showorder: 0,
+                    isdelete: 0,
+                    corpcategory: '',
+                    // hasParent: 1,
+                }
+            },
+            async corpcategoryChange (show) {
+                if (!show) return
+                try {
+                    let param = {
+                        page: 1,
+                        limit: 10000,
+                        dictvalue: 'CORPCATEGORY'
+                    }
+                    const {data} = await getSysDictionaryDataList(param)
+                    this.corpcategorylist = data.data.records
+                }catch (e) {
+
+                }
+            },
+            /*父级公司名称——下拉*/
+            parChange (r) {
+                if (!r || this.parlist.length > 0) return;
+                this.parLoading = true;
+
+                let para = {
+                    page: 0,
+                    limit: 1000
+                }
+                getParentInfoList(para).then(({data}) => {
+                    this.parlist = data.data.records;
+                    this.parLoading = false;
+                }, () => {
+                    this.parLoading = false;
+                });
+            },
+            onChange (value) {
+                this.parlist.forEach(item => {
+                    if (item.corpname === value) {
+                        let corplevel = item.corplevel
+                        if (item.corplevel > 2) corplevel = 2
+                        this.form.corplevel = corplevel
+                        this.form.parentid = item.id
+                        this.form.parentname = item.corpname
+                        this.form.corptype = item.corptype
+                    }
+                })
+            },
+            onCancel () {
+                this.initForm()
+                this.$emit('onCancel');
+                this.$refs['form'].clearValidate();
+            },
+            update () {
+                this.$refs.form.validate((valid) => {
+                    if (valid) {
+                        this.$emit('update', this.form)
+                        this.$refs['form'].clearValidate();
+                    }
+                });
+            },
+            create () {
+                this.$refs.form.validate((valid) => {
+                    if (valid) {
+                        this.$emit('create', this.form);
+                    }
+                })
+            }
+        }
+    }
+</script>
+
+<style scoped>
+
+</style>

@@ -1,0 +1,150 @@
+import { getSearchVinNum } from '../../../insuranceManage/addInsurance/service';
+import gdmap from '@/views/map/gdmap';
+import { get as getVinInfo } from '@/views/insuranceManage/addInsurance/service';
+
+export default {
+    name: "maintainOrder",
+    data () {
+        return {
+            activeNames: ['1', '2', '3'],
+            form: null,
+            vehiclevin: '',
+            selectedOptions: [],
+            options: [
+                {
+                    value: 'zhinan1',
+                    label: '维修',
+                    children: [
+                        {value: 'shejiyuanze1', label: '未定位'},
+                        {value: 'shejiyuanze2', label: '设备无电'},
+                        {value: 'shejiyuanze3', label: '停车超时'},
+                        {value: 'shejiyuanze4', label: '设备离线'}
+                    ]
+                }, {
+                    value: 'zhinan2',
+                    label: '拆除',
+                    children: [
+                        {value: 'shejiyuanze5', label: '退单拆除'},
+                        {value: 'shejiyuanze6', label: '结清拆除'},
+                        {value: 'shejiyuanze7', label: '设备换装'}
+                    ]
+                }
+            ],
+            checked: false,
+            loading: false,
+            address: '',
+            addressList: [],
+            signalLoading: false,
+            installDetails: [],
+            el: null
+        }
+    },
+    components: {
+        gdmap
+    },
+    methods: {
+        /**
+         * 根据车架号/车牌号查询车辆列表
+         * @param queryString
+         * @param cb
+         */
+        querySearchVins (queryString, cb) {
+            let para = {
+                vin: $.trim(queryString.toUpperCase()) ? $.trim(queryString.toUpperCase()) : "2"
+            };
+            getSearchVinNum(para).then((res) => {
+                cb(res.data.data)
+            });
+        },
+        //根据车架号/车牌号查询
+        handleSelectVin (item) {
+            // this.currentVehicleVin = item.id;
+            this.getVinInfo(item.id)
+        },
+        /**
+         * 高德地图API autocomplete
+         * @param query
+         */
+        autoInput (query) {
+            if (query !== '') {
+                this.loading = true;
+                let autoComplete = new AMap.Autocomplete({
+                    city: '全国'
+                });
+                autoComplete.search(query, (status, result) => {
+                    // 搜索成功时，result即是对应的匹配数据
+                    // console.log(result)
+                    this.addressList = result.tips
+                    this.loading = false
+                })
+            } else {
+                this.addressList = [];
+            }
+        },
+        // 选择地图
+        changeAdress (item) {
+            this.address = item.district + item.address + item.name
+            this.$refs.vueAmap.geocoder(this.address, (res) => {
+                console.log(res)
+            });
+        },
+        /**
+         * 地图拖动事件
+         * @param address
+         * @param lnglatXY
+         * @param type
+         */
+        draggerMapMarker (address, lnglatXY, type) {
+            this.address = address
+        },
+        /**
+         * 根据车辆ID查询车辆详情
+         * @param vehicleId
+         * @returns {Promise<void>}
+         */
+        async getVinInfo (vehicleId) {
+            try {
+                const params = {
+                    vehicleId
+                }
+                const {data} = await getVinInfo(params)
+                this.initForm(data.data)
+            } catch (e) {
+                console.log(e)
+            }
+        },
+        initForm (res) {
+            this.form = {}
+            this.form.vehicleowner = res.ownerInfo.name
+            this.form.vehiclevin = res.vehicleInfo.vin
+            this.form.vehicletype = '二手车'
+            this.form.licenseplatenum = res.vehicleInfo.licenseplatenum
+            this.form.vehicleownermobile = res.ownerInfo.mobile
+            this.form.vehiclemodel = res.vehicleInfo.model
+            this.form.vehiclecategory = res.vehicleInfo.vehiclePlateColor.typedesc
+            this.form.vehiclecolor = res.vehicleInfo.color
+            _.forEach(res.installDetails, item => {
+                item.checked = false
+            })
+            this.installDetails = res.installDetails
+            // this.el = this.$refs['rpShowimgDialog'].$el
+            // this.initViewer()
+        },
+        /**
+         * 图片浏览器
+         */
+        initViewer () {
+            if (this.viewer)
+                this.viewer.destroy()
+            // const el = this.$refs['rpShowimgDialog'].$el
+            // const doc = document.getElementsByClassName('image')
+            this.$nextTick(() => {
+                this.viewer = new Viewer(this.el)
+            });
+        },
+        viewPackInfo (index) {
+            this.el = document.getElementById('installDetail' + index)
+            this.initViewer()
+        }
+    }
+}

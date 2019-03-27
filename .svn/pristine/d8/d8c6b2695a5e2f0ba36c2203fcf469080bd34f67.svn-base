@@ -1,0 +1,74 @@
+import axios from 'axios';
+import Qs from 'qs';
+import { checkVin,checkMobile, checkVehicleNumber } from '@/utils/formValidation'
+
+// 列表
+export const getTodoInfoList = params => {
+    return axios.get(`/business/order/flow/page/nodeid`, {params: params})
+};
+// 节点数量
+export const getNodesCount = params => {
+    return axios.get(`/business/order/flow/nodes?actKey=remove`, {params: params})
+};
+// 操作详情
+export const getOperationRecord = params => {
+    return axios.get(`/business/order/flow/page/nodeid`, {params: params})
+};
+// 开始拆除
+export const startRemove = params => {
+    return axios.post(`/business/orderVindicateRemove/startRemove`, params )
+};
+// 完成拆除-查询该型号的设备列表
+export const getModelProds = params => {
+    return axios.get(`/business/busiImpdetail/query/modelProds`, {params: params})
+};
+// 完成拆除按钮
+export const finishRemove = params => {
+    return axios.post(`/business/orderVindicateRemove/finishRemove/`+ params.taskid, params )
+};
+// 完成拆除-查询安装设备信息
+export const getInstallProds = params => {
+    return axios.get(`/business/busiDeclaration/query/declarationDetail`, {params: params})
+};
+//废单
+export const deleteProcess = params =>{
+    return axios.put(`
+    /business/orderVindicateRemove/receAbandonOrder/`+ params.taskid , params)
+}
+//退单
+export const returnProccess = params =>{
+    return axios.put(`
+    /business/orderVindicateRemove/receReturnOrder/`+ params.taskid , params)
+}
+//检查设备是否在线
+export const cldeviceIsOnstate = params => {
+    return axios.post(`/gisapiservice/Prod/proddetail`, params)
+};
+
+
+
+// 表单验证
+export const setStartFormRules = {
+    vin: [{required:true,message:"请输入车架号",trigger: 'blur'},{validator: checkVin,trigger: 'blur'}],
+    vehiclePic:[{required:true,message:"请上传车辆图片",trigger: 'blur'}],
+}
+
+//电子保单
+export const getMoreInfo = params => {
+    return axios.get(`insurance/insuranceinfo/query/` + params.id, params);
+};
+
+
+// 操作详情--保单详情
+export const getRecordsInfo = params => {
+    return axios.get(`insurance/insuranceinfo/query/insuranceEvent`, {params: params});
+};
+//操作详情--退保
+export const cancelInsurance= params =>{
+    return axios.post(`/business/orderVindicateRemove/cancelInsurance/`+ params.taskid, params)
+}
+
+// 操作详情--电子保单
+export const getInsTemplate = params => {
+    return axios.get(`insurance/insuranceTemplate/` + params.id);
+};

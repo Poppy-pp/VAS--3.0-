@@ -1,0 +1,246 @@
+import util from 'utils/tools';
+import {
+    getViewLogistics,
+    getStorageInfoSelect,
+    getdeliveryListAll,
+    modifyCurUserDeviceInfo,
+    backDelivery
+} from './service.js';
+import {
+    checkVehicleNumber
+} from '@/utils/formValidation'
+
+export default {
+    props: ['windowOutHeight'],
+    data() {
+        return {
+            filters: {
+                domSearch: [{
+                    select: ['batchno'],
+                    content: ''
+                }], //查询框
+                timeScope: '',
+            },
+            listData: [],
+            total: 0,
+            currentPage: 0,
+            pageSize: 15,
+            listLoading: false,
+            notext: '', //物流
+            logisticsList: [],
+            distributionVisible: false,
+            expandLoading: false,
+            noteDialogVisible: false, //确认收货弹窗
+            noteForm: {
+                status: '',
+                remark: '',
+                rowBatchno: '',
+            },
+            rejectDialogVisible: false, //退回弹窗
+            rejectForm: {
+                storagename: '',
+                reason: '',
+                type: '',
+                rowBatchno: '',
+            },
+            rejectFormRules: {
+                storagename: [{
+                    validator: checkVehicleNumber,
+                    trigger: 'blur'
+                }],
+            },
+            parlist: [], //库房列表
+            parLoading: false,
+        }
+    },
+    methods: {
+        // ---------------------------------------------------------查看物流-----------------------------------------------------------
+        async viewDistribution(row) {
+            this.distributionVisible = true
+            this.expandLoading = true
+            this.logisticsList = []
+            this.notext = ''
+            try {
+                const params = {
+                    id: row.deliveryid
+                }
+                const {
+                    data
+                } = await getViewLogistics(params)
+                this.expandLoading = false
+                this.logisticsList = data.data.traces
+            } catch (e) {
+                this.expandLoading = false
+                this.notext = '抱歉！该订单暂不支持查询！'
+                if (e && e.data && e.data.msg) {
+                    this.notext = e.data.msg
+                }
+            }
+        },
+
+
+        // ---------------------------------------------------------确认收货--------------------------------------------------------------------
+        // 点击收货
+        handelDeliver(index, row) {
+            this.noteDialogVisible = true;
+            this.noteForm.storagename = ''; //初始化
+            this.noteForm.rowBatchno = row.batchno; //当前 单号，用于弹窗显示
+        },
+        //确认收货
+        comfirmDeliver(index, row) {
+            let para = {
+                id: row.ID,
+                deliverystatus: '3'
+            };
+            modifyCurUserDeviceInfo(para).then((res) => {
+                if (res.data.result.code == 0) {
+                    this.handleQuery();
+                    this.$message({
+                        message: "确认收货成功！",
+                        type: 'success'
+                    });
+                }
+            });
+        },
+
+
+        // ---------------------------------------------------------退回--------------------------------------------------------------------
+        // 点击退回
+        handelBackDeliver(index, row) {
+            this.rejectDialogVisible = true;
+            this.rejectForm.storagename = ''; //初始化
+            this.rejectForm.rowBatchno = row.batchno; //当前 单号，用于弹窗显示
+        },
+        // 确认退回
+        comfirmBack() {
+            let para = Object.assign({}, this.rejectForm);
+            backDelivery(para).then((res) => {
+                this.handleQuery();
+                this.$message.success("确认退回成功！");
+                this.rejectDialogVisible = false;
+            });
+        },
+        // 库房——下拉
+        parChange(r) {
+            this.parlist = []; //初始化
+            getStorageInfoSelect({
+                limit: 1000
+            }).then((res) => {
+                this.parlist = res.data.data.records;
+                this.parLoading = false;
+            });
+        },
+
+
+        //查询清空
+        clearAll() {
+            this.filters.domSearch = [{
+                select: [],
+                content: ''
+            }] //清空查询框;
+        }, // 添加查询条件
+        addSelect() {
+            this.filters.domSearch.push({
+                select: [],
+                content: ''
+            });
+        },
+        // 移除查询条件
+        removeSelect(index) {
+            this.filters.domSearch.splice(index, 1); //从当前index位置开始，删除一项
+        },
+        //获取列表
+        handleQuery() {
+            let para = {
+                page: this.currentPage,
+                limit: this.pageSize,
+                domSearch: this.filters.domSearch,
+                startTime: this.filters.timeScope ? (this.filters.timeScope[0] ? util.formatDate.format(new Date(this.filters.timeScope[0]), 'yyyy-MM-dd hh:mm:ss') : '') : '',
+                endTime: this.filters.timeScope ? (this.filters.timeScope[1] ? util.formatDate.format(new Date(this.filters.timeScope[1]), 'yyyy-MM-dd hh:mm:ss') : '') : '',
+            };
+            this.listLoading = true;
+            getdeliveryListAll(para).then((res) => {
+                this.listLoading = false;
+                this.total = res.data.data.total;
+                this.listData = res.data.data.records;
+            }).catch((error) => {
+                this.listLoading = false;
+            });
+        },
+        //切换当前页
+        handleCurrentChange(val) {
+            this.currentPage = val;
+            this.handleQuery();
+        },
+        //切换每页显示数量
+        handleSizeChange(val) {
+            this.pageSize = val;
+            this.handleQuery();
+        },
+        //时间转换1
+        dateFormatter: function(row, col) {
+            if (row.actiondate == "" || row.actiondate == undefined) return '--';
+            return util.formatDate.format(new Date(row.actiondate), 'yyyy-MM-dd hh:mm:ss');
+        },
+
+
+
+        //格式化发生费用
+        dateFormatterDepuee(row, col) {
+            return (row.DELIVERYFEE ? row.DELIVERYFEE : 0) + "元";
+        },
+        deliverycategoryHandel(v) {
+            if (v.DELIVERYCATEGORY == 1) return '调拨';
+            if (v.DELIVERYCATEGORY == 2) return '退库';
+            if (v.DELIVERYCATEGORY == 3) return '维修';
+            if (v.DELIVERYCATEGORY == 4) return '其他';
+            if (v.DELIVERYCATEGORY == 5) return '返厂';
+            if (v.DELIVERYCATEGORY == 6) return '报损';
+            if (v.DELIVERYCATEGORY == 7) return '直接销售';
+        },
+        //格式化发货状态
+        deliverstatusHandel(v) {
+            if (v.DELIVERYSTATUS == 1) return '发货';
+            if (v.DELIVERYSTATUS == 2) return '到达';
+            if (v.DELIVERYSTATUS == 3) return '签收';
+            if (v.DELIVERYSTATUS == 4) return '退回';
+            if (v.DELIVERYSTATUS == 5) return '损坏';
+            if (v.DELIVERYSTATUS == 6) return '丢失';
+            if (v.DELIVERYSTATUS == 7) return '退回签收';
+        },
+        dateFormatter(row, col) {
+            if (row.DELIVERYDATE == undefined) return '--';
+            return util.formatDate.format(new Date(row.DELIVERYDATE), 'yyyy-MM-dd');
+        },
+        dateFormatter2(row, col) {
+            if (row.ESTRECEIVEDATE == undefined) return '--';
+            return util.formatDate.format(new Date(row.ESTRECEIVEDATE), 'yyyy-MM-dd');
+        },
+        dateFormatter3(row, col) {
+            return util.formatDate.format(new Date(row.CREATEDATE), 'yyyy-MM-dd');
+        },
+        dataFormatterStatus(row, col) {
+            if (row.STATUS == "INSTO") {
+                return "在库";
+            }
+            if (row.STATUS == "INSTALL") {
+                return "已安装";
+            }
+            if (row.STATUS == "LOST") {
+                return "报失";
+            }
+            if (row.STATUS == "REPAIR") {
+                return "维修";
+            }
+            if (row.STATUS == "DAMAGE") {
+                return "报废";
+            }
+            if (row.STATUS == "ONWAY") {
+                return "在途";
+            }
+        },
+    },
+    created() {
+        this.handleQuery();
+    }
+}

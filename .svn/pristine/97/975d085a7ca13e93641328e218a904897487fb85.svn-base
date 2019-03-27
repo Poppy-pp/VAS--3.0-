@@ -1,0 +1,143 @@
+<template>
+    <div>
+        <!-- 快捷菜单 -->
+        <el-card class="box-card">
+            <div slot="header">
+                <h1 style="margin-bottom: 10px;">快速新建</h1>
+            </div>
+            <el-row :gutter="20">
+                <el-col :md="12" :lg="4">
+                    <div class="count-box bg-cyan" @click="jump('insuranceList')">
+                        <i class="iconfont icon-fasongduilie rotateBell"></i>
+                        <div class="count-content">新增发货</div>
+                    </div>
+                </el-col>
+                <el-col :md="12" :lg="4">
+                    <div class="count-box bg-yellow" @click="jump('')">
+                        <i class="iconfont icon-shouhuo rotateBell"></i>
+                        <div class="count-content">查看收货</div>
+                    </div>
+                </el-col>
+                <el-col :md="12" :lg="4">
+                    <div class="count-box bg-blue" @click="jump('')">
+                        <i class="iconfont icon-yaohuo rotateBell"></i>
+                        <div class="count-content">填写要货</div>
+                    </div>
+                </el-col>
+                <el-col :md="12" :lg="4">
+                    <div class="count-box bg-red" @click="jump('')">
+                        <i class="iconfont icon-yishi rotateBell"></i>
+                        <div class="count-content">发起遗失</div>
+                    </div>
+                </el-col>
+                 <el-col :md="12" :lg="4">
+                    <div class="count-box bg-green" @click="jump('')">
+                        <i class="iconfont icon-huigou011 rotateBell"></i>
+                        <div class="count-content">新增采购</div>
+                    </div>
+                </el-col>
+            </el-row>
+        </el-card>
+        <el-row :gutter="10">
+                <!-- 待办 -->
+                <el-col :md="24" :lg="12">
+                    <el-card shadow="hover" class="list">
+                        <div slot="header">
+                            <h1 style="margin-bottom: 10px;">待办任务</h1>
+                        </div>
+                        <div>
+                                    <el-row :gutter="20" v-for="item in todolist" @click.native="" class="showline">
+                                        <el-col :span="18" >
+                                            {{ item.task }}
+                                        </el-col>
+                                        <el-col :span="6" class="date">
+                                            {{ item.date == null ? "" : dayjsTmp(new Date(item.date)).format('YYYY-MM-DD') }}
+                                        </el-col>
+                                    </el-row>
+                                    <el-button class="seemore">查看更多>></el-button>
+                        </div>
+                    </el-card>
+                </el-col>
+                <!-- 消息 -->
+                <el-col :md="24" :lg="12">
+                    <el-card shadow="hover" class="list">
+                        <div slot="header">
+                            <h1 style="margin-bottom: 10px;">消息提醒</h1>
+                        </div>
+                        <div>
+                                    <el-row :gutter="20" v-for="item in messagelist" @click.native="" class="showline">
+                                        <el-col :span="19" >
+                                            {{ item.task }}
+                                        </el-col>
+                                        <el-col :span="5" class="date">
+                                            {{ item.date == null ? "" : dayjsTmp(new Date(item.date)).format('YYYY-MM-DD') }}
+                                        </el-col>
+                                    </el-row>
+                        </div>
+                    </el-card>
+                </el-col>
+                <!-- 库房统计 -->
+                <el-col :md="24" :lg="12">
+                    <el-card shadow="hover" class="charts">
+                        <div slot="header">
+                            <h1 style="margin-bottom: 10px;">库房统计</h1>
+                        </div>
+                        <div id="chartColumnOne" style="width:100%;height:400px;"></div>
+                    </el-card>
+                </el-col>
+                <!-- 预警统计 -->
+                <el-col :md="24" :lg="12">
+                    <el-card shadow="hover" class="charts">
+                        <div slot="header">
+                            <h1 style="margin-bottom: 10px;">预警统计</h1>
+                        </div>
+                        <div id="chartColumnTwo" style="width:100%;height:400px;"></div>
+                    </el-card>
+                </el-col>
+                <!-- 库房设备量 -->
+                <el-col :md="24" :lg="12">
+                    <el-card shadow="hover" class="charts">
+                        <div slot="header">
+                            <h1 style="margin-bottom: 10px;">库房设备量</h1>
+                        </div>
+                       <div id="chartColumnThree" style="width:100%;height:400px;"></div>
+                    </el-card>
+                </el-col>
+                <!-- 库存量统计 -->
+                <el-col :md="24" :lg="12">
+                    <el-card shadow="hover" class="charts">
+                        <div slot="header">
+                            <h1 style="margin-bottom: 10px;">库存量统计</h1>
+                        </div>
+                        <div id="chartColumnFour" style="width:100%;height:400px;"></div>
+                    </el-card>
+                </el-col>
+        </el-row>
+    </div>
+</template>
+
+<script src="./index.js"></script>
+
+<style lang="stylus">
+.list
+    margin-top 10px
+    height 300px
+.charts
+    margin-top 10px
+    .el-card__body
+        padding 10px
+.showline
+    overflow hidden
+    text-overflow ellipsis
+    margin 10px
+    font-size 14px
+    cursor pointer
+    &:hover
+        color #41B883
+    .date
+        text-align right
+.seemore
+    float right
+    border none
+    margin-bottom 5px
+</style>

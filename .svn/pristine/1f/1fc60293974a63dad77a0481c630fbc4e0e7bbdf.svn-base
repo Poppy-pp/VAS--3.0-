@@ -1,0 +1,128 @@
+import { getOrderById } from '../addOrder/service'
+import { cldeviceIsOnstate } from "../issuingPolicy/service";
+
+export default {
+    name: "orderCompletion",
+    data () {
+        return {
+            activeNames: ['1', '2', '3', '4', '5'],
+            selectVehicle: true,
+            busiImpdetails: [],
+            productList: [],
+            installDetail: {},
+            busiPictures: [],
+            vehicleInfo: {},
+            tableData: [{
+                date: '2016-05-02',
+                name: '王小虎',
+                address: '上海市普陀区金沙江路 1518 弄'
+            }]
+        }
+    },
+    watch: {
+        $route () {
+            this.init()
+        }
+    },
+    methods: {
+        dateFormatter (date) {
+            if(!date)
+                return '-'
+            return new Date(date).format('yyyy.MM.dd')
+        },
+        /**
+         * 初始化
+         */
+        async init () {
+            if (!this.$route.query.id)
+                this.$message.error('没有找到该流程')
+            try {
+                const {data} = await getOrderById({
+                    id: this.$route.query.id
+                })
+                this.initInstallList(data.data.busiImpdetails)
+                this.busiPictures = _.filter(data.data.busiPictures, item => item.pictype === "DC") //车辆照片
+                this.productList = [data.data.cmsPackageDto]
+                this.installDetail = data.data
+                this.vehicleInfo = data.data.busiVehicleinfo
+                console.log(data.data)
+            } catch (e) {
+                console.log(e)
+            }
+        },
+        initViewer () {
+            if (this.viewer)
+                this.viewer.destroy()
+            const el = this.$refs['rpShowimgDialog'].$el
+            this.$nextTick(() => {
+                this.viewer = new Viewer(el)
+            });
+        },
+        initInstallList (installDetails) {
+            _.forEach(installDetails, item => {
+                item.curonlinestatus = ''
+                item.recvtime = ''
+                item.curaddress = ''
+            })
+            this.busiImpdetails = installDetails
+
+            _.forEach(this.busiImpdetails, item => {
+                this.cldeviceIsOnstateItem(item)
+            })
+
+            this.initViewer()
+        },
+        // 设备状态
+        async cldeviceIsOnstateItem (item) {
+            const para = {
+                id: item.stoPackinfoDto.prodnum
+            };
+            const {data} = await cldeviceIsOnstate(para)
+            switch (data.data.realdata && data.data.realdata.istate) {
+                case 0:
+                    item.curonlinestatus = "行驶";
+                    break;
+                case 1:
+                    item.curonlinestatus = "离线";
+                    break;
+                case 2:
+                    item.curonlinestatus = "停车";
+                    break;
+                case 3:
+                    item.curonlinestatus = "报警";
+                    break;
+                case 4:
+                    item.curonlinestatus = "无效定位";
+                    break;
+                default:
+                    item.curonlinestatus = "未定位";
+            }
+
+            item.pass = data.data.realdata && data.data.realdata.signalqulity >= 3
+
+            if (data.data.realdata) {
+                item.recvtime = data.data.realdata.recvtime
+                item.curaddress = '无定位';
+                this.getAddress([data.data.realdata.lng, data.data.realdata.lat], para.id, (res) => {
+                    item.curaddress = res
+                })
+            }
+        },
+        getAddress (lnglatXY, proname, callback) {
+            var geocoder = new AMap.Geocoder({
+                radius: 1000 //范围，默认：500
+            });
+            geocoder.getAddress(lnglatXY, (status, result) => {
+                if (status === 'complete' && result.info === 'OK') {
+                    //获得了有效的地址信息:
+                    callback(result.regeocode.formattedAddress, 2);
+                } else {
+                    //获取地址失败
+                }
+            });
+        },
+    },
+    mounted() {
+        this.init()
+    }
+}

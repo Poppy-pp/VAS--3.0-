@@ -1,0 +1,501 @@
+import util from 'utils/tools.js'
+import { getToken } from '@/utils/auth'
+import axios from 'axios'
+import {
+    getPolicyNumList,
+    getPremiumRecordList,
+    addPolicyno,
+    getInsuranceCompany,
+    IsPolicyNumRepeat,
+    addInsurancePremium,
+    modifyPolicyNo,
+    getAlertSetting,
+    modifyAlertSetting
+} from './service'
+import { checkNum } from '@/utils/formValidation'
+
+export default {
+    name: 'policynoManage',
+    props: ['windowOutHeight'],
+    data () {
+        return {
+            listData: [],
+            insuranceCompList: [],
+            loading: false,        //新增界面数据
+            addFormVisible: false, //新增界面是否显示handleCurrentChange
+            detailsVisible: false,//详情
+            addPremiumVisible: false,//新增保费界面
+            premiumRecord: false,//保费记录
+            editFormVisible: false,//修改有效期
+            premiumRecordLoading: false,//保费记录查询
+            addPremiumLoading: false,//增加保费
+            form: {},//新增保单
+            detailsData: {},//详情页面数据
+            addPremiumForm: {},//新增保费
+            premiumRecordData: {},//保费记录
+            ModifyValidityperiod: {},//修改有效期
+            addLoading: false,   //提交添加保单
+            detailsLoading: false,//保存有效期的修改
+            _index: "",//保费记录页面索引
+            detailsIndex: "",// 详情页面的索引
+            _id: "",
+            detailsValidityTime: "",//详情中有效期
+            smallPolicyRule: "",//小保单号规则
+            rules: {
+                insucorpid: [
+                    {required: true, message: '保险公司名称必选', trigger: 'change'}
+                ],
+                policyno: [
+                    {required: true, message: '大保单编号必填', trigger: 'blur'},
+                    {pattern: '^[A-Za-z0-9]+$', message: '大保单编号不得为特殊符号', trigger: 'blur'},
+                ],
+                validityTime: [
+                    {required: true, message: '有效期必选', trigger: 'blur'}
+                ],
+                //([1-9]\d*(\.\d*[1-9])?)
+                totalpremium: [
+                    {required: true, message: '大保单保费必填', trigger: 'blur'},
+                    {pattern: '^([1-9]\d*(\.\d*[1-9])?)|(0\.\d*[1-9])$', message: '保费金额不得小于0', trigger: 'blur'}
+                ],
+                paymentDate: [{required: true, message: '缴费日期必填', trigger: 'blur'}],
+                addPremiumTime: [{required: true, message: '增加时间必选', trigger: 'blur'}],
+                addPolicyPremium: [
+                    {required: true, message: '增加的保单保费必填', trigger: 'blur'},
+                    {pattern: '^[1-9][0-9]*$', message: '保单保费不能是非数字且不能以0开头', trigger: 'blur'}
+                ],
+                remark: [
+                    {max: 100, message: '长度在不能超过 100 个字符', trigger: 'blur'}
+                ]
+            },
+            checkoutPolicyNo: false,//验证大保单号重复
+            //分页
+            total: 0,
+            currentPage: 1,
+            pageSize: 15,
+            tableRecordData: [],
+            token: getToken(),
+            settingDialog: false,
+            alertForm: {
+                balanceParamvalue: '10000.00',
+                expireParamvalue: '30',
+                balanceIsactive: '1',
+                expireIsactive: '1',
+            },
+            alertSettingLoading: false,
+            alertRules: {
+                balanceParamvalue: [{required: true, message: '保费余额告警值不能为空', trigger: 'blur'}, {validator: checkNum, trigger: 'blur'}],
+                expireParamvalue: [{required: true, message: '保单号有效期告警值不能为空', trigger: 'blur'}, {validator: checkNum, trigger: 'blur'}]
+            }
+        }
+    },
+    methods: {
+        // 模板详情
+        detailsList (index, row) {
+            this.getPolicyNoList();
+            this.detailsIndex = index;
+            this.detailsVisible = true;
+            this.detailsData = Object.assign({}, row);
+            this.detailsValidityTime = [this.detailsData.effectivedate, this.detailsData.expiredate]
+        },
+        //获取保单号列表
+        getPolicyNoList () {
+            let para = {
+                page: this.currentPage,
+                limit: this.pageSize
+            }
+            var _this = this;
+            getPolicyNumList(para).then((res) => {
+                if (res.data.code == 0) {
+                    _this.loading = false;
+                    _this.listData = [];
+                    res.data.data.records.forEach((item, index) => {
+                        item.createdate = dayjs(util.formatDate.getDateStringTime(item.createdate)).format('YYYY-MM-DD HH:mm:ss');
+                        item.remark = item.remark ? item.remark : "-";
+                        _this.listData.push(item);
+                    })
+                    _this.total = res.data.data.total;
+                    _this.currentPage = res.data.data.current;
+                    _this.pageSize = res.data.data.size;
+                }
+                else {
+                    _this.listData = [];
+                    _this.loading = false;
+
+                }
+            });
+        },
+        //显示新增界面
+        handleAdd () {
+            this.getInsurCompList();
+            this.addFormVisible = true;
+            this.form = {};
+        },
+        //确认增加保单
+        addSubmit () {
+            let _this = this;
+            let effectivedate, expiredate;
+            let validityTime = this.form.validityTime;
+            this.insuranceCompList.forEach((item, index) => {
+                if (item.corpcode == this.form.insucorpid) {
+                    this.form.insucorpname = item.insucorpname
+                }
+            })
+            this.$refs.form.validate(async valid => {
+                if (valid) {
+                    this.addLoading = true;
+                    for (var i = 0; i < validityTime.length; i++) {
+                        this.effectivedate = util.formatDate.getDateStringTime(validityTime[0]);
+                        this.expiredate = util.formatDate.getDateStringTime(validityTime[1]);
+                    }
+                    let params = {
+                        effectivedate: this.effectivedate,
+                        expiredate: this.expiredate,
+                        insucorpid: this.form.insucorpid,
+                        insucorpname: this.form.insucorpname,
+                        paydate: util.formatDate.format(this.form.paymentDate),
+                        policyno: this.form.policyno,
+                        remark: this.form.remark,
+                        subnoMid: "YYYYMM",
+                        subnoPrefix: "SCWW" + this.smallPolicyRule,
+                        subnoSerial: 1,
+                        totalpremium: this.form.totalpremium,
+                        createdate: util.formatDate.getDateStringTime(new Date())
+                    }
+                    if (this.checkoutPolicyNo == true) {
+                        this.addLoading = false;
+                        addPolicyno(params).then((res) => {
+                            if (res.data.code === 0) {
+                                this.addLoading = false;
+                                this.$message.success('保单号添加成功');
+                                this.addFormVisible = false;
+                                this.loading = true;
+                                this.getPolicyNoList();
+                            } else {
+                                this.addLoading = false;
+                                this.$message.error('保单号添加失败，请稍后再试');
+                                this.addFormVisible = false;
+                            }
+                        })
+                    } else {
+                        this.addLoading = false;
+                        this.$message({
+                            message: '请先处理标红信息！',
+                            type: 'error'
+                        });
+                    }
+                }
+            })
+        },
+        //显示增加保费界面
+        handleEdit (index, row) {
+            this.addPremiumVisible = true;
+            this.addPremiumForm = {};
+            this.addPremiumForm = {
+                policyno: row.policyno,
+                policynoid: row.id
+            }
+        },
+        //增加保费的保存操作
+        addPremiumSubmit () {
+            var _this = this;
+            this.$refs.addPremiumForm.validate(async valid => {
+                if (valid) {
+                    this.addPremiumLoading = true;
+                    let params = {
+                        createdate: util.formatDate.getDateStringTime(new Date()),
+                        policynoid: this.addPremiumForm.policynoid,
+                        paydate: util.formatDate.getDateStringTime(this.addPremiumForm.addPremiumTime),
+                        premium: this.addPremiumForm.addPolicyPremium,
+                        remark: this.addPremiumForm.remark
+                    }
+                    addInsurancePremium(params).then((res) => {
+                        if (res.data.code == 0) {
+                            _this.addPremiumLoading = false;
+                            _this.$message.success('保费增加成功');
+                            _this.addPremiumVisible = false;
+                            if (_this.premiumRecord) {
+                                _this.premiumRecordLoading = true;
+                                _this.openPremiumRecord(_this._index, _this.premiumRecordData);
+                            } else {
+                                _this.loading = true;
+                                _this.getPolicyNoList();
+                            }
+                        } else {
+                            _this.addPremiumLoading = false;
+                            _this.$message.error('保费增加失败，请稍后再试');
+                            _this.addPremiumVisible = false;
+                        }
+                    })
+                }
+            })
+        },
+        //显示保费记录页面
+        openPremiumRecord (index, row) {
+            this._index = index;
+            let _this = this;
+            this.premiumRecord = true;
+            this.premiumRecordData = {
+                policyno: row.policyno,
+                totalpremium: row.totalpremium,
+                id: row.id
+            }
+            this.premiumRecordLoading = true;
+            _this.tableRecordData = [];
+            let params = {
+                page: this.currentPage,
+                limit: this.pageSize,
+                policynoid: row.id
+            }
+            getPremiumRecordList(params).then((res) => {
+                if (res.data.code == 0) {
+                    this.premiumRecordLoading = false;
+                    res.data.data.records.forEach((item, index) => {
+                        var addPremiumTableRecord = {
+                            createby: item.createby,
+                            createdate: dayjs(util.formatDate.getDateStringTime(item.createdate)).format('YYYY-MM-DD HH:mm:ss'),
+                            id: item.id,
+                            policynoid: item.policynoid,
+                            premium: item.premium,
+                            remark: item.remark ? item.remark : "-",
+                            paymentDate: item.paydate ? dayjs(util.formatDate.getDateStringTime(item.paydate)).format('YYYY-MM-DD') : "-",
+                        }
+                        _this.tableRecordData.push(addPremiumTableRecord);
+                    })
+                } else {
+                    this.premiumRecordLoading = false;
+                    _this.tableRecordData = [];
+                }
+            })
+        },
+        //修改有效期
+        modifyValidityDate () {
+            this.editFormVisible = true;
+            this.ModifyValidityperiod = {};
+        },
+        //确认修改有效期
+        modifyPolicy (data) {
+            if (this.ModifyValidityperiod.validityTime != undefined) {
+                this.detailsLoading = true;
+                let params = {
+                    effectivedate: util.formatDate.getDateStringTime(this.ModifyValidityperiod.validityTime[0]),
+                    expiredate: util.formatDate.getDateStringTime(this.ModifyValidityperiod.validityTime[1]),
+                    insucorpid: data.insucorpid,
+                    paymentdate: data.paymentdate ? data.paymentdate : "",
+                    policyno: data.policyno,
+                    remark: data.remark,
+                    subnoMid: data.subnoMid,
+                    subnoPrefix: data.subnoPrefix,
+                    subnoSerial: data.subnoSerial,
+                    totalpremium: data.totalpremium,
+                    id: data.id,
+                    updatedate: util.formatDate.getDateStringTime(new Date()),
+                }
+                modifyPolicyNo(params).then((res) => {
+                    if (res.data.code == 0) {
+                        this.detailsLoading = false;
+                        this.editFormVisible = false;
+                        this.$message({
+                            message: '有效期修改成功',
+                            type: 'success'
+                        });
+                        this.detailsData.effectivedate = util.formatDate.getDateStringTime(this.ModifyValidityperiod.validityTime[0])
+                        this.detailsData.expiredate = util.formatDate.getDateStringTime(this.ModifyValidityperiod.validityTime[1])
+                        this.detailsList(this.detailsIndex, this.detailsData);
+                    } else {
+                        this.detailsLoading = false;
+                        this.$message({
+                            message: '有效期修改失败，请稍后再试',
+                            type: 'error'
+                        });
+                        this.editFormVisible = false;
+                    }
+                })
+            } else {
+                this.$message.error('请选择有效期');
+                this.$refs.ModifyValidityperiod.$el.className = "el-form-item is-error";
+            }
+
+        },
+        //变更记录状态
+        handleChange (index, row) {
+            this.$confirm('确认设置该条记录的状态吗？', '提示', {
+                type: 'warning'
+            }).then(() => {
+                let params = {
+                    id: row.id,
+                    isactive: parseInt(row.isactive) === 0 ? 1 : 0
+                }
+                axios({
+                    method: 'put',
+                    url: '/insurance/insurancePolicyno/mod/isactive',
+                    params: params,
+                    headers: {
+                        'Authorization': 'Bearer ' + getToken()
+                    },
+                    responseType: 'blob'
+                }).then(res => {
+                    if (res.data.code == 0) {
+                        this.$message({
+                            message: "记录的状态修改成功",
+                            type: "success"
+                        })
+                        this.loading = true;
+                        this.getPolicyNoList();
+                    } else {
+                        this.$message({
+                            message: res.data.msg,
+                            type: "error"
+                        })
+                        this.loading = true;
+                        this.getPolicyNoList();
+                    }
+                })
+
+            })
+
+        },
+        //切换每页显示数量
+        handleSizeChange (val) {
+            this.pageSize = val;
+            this.loading = true;
+            this.getPolicyNoList();
+        },
+        handleCurrentChange (val) {
+            this.currentPage = val;
+            this.loading = true;
+            this.getPolicyNoList();
+        },
+        // 有效 鼠标移入
+        mouseoverChange (e) {
+            if ($(e.target).hasClass('icon-duigou')) {
+                $(e.target)
+                    .addClass('operate-cha icon-cha')
+                    .removeClass('operate-duigou icon-duigou')
+            } else {
+                $(e.target)
+                    .addClass('operate-duigou icon-duigou')
+                    .removeClass('operate-cha icon-cha')
+            }
+        },
+        // 有效 鼠标移除
+        mouseoutChange (e) {
+            if ($(e.target).hasClass('icon-cha')) {
+                $(e.target)
+                    .addClass('operate-duigou icon-duigou')
+                    .removeClass('operate-cha icon-cha')
+            } else {
+                $(e.target)
+                    .addClass('operate-cha icon-cha')
+                    .removeClass('operate-duigou icon-duigou')
+            }
+        },
+        //获取保险公司列表
+        getInsurCompList () {
+            let params = {
+                limit: this.pageSize,
+                page: this.currentPage,
+                corpcategory: "INSURANCE",
+                isactive: 1,
+                isdelete: 0
+
+            }
+            let _this = this;
+            this.insuranceCompList = [];
+            getInsuranceCompany(params).then((res) => {
+                if (res.data.code === 0) {
+                    res.data.data.records.forEach((item, index) => {
+                        _this.insuranceCompList.push(item);
+                    })
+                }
+            })
+        },
+        //验证保单号是否重复
+        policyNum_IsRepeat (policyno) {
+            let params = {
+                insucorpid: this.form.insucorpid,
+                policyno: policyno
+            }
+            IsPolicyNumRepeat(params).then((res) => {
+                if (res.data.code == 0) {
+                    if (res.data.data == "NO") {
+                        this.$message.error("大保单编号已经存在，请核对大保单编号");
+                        this.$refs.policyno.$el.className = "el-form-item is-error"; //输入框标红
+                        this.checkoutPolicyNo = false;
+                    } else {
+                        this.$refs.policyno.$el.className = "el-form-item"; //输入框恢复
+                        this.checkoutPolicyNo = true;
+                    }
+                }
+            }).catch((error) => {
+                console.log(error);
+            })
+        },
+        //倒序验证保单号是否重复
+        editinsucorpname () {
+            if (this.form.policyno) {
+                this.policyNum_IsRepeat(this.form.policyno);
+            }
+            var _this = this;
+            this.insuranceCompList.forEach((item, index) => {
+                if (this.form.insucorpid == item.id) {
+                    this.smallPolicyRule = item.corpshortname ? item.corpshortname : "---"
+                }
+            })
+        },
+        async openSetting () {
+            this.settingDialog = true
+            try {
+                const {data} = await getAlertSetting()
+                const dataList = data.data
+                if (dataList.length) {
+                    _.forEach(dataList, item => {
+                        if (item.paramcode === 'PREMIUM_BALANCE_WARNING_VALUE') {
+                            this.alertBalanceForm = item
+                            this.alertForm.balanceParamvalue = item.paramvalue;
+                            this.alertForm.balanceIsactive = item.isactive;
+                            this.alertForm.balanceId = item.id;
+                        } else if (item.paramcode === 'POLICYNO_EXPIRE_WARNING_VALUE') {
+                            this.alertForm.expireParamvalue = item.paramvalue;
+                            this.alertForm.expireIsactive = item.isactive;
+                            this.alertForm.expireId = item.id;
+                        }
+                    })
+                }
+            } catch (e) {
+
+            }
+        },
+        modifyAlertSetting () {
+            this.$refs.alertForm.validate(async valid => {
+                if (valid) {
+                    try {
+                        this.alertSettingLoading = true
+                        const alertBalanceForm = {
+                            paramvalue: this.alertForm.balanceParamvalue,
+                            isactive: this.alertForm.balanceIsactive,
+                            id: this.alertForm.balanceId
+                        }
+
+                        const alertExpireForm = {
+                            paramvalue: this.alertForm.expireParamvalue,
+                            isactive: this.alertForm.expireIsactive,
+                            id: this.alertForm.expireId
+                        }
+                        await modifyAlertSetting(alertBalanceForm)
+                        await modifyAlertSetting(alertExpireForm)
+                        this.alertSettingLoading = false
+                        this.settingDialog = false
+                        this.$message.success('修改设置成功')
+                    } catch (e) {
+                        this.alertSettingLoading = false
+                    }
+                }
+            });
+
+        }
+    },
+    mounted () {
+        this.loading = true;
+        this.getPolicyNoList();
+    }
+}

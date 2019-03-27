@@ -1,0 +1,617 @@
+import util from 'utils/tools';
+import { getDepartmentInfoList, addDepartmentInfo, modifyDepartmentInfo, removeDepartmentInfo, getDeptManagerInfoList, getAllCorpList, getSelectListDept, getAllDeptList, getNamebyUserid, getCheckoutOfDeptInfo } from './service';
+export default {
+    name:'department',
+    data() {
+        // 验证所有电话
+        var checkAllMobile = (rule, value, callback) => {
+            var reg = /((\d{11})|^((\d{7,8})|(\d{4}|\d{3})-(\d{7,8})|(\d{4}|\d{3})-(\d{7,8})-(\d{4}|\d{3}|\d{2}|\d{1})|(\d{7,8})-(\d{4}|\d{3}|\d{2}|\d{1}))$)/g,
+                flag = reg.test(value);
+            if(!flag) {
+                return callback(new Error('请输入电话号码或手机号码'));
+            } else {
+                callback();
+            }
+        };
+        //验证中文
+        var checkChinese = (rule, value, callback) => {
+            var reg = /^[\u4e00-\u9fa5]+$/g,
+                flag = reg.test(value);
+            if(!flag) {
+                return callback(new Error('只能输入中文'));
+            } else {
+                callback();
+            }
+        };
+        return {
+            fmtdata: util,
+            filters: {
+                isenable: '1',
+                domSearch: [{
+                    select: ['deptname'],
+                    content: ''
+                }] //查询框
+            },
+            prOptions: util.initProvince(),
+            customers: [],
+            total: 0,
+            currentPage: 1,
+            pageSize: 15,
+            listData: [],
+            listLoading: false,
+            deptlist: [],
+            createname: "",
+            updatename: "",
+            deptLoading: false,
+            deptData: [],
+            formDialogTableVisible: false,
+            sels: [], //列表选中列
+            checkoutDataT: true, //数据验证返回的布尔值true
+            checkoutDataF: [], //数据验证组
+            thisInput: [], //编辑时存入row验证的值
+            editFormVisible: false, //编辑界面是否显示
+            editLoading: false,
+            editFormRules: {
+                deptname: [{
+                    required: true,
+                    message: '请输入部门名称',
+                    trigger: 'blur'
+                },
+                    {
+                        validator: checkChinese,
+                        trigger: 'blur'
+                    }
+                ],
+                deptmanagername: [{
+                    required: true,
+                    message: '请输入负责人',
+                    trigger: 'blur'
+                },
+                    {
+                        validator: checkChinese,
+                        trigger: 'blur'
+                    }
+                ],
+                deptcontactno: [{
+                    required: true,
+                    message: '请输入部门电话',
+                    trigger: 'blur'
+                },
+                    {
+                        validator: checkAllMobile,
+                        trigger: 'blur'
+                    }
+                ],
+                corpname: [{
+                    required: true,
+                    message: '请输入公司名称',
+                    trigger: 'blur'
+                }],
+            },
+            //编辑界面数据
+            editForm: {
+                id: 0,
+                deptcode: '',
+                deptname: '',
+                deptshortname: '',
+                parentdeptcode: '',
+                parentname: '',
+                corpid: '',
+                corpname: '',
+                employeename: '',
+                deptmanagername: '',
+                deptmanagerid: '',
+                showorder: 0,
+                isenable: 1,
+                deptaddress: '',
+                addressAll: '',
+                deptcontactno: '',
+                radio: '',
+            },
+            editFormId: {
+                deptcode: '',
+                deptname: '',
+                parentdeptcode: '',
+                parentname: '',
+            },
+
+            addFormVisible: false, //新增界面是否显示
+            addLoading: false,
+            addFormRules: {
+                deptname: [{
+                    required: true,
+                    message: '请输入部门名称',
+                    trigger: 'blur'
+                },
+                    {
+                        validator: checkChinese,
+                        trigger: 'blur'
+                    }
+                ],
+                deptmanagername: [{
+                    required: true,
+                    message: '请输入负责人',
+                    trigger: 'blur'
+                },
+                    {
+                        validator: checkChinese,
+                        trigger: 'blur'
+                    }
+                ],
+                deptcontactno: [{
+                    required: true,
+                    message: '请输入部门电话',
+                    trigger: 'blur'
+                },
+                    {
+                        validator: checkAllMobile,
+                        trigger: 'blur'
+                    }
+                ],
+                corpname: [{
+                    required: true,
+                    message: '请输入公司名称',
+                    trigger: 'blur'
+                }],
+            },
+            //新增界面数据
+            addForm: {
+                corpid: '',
+                deptcode: '',
+                deptname: '',
+                deptshortname: '',
+                employeename: '',
+                parentdeptcode: '',
+                parentname: '',
+                corpname: '',
+                deptmanagername: '',
+                deptmanagerid: '',
+                showorder: 0,
+                isenable: 1,
+                deptaddress: '',
+                addressAll: '',
+                deptcontactno: '',
+                radio: '',
+                hasParent: '',
+            },
+        }
+    },
+    methods: {
+        // 数据重复验证
+        checkout(p, v, index) {
+            if(v == "") return;
+            if(this.thisInput[index] == v) return; //编辑时 没改输入框值
+            this.checkoutDataT = true; //初始化
+
+            let corpID;
+            if(this.addFormVisible) { //当新增打开时
+                corpID = this.addForm.corpid;
+            } else if(this.editFormVisible) { //当编辑打开时
+                corpID = this.editForm.corpid;
+            }
+            let paras = {
+                para: p,
+                value: v,
+                corpid: corpID,
+            }
+            getCheckoutOfDeptInfo(paras).then((res) => {
+                let errorInput = res.data.data.param; //保存验证失败的字段
+                if(!res.data.data.result) {
+                    this.$message({
+                        message: '信息输入重复！',
+                        type: 'warning'
+                    });
+                    this.$refs[errorInput].$el.className = "el-form-item is-error"; //输入框标红
+                    this.checkoutDataF[index] = false
+                } else {
+                    this.$refs[errorInput].$el.className = "el-form-item"; //输入框恢复
+                    this.checkoutDataF[index] = true
+                }
+            });
+        },
+        //查询清空
+        clearAll() {
+            this.filters.domSearch = [{
+                select: [],
+                content: ''
+            }] //清空查询框;
+        },
+        // 有效 鼠标移入
+        mouseoverChange(e) {
+            if($(e.target).hasClass('icon-duigou')) {
+                $(e.target).addClass('operate-cha icon-cha').removeClass('operate-duigou icon-duigou');
+            } else {
+                $(e.target).addClass('operate-duigou icon-duigou').removeClass('operate-cha icon-cha');
+            }
+        },
+        // 有效 鼠标移除
+        mouseoutChange(e) {
+            if($(e.target).hasClass('icon-cha')) {
+                $(e.target).addClass('operate-duigou icon-duigou').removeClass('operate-cha icon-cha');
+            } else {
+                $(e.target).addClass('operate-cha icon-cha').removeClass('operate-duigou icon-duigou');
+            }
+        },
+        // 排序
+        sortChange(col, prop, order) {
+            let para = {
+                prop: col.prop,
+                order: col.order.substring(0, col.order.length - 6),
+            }
+            console.log(para);
+            // getSortList(para).then((res) => {});
+        },
+        //详情查看
+        formDetailHandle(deptid) {
+            this.createname = "";
+            this.updatename = "";
+            this.formDialogTableVisible = true;
+            this.deptData = '';
+            let para = {
+                id: deptid,
+            }
+            getDepartmentInfoList(para).then((res) => {
+                this.deptData = res.data.data.records[0];
+                let paraThree = {
+                    createby: this.deptData.createby == null ? 0 : this.deptData.createby,
+                    updateby: this.deptData.updateby == null ? 0 : this.deptData.updateby,
+                }
+                getNamebyUserid(paraThree).then((res) => {
+                    this.createname = res.data.data[0];
+                    this.updatename = res.data.data[1];
+                });
+            });
+
+        },
+        // 有效无效开关
+        showData(i) {
+            this.filters.isenable = i;
+            this.handleQuery();
+        },
+        // 公司——搜索下拉
+        querySearchCorpName(queryString, cb) {
+            let para = {
+                    corpname: queryString,
+                    isdelete: 0,
+                },
+                corpNameArray = [];
+            getAllCorpList(para).then((res) => {
+                res.data.data.records.forEach(function(item, index) {
+                    corpNameArray.push({
+                        value: item.corpname,
+                        id: item.id
+                    });
+                });
+                cb(corpNameArray);
+            });
+        },
+        handleSelectCorpName(item) {
+            this.editForm.corpname = item.value;
+            this.editForm.corpid = item.id;
+            this.addForm.corpname = item.value;
+            this.addForm.corpid = item.id;
+        },
+        //有效无效转换
+        isenableFomat(row, col) {
+            return row.isenable == 1 ? '是' : row.isenable != undefined ? '否' : '未知';
+        },
+        // 有效无效颜色切换
+        tableRowClassName(row, index) {
+            if(row.isenable == 0) {
+                return 'warning-row';
+            }
+            return '';
+        },
+        // 有效按钮切换状态
+        handleChange: function(index, row) {
+            this.$confirm('确认设置该条记录的状态吗？', '提示', {
+                type: 'warning'
+            }).then(() => {
+                let para = {
+                    id: row.id,
+                    isenable: row.isenable == 0 ? 1 : 0,
+                }
+                modifyDepartmentInfo(para).then((res) => {
+                    this.$message({
+                        message: '设置成功',
+                        type: 'success'
+                    });
+                    row.isenable = para.isenable;
+                }).catch(() => {
+                    this.listLoading = false;
+                });
+            });
+        },
+        // 负责人——搜索下拉
+        querySearchName(queryString, cb) {
+            let para = {
+                    employeename: queryString
+                },
+                magNameArray = [];
+            getDeptManagerInfoList(para).then((res) => {
+                res.data.data.records.forEach(function(item, index) {
+                    magNameArray.push({
+                        value: item.employeename,
+                        id: item.id
+                    });
+                });
+                cb(magNameArray);
+            });
+        },
+        handleSelectName(item) {
+            this.editForm.employeename = item.value;
+            this.editForm.deptmanagerid = item.id;
+            this.addForm.employeename = item.value;
+            this.addForm.deptmanagerid = item.id;
+        },
+        // 部门名称——下拉
+        deptChange(r) {
+            if(!r || this.deptlist.length > 0) return;
+            this.deptLoading = true;
+            getAllDeptList().then((res) => {
+                this.deptlist = res.data.data.records;
+                this.deptLoading = false;
+            });
+        },
+
+        //切换当前页
+        handleCurrentChange(val) {
+            this.currentPage = val;
+            this.handleQuerySelect();
+            // this.handleQuery();
+        },
+        //切换每页显示数量
+        handleSizeChange(val) {
+            this.pageSize = val;
+            this.handleQuery();
+        },
+        // 添加查询条件
+        addSelect() {
+            this.filters.domSearch.push({
+                select: [],
+                content: ''
+            });
+        },
+        // 移除查询条件
+        removeSelect(index) {
+            this.filters.domSearch.splice(index, 1); //从当前index位置开始，删除一项
+        },
+        //搜索按钮——模糊查询
+        handleQuerySelect() {
+            let para = {
+                currentPage: this.currentPage,
+                showCount: this.pageSize,
+                isenable: this.filters.isenable,
+                domSearch: this.filters.domSearch,
+            };
+            this.listLoading = true;
+            getSelectListDept(para).then((res) => {
+                this.total = res.data.data.totalResult;
+                this.listData = res.data.data.records;
+                this.listLoading = false;
+            }).catch((error) => {
+                this.listLoading = false;
+            });
+        },
+        //获取保单列表
+        handleQuery() {
+            let para = {
+                currentPage: this.currentPage,
+                showCount: this.pageSize,
+                isenable: this.filters.isenable,
+            };
+            this.listLoading = true;
+            getDepartmentInfoList(para).then((res) => {
+                this.total = res.data.data.totalResult;
+                this.listData = res.data.data.records;
+                this.listLoading = false;
+            }).catch((error) => {
+                this.listLoading = false;
+            });
+        },
+
+        //删除
+        handleDel(index, row) {
+            this.$confirm('确认删除该记录吗?', '提示', {
+                type: 'warning'
+            }).then(() => {
+                this.listLoading = true;
+                let para = {
+                    ids: row.id,
+                    method: "delete"
+                };
+                // let para = new FormData();
+                // para.append('ids',row.id);
+                // para.append('method','delete');
+
+                removeDepartmentInfo(para).then((res) => {
+                    this.listLoading = false;
+                    this.$message({
+                        message: '删除成功',
+                        type: 'success'
+                    });
+                    this.handleQuery();
+                });
+            }).catch(() => {
+
+            });
+        },
+        //显示编辑界面
+        handleEdit(index, row) {
+            $(".is-error").removeClass('is-error'); //清空验证时的红框
+            this.editFormVisible = true;
+            // 地址
+            var addrVal = row.deptaddress;
+            if(addrVal != null) {
+                var addrArr = addrVal.split(",");
+            }
+            this.editForm = {
+                id: row.id,
+                deptcode: row.deptcode,
+                deptname: row.deptname,
+                deptshortname: row.deptshortname,
+                parentname: row.parentname,
+                corpid: row.corpid,
+                corpname: row.corpname,
+                deptmanagername: row.deptmanagername,
+                showorder: row.showorder,
+                isenable: row.isenable,
+                deptcontactno: row.deptcontactno,
+                addressAll: addrArr, //区域
+                hasParent: row.parentname != null ? '1' : '0',
+            };
+            this.editFormId = {
+                parentdeptcode: row.parentdeptcode,
+                parentname: row.parentname,
+            }
+            this.thisInput.push(this.editForm.deptname, this.editForm.deptshortname); //将当前验证的字段 已获得的值存入
+
+        },
+        //显示新增界面
+        handleAdd() {
+            $(".is-error").removeClass('is-error'); //清空验证时的红框
+            this.addFormVisible = true;
+            this.addForm = {
+                deptcode: '',
+                deptname: '',
+                deptaddress: '',
+                addressAll: ["四川", "成都", "高新区"],
+                deptcontactno: '',
+                deptshortname: '',
+                parentdeptcode: '',
+                parentname: '',
+                corpid: '',
+                corpname: '万网公司',
+                deptmanagername: '',
+                showorder: 0,
+                isenable: 1,
+                hasParent: '0'
+            };
+            // this.GetCustomers();
+        },
+        //编辑
+        editSubmit() {
+            this.$refs.editForm.validate((valid) => {
+                if(valid) {
+                    this.editLoading = true;
+                    if(this.editForm.addressAll == undefined) { //地址未选时
+                        this.editLoading = false;
+                        this.$message({
+                            message: '请选择地址',
+                            type: 'warning'
+                        });
+                        return;
+                    }
+                    let para = {
+                        id: this.editForm.id,
+                        deptcode: this.editForm.deptcode,
+                        deptname: this.editForm.deptname,
+                        deptshortname: this.editForm.deptshortname,
+                        // deptaddress:this.editForm.deptaddress,
+                        deptaddress: this.editForm.addressAll.toString(),
+                        deptcontactno: this.editForm.deptcontactno,
+                        parentdeptcode: this.editForm.parentname,
+                        corpid: this.editForm.corpid,
+                        corpname: this.editForm.corpname,
+                        deptmanagerid: this.editForm.deptmanagerid,
+                        deptmanagername: this.editForm.deptmanagername,
+                        showorder: this.editForm.showorder,
+                        isenable: parseInt(this.editForm.isenable),
+                    }
+
+                    if(this.editFormId.parentname == this.editForm.parentname) {
+                        para.parentdeptcode = this.editFormId.parentdeptcode;
+                    } else {
+                        para.parentdeptcode = this.editForm.parentname;
+                    }
+
+                    modifyDepartmentInfo(para).then((res) => {
+                        this.editLoading = false;
+                        this.$message({
+                            message: '编辑成功',
+                            type: 'success'
+                        });
+                        this.$refs['editForm'].resetFields();
+                        this.editFormVisible = false;
+                        this.handleQuerySelect();
+                    });
+                }
+            });
+        },
+        //新增
+        addSubmit() {
+            this.checkoutDataF.forEach((item, index) => {
+                this.checkoutDataT = item && this.checkoutDataT;
+            });
+            this.$refs.addForm.validate((valid) => {
+                if(valid) {
+                    this.addLoading = true;
+                    let para = {
+                        deptcode: this.addForm.deptcode,
+                        deptname: this.addForm.deptname,
+                        deptshortname: this.addForm.deptshortname,
+                        // deptaddress:this.addForm.deptaddress,
+                        deptaddress: this.addForm.addressAll.toString(),
+                        deptcontactno: this.addForm.deptcontactno,
+                        parentdeptcode: this.addForm.parentname,
+                        corpid: this.addForm.corpid,
+                        corpname: this.addForm.corpname,
+                        deptmanagerid: this.addForm.deptmanagerid,
+                        deptmanagername: this.addForm.deptmanagername,
+                        showorder: this.addForm.showorder,
+                        isenable: parseInt(this.addForm.isenable),
+                    }
+                    if(this.checkoutDataT) { //验证通过时(无重复时)
+                        addDepartmentInfo(para).then((res) => {
+                            console.log(para.deptmanagerid)
+                            this.addLoading = false;
+                            this.$message({
+                                message: '新增成功',
+                                type: 'success'
+                            });
+                            this.$refs['addForm'].resetFields();
+                            this.addFormVisible = false;
+                            this.handleQuery();
+                        });
+                    } else {
+                        this.addLoading = false;
+                        this.$message({
+                            message: '标红信息已存在！',
+                            type: 'warning'
+                        });
+                    }
+
+                }
+            });
+        },
+        selsChange(sels) {
+            this.sels = sels;
+        },
+        //批量删除
+        batchRemove() {
+            var ids = this.sels.map(item => item.id).toString();
+            this.$confirm('确认删除选中记录吗？', '提示', {
+                type: 'warning'
+            }).then(() => {
+                this.listLoading = true;
+                let para = {
+                    ids: ids,
+                    method: "delete"
+                };
+                removeDepartmentInfo(para).then((res) => {
+                    this.listLoading = false;
+                    this.$message({
+                        message: '删除成功',
+                        type: 'success'
+                    });
+                    this.handleQuery();
+                });
+            }).catch(() => {
+
+            });
+        }
+    },
+    mounted() {
+        this.handleQuery();
+    }
+}

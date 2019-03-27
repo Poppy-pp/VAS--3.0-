@@ -1,0 +1,298 @@
+import { getSearchVinNum } from '../../../insuranceManage/addInsurance/service';
+import { get as getVinInfo } from '@/views/insuranceManage/addInsurance/service';
+import { cldeviceIsOnstate } from '@/views/insuranceManage/addInsurance/service'
+import { initMaintainOrderForm, initMaintainOrderRules, submitRemove, submitRepair } from '../service'
+import { getSysDictionaryDataList } from '@/views/sysManage/dictionaryManage/SysDictionaryData/service'
+import installInfo from '../subComponent/install-info'
+
+export default {
+    name: "maintainOrder",
+    data () {
+        return {
+            activeNames: ['1', '2', '3'],
+            form: initMaintainOrderForm(),
+            rules: initMaintainOrderRules(),
+            vehicleInfo: null,
+            vehiclevin: '',
+            options: [
+                {
+                    dictdataname: 'REPAIR',
+                    dictdatavalue: '维修',
+                    children: []
+                }, {
+                    dictdataname: 'REMOVE',
+                    dictdatavalue: '拆除',
+                    children: []
+                }
+            ],
+            checked: false,
+            addressList: [],
+            signalLoading: false,
+            installDetails: [],
+            el: null,
+            groupArr: [],
+            groupList: [],//分组列表
+            reasonProp: {
+                value: 'dictdataname',
+                label: 'dictdatavalue',
+            },
+            isShowHistory: false,
+            signalInfo: {},
+            selectReason: []
+        }
+    },
+    props: ['corpid'],
+    components: {
+        // gdmap,
+        installInfo
+    },
+    methods: {
+        /**
+         * 根据车架号/车牌号查询车辆列表
+         * @param queryString
+         * @param cb
+         */
+        querySearchVins (queryString, cb) {
+            let para = {
+                vin: $.trim(queryString.toUpperCase()) ? $.trim(queryString.toUpperCase()) : "2"
+            };
+            getSearchVinNum(para).then((res) => {
+                cb(res.data.data)
+            });
+        },
+        //根据车架号/车牌号查询
+        handleSelectVin (item) {
+            this.getVinInfo(item.id)
+            this.form.vehicleid = item.id
+        },
+        /**
+         * 根据车辆ID查询车辆详情
+         * @param vehicleId
+         * @returns {Promise<void>}
+         */
+        async getVinInfo (vehicleId) {
+            try {
+                const params = {
+                    vehicleId
+                }
+                const {data} = await getVinInfo(params)
+                this.initForm(data.data)
+            } catch (e) {
+                console.log(e)
+            }
+        },
+        /**
+         * 初始化表单
+         * @param res
+         */
+        initForm (res) {
+            this.vehicleInfo = {
+                vehicleowner: '',//车主姓名
+                vehiclevin: '',//车架号
+                vehicletype: '',//车辆类型
+                licenseplatenum: '',//车牌号
+                vehicleownermobile: '',//车主电话
+                vehiclemodel: '',//厂牌型号
+                vehiclecategory: '',//车辆分类
+                vehiclecolor: ''//车辆颜色
+            }
+
+            this.installDetails = []
+
+            this.vehicleInfo.vehicletype = '二手车'
+
+            if (!res) {
+                return
+            }
+
+            if (res.ownerInfo) {
+                this.vehicleInfo.vehicleowner = res.ownerInfo.name
+                this.vehicleInfo.vehicleownermobile = res.ownerInfo.mobile
+            }
+
+            if (res.vehicleInfo) {
+                this.vehicleInfo.vehiclevin = res.vehicleInfo.vin
+                this.vehicleInfo.licenseplatenum = res.vehicleInfo.licenseplatenum
+                this.vehicleInfo.vehiclemodel = res.vehicleInfo.model
+                this.vehicleInfo.vehiclecategory = res.vehicleInfo.vehiclePlateColor.typedesc
+                this.vehicleInfo.vehiclecolor = res.vehicleInfo.color
+            }
+
+            if (!res.installDetails || !res.installDetails.length) {
+                return
+            }
+
+            _.forEach(res.installDetails, item => {
+                item.checked = false
+                item.isShow = false
+            })
+            this.installDetails = res.installDetails
+        },
+        /**
+         * 图片浏览器
+         */
+        initViewer () {
+            if (this.viewer)
+                this.viewer.destroy()
+            // const el = this.$refs['rpShowimgDialog'].$el
+            // const doc = document.getElementsByClassName('image')
+            this.$nextTick(() => {
+                this.viewer = new Viewer(this.el)
+            });
+        },
+        viewImageList (dc) {
+            this.el = document.getElementById(dc)
+            this.initViewer()
+        },
+        /**
+         * 信号检测
+         * @param productNum
+         */
+        async getSignalInfo (productNum) {
+            try {
+                this.signalLoading = true
+                this.signalInfo = {
+                    curonlinestatus: '',//设备实时状态
+                    locationmode: '',//定位方式
+                    gps_satellite_count: '',//卫星或基站数量
+                    signalqulity: '',//卫星或基站信号强度
+                    curaddress: '',//定位地址
+                    onlineStatus: ''//上线质量
+                }
+                const params = {
+                    id: productNum
+                }
+                const {data} = await cldeviceIsOnstate(params)
+                const realdata = data.data.realdata
+                let curonlinestatus = ''
+                let signalqulity = ''
+                let onlineStatus = ''
+                switch (realdata.istate) {
+                    case 0:
+                        curonlinestatus = "行驶";
+                        break;
+                    case 1:
+                        curonlinestatus = "离线";
+                        break;
+                    case 2:
+                        curonlinestatus = "停车";
+                        break;
+                    case 3:
+                        curonlinestatus = "报警";
+                        break;
+                    case 4:
+                        curonlinestatus = "无效定位";
+                        break;
+                    case 5:
+                        curonlinestatus = "未定位";
+                        break;
+                }
+
+                switch (realdata.signalqulity) {
+                    case 0:
+                        signalqulity = "未知";
+                        onlineStatus = '差'
+                        break;
+                    case 1:
+                        signalqulity = "无信号";
+                        onlineStatus = '差'
+                        break;
+                    case 2:
+                        signalqulity = "信号较弱";
+                        onlineStatus = '差'
+                        break;
+                    case 3:
+                        signalqulity = "信号良好/中";
+                        onlineStatus = '中'
+                        break;
+                    case 4:
+                        signalqulity = "信号强";
+                        onlineStatus = '优'
+                        break;
+                }
+                this.signalInfo.curonlinestatus = curonlinestatus
+                this.signalInfo.onlineStatus = onlineStatus
+                this.signalInfo.locationmode = realdata.locationmode
+                this.signalInfo.gps_satellite_count = realdata.gps_satellite_count
+                this.signalInfo.signalqulity = signalqulity
+                const geocoder = new AMap.Geocoder({
+                    radius: 1000 //范围，默认：500
+                });
+                geocoder.getAddress([realdata.lng, realdata.lat], (status, result) => {
+                    if (status === 'complete' && result.info === 'OK') {
+                        //获得了有效的地址信息:
+                        this.signalInfo.curaddress = result.regeocode.formattedAddress
+                    } else {
+                        //获取地址失败
+                    }
+                });
+                this.signalLoading = false
+            } catch (e) {
+                this.signalLoading = false
+                console.log(e)
+            }
+        },
+        submit () {
+            this.$refs.form.validate(async valid => {
+                if (valid) {
+                    try {
+                        const arr = _.filter(this.installDetails, item => {
+                            return item.checked
+                        })
+                        this.form.corpid = this.corpid
+                        if (!arr.length) {
+                            this.$message.warning('请选择维护设备')
+                        }
+                        this.form.busiImpdetails = _.map(arr, item => {
+                            return {
+                                prodmodelid: item.packInfo.PRODMODELID,
+                                installpositioncode: item.installpositioncode,
+                                packid: item.packid,
+                                onlinestatus: item.onlinestatus,
+                            }
+                        })
+                        if (this.form.ordertype === 'REMOVE') {
+                            await submitRemove(this.form)
+                            this.$message.success('提交派单成功')
+                        } else {
+                            await submitRepair(this.form)
+                            this.$message.success('提交派单成功')
+                        }
+                        this.$router.push('/orderManage/declarationManage')
+                    } catch (e) {
+                        console.log(e)
+                    }
+                } else {
+                    this.$message.warning('请完善信息')
+                }
+            })
+        },
+        async getReason () {
+            try {
+                const RemoveParams = {
+                    dictvalue: 'RemoveReason',
+                    limit: 1000,
+                    page: 1
+                }
+                const RepairParams = {
+                    dictvalue: 'RepairReason',
+                    limit: 1000,
+                    page: 1
+                }
+                const removeReason = await getSysDictionaryDataList(RemoveParams)
+                const repairReason = await getSysDictionaryDataList(RepairParams)
+                this.options[0].children = repairReason.data.data.records
+                this.options[1].children = removeReason.data.data.records
+            } catch (e) {
+                console.log(e)
+            }
+        },
+        changeReason (val) {
+            this.form.ordertype = val[0]
+            this.form.rpFaultcode = val[1]
+        }
+    },
+    mounted () {
+        this.getReason()
+    }
+}

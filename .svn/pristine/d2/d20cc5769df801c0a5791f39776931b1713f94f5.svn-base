@@ -1,0 +1,239 @@
+<template>
+    <div class="invoice-detail">
+        <h2>物资入库单</h2>
+        <!--<svg id="invoice-bar-code" :jsbarcode-value="num" jsbarcode-height="30" jsbarcode-fontSize="12"></svg>-->
+        <svg ref="invoice-bar-code"></svg>
+        <el-row>
+            <el-form label-width="100px">
+                <el-col :span="12">
+                    <el-form-item label="入库类型">
+                        <el-input></el-input>
+                    </el-form-item>
+                </el-col>
+                <el-col :span="12">
+                    <el-form-item label="采购合同">
+                        <el-input placeholder="请输入采购合同"></el-input>
+                    </el-form-item>
+                </el-col>
+                <el-col :span="12">
+                    <el-form-item label="供应商">
+                        <el-input placeholder="请选择供应商"></el-input>
+                    </el-form-item>
+                </el-col>
+                <el-col :span="12">
+                    <el-form-item label="采购日期">
+                        <el-input></el-input>
+                    </el-form-item>
+                </el-col>
+                <el-col :span="12">
+                    <el-form-item label="收货人">
+                        <el-input placeholder="请输入收货人"></el-input>
+                    </el-form-item>
+                </el-col>
+                <el-col :span="12">
+                    <el-form-item label="收货地址">
+                        <el-input placeholder="收货地址"></el-input>
+                    </el-form-item>
+                </el-col>
+                <el-col :span="12">
+                    <el-form-item label="库房名称">
+                        <el-input></el-input>
+                    </el-form-item>
+                </el-col>
+                <el-col :span="12">
+                    <el-form-item label="收货电话">
+                        <el-input placeholder="请输入收货电话"></el-input>
+                    </el-form-item>
+                </el-col>
+                <el-col :span="12">
+                    <el-form-item label="采购数量">
+                        <el-input placeholder="请输入采购数量"></el-input>
+                    </el-form-item>
+                </el-col>
+                <el-col :span="12">
+                    <el-form-item label="采购金额">
+                        <el-input placeholder="请输入采购金额"></el-input>
+                    </el-form-item>
+                </el-col>
+                <el-col :span="12">
+                    <el-form-item label="经办人">
+                        <el-input placeholder="请输入经办人"></el-input>
+                    </el-form-item>
+                </el-col>
+            </el-form>
+        </el-row>
+        <el-row>
+            <p class="invoice-title">物流信息</p>
+            <el-form label-width="100px">
+                <el-col :span="12">
+                    <el-form-item label="发货方式">
+                        <el-input></el-input>
+                    </el-form-item>
+                </el-col>
+                <el-col :span="12">
+                    <el-form-item label="发货日期">
+                        <el-input></el-input>
+                    </el-form-item>
+                </el-col>
+                <el-col :span="12">
+                    <el-form-item label="物流号">
+                        <el-input placeholder="请输入物流号"></el-input>
+                    </el-form-item>
+                </el-col>
+                <el-col :span="12">
+                    <el-form-item label="物流公司">
+                        <el-input placeholder="请输入物流公司"></el-input>
+                    </el-form-item>
+                </el-col>
+                <el-col :span="12">
+                    <el-form-item label="车牌号">
+                        <el-input placeholder="请输入车牌号"></el-input>
+                    </el-form-item>
+                </el-col>
+                <el-col :span="12">
+                    <el-form-item label="联系电话">
+                        <el-input placeholder="请输入联系电话"></el-input>
+                    </el-form-item>
+                </el-col>
+                <el-col :span="12">
+                    <el-form-item label="预计到货日期">
+                        <el-input></el-input>
+                    </el-form-item>
+                </el-col>
+                <el-col :span="12">
+                    <el-form-item label="发生费用">
+                        <el-input placeholder="请输入费用"></el-input>
+                    </el-form-item>
+                </el-col>
+            </el-form>
+        </el-row>
+        <el-row>
+            <p class="invoice-title">设备信息</p>
+            <el-button style="float: right">添加设备</el-button>
+            <el-table :data="dataList" border highlight-current-row show-summary>
+                <el-table-column type="index" align="center" label="序号" width="50">
+                </el-table-column>
+                <el-table-column prop="status" label="设备型号" align="center">
+                </el-table-column>
+                <el-table-column prop="handlename" align="center" label="设备编号">
+                </el-table-column>
+                <el-table-column prop="createdate" align="center" label="设备单价" width="160">
+                </el-table-column>
+                <el-table-column prop="busicorpname" align="center" label="卡编号" width="100">
+                </el-table-column>
+                <el-table-column prop="vehicleowner" align="center" label="卡类型" width="100">
+                </el-table-column>
+                <el-table-column prop="vehiclevin" align="center" label="卡单价" width="100">
+                </el-table-column>
+                <el-table-column prop="vehiclemodel" align="center" label="总金额" width="160">
+                </el-table-column>
+                <el-table-column prop="vehicleplate" align="center" label="预入库卡检测" width="160">
+                </el-table-column>
+                <el-table-column label="操作" width="80" align="center" fixed="right">
+                    <template slot-scope="scope">
+                        <el-button type="text" @click="remove(scope.$index, scope.row)">
+                            删除
+                        </el-button>
+                    </template>
+                </el-table-column>
+            </el-table>
+            <el-form label-width="100px" style="margin-top: 20px;">
+                <el-form-item label="备注">
+                    <el-input type="textarea"></el-input>
+                </el-form-item>
+            </el-form>
+            <el-button type="primary" style="float: right">提交</el-button>
+        </el-row>
+        <el-form label-width="100px;" class="bar-code-footer">
+            <el-row>
+                <el-col :span="6">
+                    <el-form-item label="制单人">
+                        当前登录人
+                    </el-form-item>
+                </el-col>
+                <el-col :span="6">
+                    <el-form-item label="制单日期">
+                        系统时间
+                    </el-form-item>
+                </el-col>
+            </el-row>
+            <el-row>
+                <el-col :span="6">
+                    <el-form-item label="收货人">
+                        当前登录人
+                    </el-form-item>
+                </el-col>
+                <el-col :span="6">
+                    <el-form-item label="收货时间">
+                        系统时间
+                    </el-form-item>
+                </el-col>
+            </el-row>
+        </el-form>
+    </div>
+</template>
+
+<script>
+    export default {
+        name: "invoice-detail",
+        data () {
+            return {
+                dataList: [],
+                num: ''
+            }
+        },
+        methods: {
+            remove () {
+
+            }
+        },
+        mounted () {
+            this.num = (Math.random(0, 1)* 100).toFixed(0)
+            JsBarcode(this.$refs['invoice-bar-code'], this.num, {
+                height: 30,
+                fontSize: 12,
+            });
+        }
+    }
+</script>
+
+<style scoped lang="stylus">
+    head-title-bg = #858585
+
+    .invoice-detail
+        position relative
+        h2
+            text-align center
+            margin 10px 0 30px 0
+        svg
+            position absolute
+            right 20px;
+            top 0;
+
+    .invoice-title
+        color white
+        margin-bottom 10px;
+        background head-title-bg
+        width 80px;
+        height 40px;
+        line-height 40px;
+        padding-left 10px;
+        display inline-block
+        position relative
+        &::after
+            content: ''
+            width: 0;
+            height: 0;
+            display block
+            position absolute
+            border: 20px solid transparent;
+            border-left-color: head-title-bg;
+            border-right-width: 0;
+            right -20px
+            top 0
+
+    .bar-code-footer
+        .el-form-item
+            margin 0
+
+</style>

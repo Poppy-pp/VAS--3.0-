@@ -1,0 +1,386 @@
+import axios from 'axios'
+
+let base = '/vasms-web';
+
+const data = {
+    "result": {"code": 0, "desc": "success"},
+    "data": {
+        "createdate": null,
+        "createby": null,
+        "updatedate": null,
+        "updateby": null,
+        "corpid": 3,
+        "declaretype": "自主报单",
+        "declareby": "1000091",
+        "declaredate": "2018-05-31 10:21:53",
+        "salerid": null,
+        "salername": "六五",
+        "salermobile": "15544660021",
+        "vehicleid": 10010850,
+        "carstatus": 1,
+        "servicestartdate": null,
+        "serviceenddate": null,
+        "attentionmatters": "请安装设备",
+        "installapplyinsu": 1,
+        "installapplymorn": 0,
+        "installactualwired": null,
+        "installactualwireless": null,
+        "installapplydate": "2018-05-31 10:21:45",
+        "installactualdate": "2018-05-31 11:45:42",
+        "installaddresscode": null,
+        "installaddress": "河北秦皇岛北戴河区",
+        "installgroupid": 10090,
+        "installby": 1000415,
+        "installpic1": null,
+        "installpic2": null,
+        "installpic3": null,
+        "installpic4": null,
+        "installpic5": null,
+        "assignby": null,
+        "assigndate": null,
+        "clerkremarks": null,
+        "approvestatus": null,
+        "approvemsg": null,
+        "status": "5",
+        "aftersalerid": 1000091,
+        "aftersalerdate": null,
+        "insurancespecid": null,
+        "insurancespecdate": null,
+        "isdelete": "0",
+        "act_id": null,
+        "externalcustnum": null,
+        "act_status": "10",
+        "externalid": null,
+        "externalsystem": null,
+        "ordertype": null,
+        "installaddresslng": 0.0,
+        "installaddresslat": 0.0,
+        "installremark": null,
+        "orderno": "NBWW20180531002465",
+        "ectfinalremark": null,
+        "userconfirmremark": null,
+        "contactperson": "张三",
+        "contactmobile": "15522001101",
+        "pictures": [{
+            "pictype": "NB",
+            "linkid": 11686,
+            "piclink": "20180531/fea6035a-d3b3-4dd2-8742-959be6ca6e5f.jpg",
+            "picdesc": "安装位置照片",
+            "isdelete": "0",
+            "piccode": "19",
+            "orderno": null,
+            "id": 10251
+        }, {
+            "pictype": "NB",
+            "linkid": 11686,
+            "piclink": "20180531/c39bc159-3570-42b0-8ac1-6792181fa128.jpg",
+            "picdesc": "车牌照片",
+            "isdelete": "0",
+            "piccode": "3",
+            "orderno": null,
+            "id": 10250
+        }, {
+            "pictype": "NB",
+            "linkid": 11686,
+            "piclink": "20180531/9d44534b-27b9-4255-9e5f-bcd00726912c.jpg",
+            "picdesc": "车辆照片",
+            "isdelete": "0",
+            "piccode": "1",
+            "orderno": null,
+            "id": 10249
+        }],
+        "prodclass": [{"installremark": "保险设备", "installtype": "保险设备", "installModel": "保险设备"}],
+        "hiTasksOfRuExecution": [],
+        "externalstatus": null,
+        "vehicleInfo": {
+            "createdate": 1527696000000,
+            "createby": "100073",
+            "updatedate": 1527834348000,
+            "updateby": "100073",
+            "model": "Vanquish 2013款 6.0L 标准型",
+            "vin": "LSGKB52H6KV019259",
+            "price": 152900.0,
+            "ownerid": 6001662,
+            "corpid": 5,
+            "receivingbankid": 10010,
+            "hastheftinsurance": "0",
+            "yearsofservice": 1,
+            "isdelete": "0",
+            "isactive": "1",
+            "value": "LSGKB52H6KV019259",
+            "receivingbank": {
+                "createdate": 1496050164000,
+                "createby": "0",
+                "updatedate": null,
+                "updateby": null,
+                "corpcode": "10010",
+                "corpname": "南充市商业银行股份有限公司成都簇桥支行",
+                "corpshortname": null,
+                "parentcorpcode": "0",
+                "corptype": "BANK",
+                "isdelete": "0",
+                "isactive": null,
+                "tel1": null,
+                "tel2": null,
+                "tel3": null,
+                "corplevel": null,
+                "corptypes": null,
+                "address": null,
+                "area": null,
+                "source": null,
+                "assignments": null,
+                "businessrelation": null,
+                "corporateinfos": null,
+                "departmentInfo": null,
+                "employees": null,
+                "id": 10010
+            },
+            "corporatelevels": [],
+            "id": 10010850
+        },
+        "corpname": null,
+        "platid": null,
+        "plat": null,
+        "reviewby": null,
+        "installDetails": [{
+            "createdate": 1527738140000,
+            "createby": "100345",
+            "declarationid": 11686,
+            "installpositioncode": "12",
+            "installpositionname": "主座下(接线位置：主座下)",
+            "packid": 15016,
+            "isActive": "1",
+            "status": "1",
+            "packInfo": {
+                "E_PRODUNUM": "780000020188997",
+                "C_PRODMODEL": "30M一年物联卡",
+                "CREATEDATE": 1527733668000,
+                "E_PRODTYPE": "有线",
+                "C_PRODUNUM": "1440022292604",
+                "ISACTIVE": "1",
+                "E_STATUS": "INSTALL",
+                "EQUIPMENTID": 18989,
+                "CREATEBY": "100073",
+                "PRODMODELID": 2,
+                "E_NORMALFLAG": "Y",
+                "SIMCARDID": 18995,
+                "STORAGEID": 1000262,
+                "E_PRODMODEL": "GT02B",
+                "ID": 15016,
+                "E_INSURANCEFLAG": "Y"
+            },
+            "id": 12183,
+            "ID": 12183,
+            "pictures": [{
+                "pictype": "NBI",
+                "linkid": 12183,
+                "piclink": "20180531/2596456f-7d73-4f30-8b72-081106a3720b.jpg",
+                "picdesc": "引擎照片",
+                "isdelete": "0",
+                "piccode": "6",
+                "orderno": null,
+                "id": 10257
+            }, {
+                "pictype": "NBI",
+                "linkid": 12183,
+                "piclink": "20180531\\92a97f77-b0f9-48ad-88a6-9dc89b661243.jpg",
+                "picdesc": "设备号照片",
+                "isdelete": "0",
+                "piccode": null,
+                "orderno": null,
+                "id": 10256
+            }, {
+                "pictype": "NBI",
+                "linkid": 12183,
+                "piclink": "20180531/45a56969-57f7-444b-8904-beffa37c47b1.jpg",
+                "picdesc": "车架号照片",
+                "isdelete": "0",
+                "piccode": "4",
+                "orderno": null,
+                "id": 10255
+            }]
+        }],
+        "hastheftinsurance": null,
+        "businessKey": null,
+        "taskId": null,
+        "corporateInfo": {
+            "createdate": 1494384830000,
+            "createby": "6666",
+            "updatedate": 1527323656000,
+            "updateby": "100062",
+            "corpcode": "170824133482",
+            "corpname": "海口众汇",
+            "corpshortname": "hkzh",
+            "parentcorpcode": "0",
+            "corptype": "AUTO",
+            "isdelete": "0",
+            "isactive": null,
+            "tel1": "14545454555",
+            "tel2": null,
+            "tel3": null,
+            "corplevel": null,
+            "corptypes": null,
+            "address": null,
+            "area": "四川,成都,高新区",
+            "source": "VAS",
+            "assignments": null,
+            "businessrelation": null,
+            "corporateinfos": null,
+            "departmentInfo": null,
+            "employees": null,
+            "id": 3
+        },
+        "declarEmployee": {
+            "updatedate": 1517275972000,
+            "updateby": "100073",
+            "employeetype": "WW_CONTRACT",
+            "employeecode": "ww13547311340",
+            "employeename": "何小燕",
+            "gender": "M",
+            "positionid": 287,
+            "deptid": 4,
+            "userid": 100073,
+            "mobile": "13547311340",
+            "isenable": "1",
+            "region": "四川,成都,高新区",
+            "id": 1000091,
+            "ID": 1000091
+        },
+        "salerEmployeeInfo": null,
+        "ownerInfo": {
+            "createdate": 1527733313000,
+            "createby": "100073",
+            "updatedate": 1527834348000,
+            "updateby": "100073",
+            "name": "陈睿",
+            "idcard": "522730198810312628",
+            "type": "OWNER",
+            "mobile": "18985536680",
+            "isdelete": 0,
+            "isactive": "1",
+            "value": "18985536680",
+            "id": 6001662
+        },
+        "installGroupInfo": {
+            "createdate": 1509350548000,
+            "createby": "100073",
+            "updatedate": 1513765551000,
+            "updateby": "1864",
+            "groupcode": "10090",
+            "groupname": "测试组",
+            "grouptype": "INSTALL",
+            "groupleaderid": "1000282",
+            "isdelete": "0",
+            "isactive": "1",
+            "deptid": 58,
+            "emps": null,
+            "groups": null,
+            "id": 10090
+        },
+        "installEmployee": {
+            "createdate": 1521535935000,
+            "createby": "100073",
+            "updatedate": 1537864137000,
+            "updateby": "100073",
+            "employeetype": "CUSTOMER",
+            "employeename": "红薯一",
+            "gender": "M",
+            "positionid": 10065,
+            "deptid": 57,
+            "userid": 100345,
+            "mobile": "17600000001",
+            "isenable": "1",
+            "isdelete": "0",
+            "isactive": "1",
+            "region": "四川,成都,高新区",
+            "id": 1000415,
+            "ID": 1000415
+        },
+        "assignEmployee": null,
+        "afterSaleEmployee": null,
+        "insuranceEmployee": null,
+        "insuranceInfo": null,
+        "remark": null,
+        "result": null,
+        "exSysCorpId": null,
+        "carFrame": null,
+        "carNumber": null,
+        "carPlate": null,
+        "flowData": {
+            "VehicleInfo_enginenum": null,
+            "owner_idcard": "522730198810312628",
+            "owner_name": "陈睿",
+            "VehicleInfo_vin": "LSGKB52H6KV019259",
+            "corpid": 3,
+            "install_num": "780000020188997",
+            "owner_mobile": "18985536680",
+            "VehicleInfo_licenseplatenum": null,
+            "VehicleInfo_modle": null,
+            "VehicleInfo_price": null,
+            "VehicleInfo_id": 10010850,
+            "bank_name": "南充市商业银行股份有限公司成都簇桥支行",
+            "install_date": 1527738342000,
+            "corpname": "贵州众汇"
+        },
+        "issuedate": null,
+        "id": 11686
+    },
+    "validResult": null
+}
+
+export const get = params => {
+    return new Promise((resolve) => {
+        setTimeout(() => {
+            resolve(data)
+        }, 300)
+    })
+}
+
+//提交保险信息
+export const addApprovaperInsurance = params => {
+    return axios.post(`${base}/api/v1/workflow/new_build/` + params.taskId + `/insurance`, params.properties)
+};
+
+//获取公司名称列表
+export const getCorpNameInsuList = params => {
+    return axios.get(`${base}/api/v1/org/corporateInfo?corptype=INSU`)
+};
+
+//检查设备是否在线
+export const cldeviceIsOnstate = params => {
+    return axios.post(`/gisapiservice/Prod/proddetail`, params)
+};
+
+//提交保险信息
+export const addInsuranceDetail = params => {
+    return axios.post(`${base}/api/v2/commom_task/insu/` + params.taskId, params.properties)
+};
+
+//获取客户和银行列表
+export const getCorpList = params => {
+    return axios.get(`${base}/api/v1/org/corporateInfo?flag=万网公司&showCount=1000`, {
+        params: params
+    });
+};
+
+// 验证所有电话
+export const checkAllMobile = (rule, value, callback) => {
+    var reg = /((\d{11})|^((\d{7,8})|(\d{4}|\d{3})-(\d{7,8})|(\d{4}|\d{3})-(\d{7,8})-(\d{4}|\d{3}|\d{2}|\d{1})|(\d{7,8})-(\d{4}|\d{3}|\d{2}|\d{1}))$)/g,
+        flag = reg.test(value);
+    if (!flag) {
+        return callback(new Error('请输入电话号码或手机号码'));
+    } else {
+        callback();
+    }
+};
+
+// 验证数字
+export const checkNum = (rule, value, callback) => {
+    var reg = /^[0-9]*$/g,
+        flag = reg.test(value);
+    if (!flag) {
+        return callback(new Error('只能输入数字'));
+    } else {
+        callback();
+    }
+};

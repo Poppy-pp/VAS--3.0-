@@ -1,0 +1,256 @@
+import { getVehList } from "@/views/basicManage/ownerVehicleManage/service";
+import { getToken } from '@/utils/auth'
+import util from 'utils/tools';
+import productList from '../subComponent/productList'
+import gdmap from '@/views/map/gdmap';
+import { getProducts, initForm } from '../service'
+import { getGroupInfoList } from '@/views/sysManage/group/service'
+
+export default {
+    name: "installOrder",
+    components: {
+        productList,
+        gdmap
+    },
+    props: ['corpid'],
+    data () {
+        return {
+            form: initForm(), //表单
+            rules: {},//表单验证规则
+            vehlist: [], // 车型
+            carColor: [],//车辆颜色列表
+            token: getToken(),
+            accept: '.jpg,.png',
+            util: util,
+            activeNames: ['1', '2', '3'],
+            loading: false,
+            addressList: [],//地址列表
+            productList: [],//产品列表
+            groupList: [],//分组列表
+            groupBeanList: [],//原始分组列表
+            cascaderProp: {
+                value: 'id',
+                label: 'name',
+            },
+            groupArr: [],
+            selectEmployee: {},
+            addressDetail: ''
+        }
+    },
+    watch: {
+        corpid (newValue) {
+            if (newValue) {
+                this.getProducts()
+            }
+        }
+    },
+    methods: {
+        /**
+         * 获取车辆类型
+         * @param r
+         */
+        vehChange (r) {
+            const params = {
+                page: 1,
+                limit: 10000,
+                isactive: 1
+            }
+            getVehList(params).then((res) => {
+                this.vehlist = res.data.data;
+            });
+        },
+        /**
+         * 获取第一受益人
+         * @param parm
+         * @param cb
+         * @returns {Promise<void>}
+         */
+        async getCorpList (parm, cb) {
+            // if (!show) return
+            let param = {
+                page: 1,
+                limit: 10000,
+                corpcategory: 'BANK',
+                corpname: parm
+            }
+            try {
+                const {data} = await getParentInfoList(param)
+                cb(data.data.records)
+                // this.corplist = data.data.records;
+            } catch (e) {
+
+            }
+        },
+        uploadSuccessInvoice (res, file) {
+            this.form.picinvoice = res.data
+            this.initViewer()
+        },
+        uploadSuccessVehiclelicense (res, file) {
+            this.form.picvehiclelicense = res.data
+            this.initViewer()
+        },
+        uploadSuccessIdcard (res, file) {
+            this.form.picidcard = res.data
+            this.initViewer()
+        },
+        uploadRegistration (res, file) {
+            this.form.picregistration = res.data
+            this.initViewer()
+        },
+        uploadSuccessCertificate (res, file) {
+            this.form.piccertificate = res.data
+            this.initViewer()
+        },
+        uploadSuccessImport (res, file) {
+            this.form.picimport = res.data
+            this.initViewer()
+        },
+        /**
+         * 图片浏览器
+         */
+        initViewer () {
+            if (this.viewer)
+                this.viewer.destroy()
+            const el = this.$refs['rpShowimgDialog'].$el
+            this.$nextTick(() => {
+                this.viewer = new Viewer(el)
+            });
+        },
+        /**
+         * 高德地图API autocomplete
+         * @param query
+         */
+        autoInput (query) {
+            if (query !== '') {
+                this.loading = true;
+                let autoComplete = new AMap.Autocomplete({
+                    city: '全国'
+                });
+                autoComplete.search(query, (status, result) => {
+                    // 搜索成功时，result即是对应的匹配数据
+                    this.addressList = result.tips
+                    this.loading = false
+                }, err => {
+                    console.log(err)
+                    this.loading = false
+                })
+            } else {
+                this.addressList = [];
+            }
+        },
+        /**
+         * 选择地址
+         * @param item
+         */
+        changeAdress (item) {
+            const address = item.district + item.address + item.name
+            this.$refs.vueAmap.geocoder(address, (res) => {
+                console.log(res)
+                this.form.impaddresscode = res.adcode
+                // this.form.impaddress = res.formattedAddress
+                this.form.impaddress = address
+                this.form.impaddresslng = res.location.lng
+                this.form.impaddresslat = res.location.lat
+            });
+        },
+        /**
+         * 拖动地图
+         * @param address
+         * @param lnglatXY
+         * @param type
+         */
+        draggerMapMarker (address, lnglatXY, type) {
+            this.form.impaddress = address
+            this.form.impaddresslng = lnglatXY[0]
+            this.form.impaddresslat = lnglatXY[1]
+        },
+        /**
+         * 选择产品
+         * @param item
+         */
+        selectProduct (item) {
+            if (item.cmsPackage.packcontent === 'INSU') {
+                this.form.hastheftinsurance = 1
+                return
+            }
+            this.form.hastheftinsurance = 0
+        },
+        /**
+         * 获取产品列表
+         * @returns {Promise<void>}
+         */
+        async getProducts () {
+            try {
+                this.form.corpid = this.corpid
+                const params = {
+                    page: 1,
+                    limit: 15
+                }
+                const {data} = await getProducts(params, this.corpid)
+                this.productList = data.data.records
+            } catch (e) {
+                console.log(e)
+            }
+        },
+        /**
+         * 获取安装组&组员
+         * @returns {Promise<void>}
+         */
+        async getGroupInfoList () {
+            try {
+                const params = {
+                    page: 1,
+                    limit: 15,
+                    isactive: 1,
+                    grouptype: 'INSTALL'
+                }
+                const {data} = await getGroupInfoList(params)
+                this.groupBeanList = data.data.records
+                this.groupList = _.map(data.data.records, item => {
+                    return {
+                        id: item.id,
+                        name: item.groupname,
+                        children: _.map(item.employeeInfos, employee => {
+                            return {
+                                id: employee.userid,
+                                name: employee.employeename,
+                            }
+                        })
+                    }
+                })
+            } catch (e) {
+                console.log(e)
+            }
+        },
+        /**
+         * 选择安装人员
+         * @param item
+         */
+        changeGroup (item) {
+            this.form.impgroupid = this.groupArr[0]
+            this.form.impby = this.groupArr[1]
+            this.addressDetail = ''
+            const data = _.find(this.groupBeanList, item => {
+                return item.id === this.groupArr[0]
+            })
+
+            this.selectEmployee = _.find(data.employeeInfos, item => {
+                return item.userid === this.groupArr[1]
+            })
+
+            /**
+             * lat: 30.629002
+             * lng: 104.142672
+             */
+            this.$refs.vueAmap.getAddress([104.142672, 30.629002], (res) => {
+                this.addressDetail = res
+            });
+        }
+    },
+    created () {
+        if (this.corpid) {
+            this.getProducts()
+        }
+        // this.debouncedGetAnswer = _.debounce(this.autoInput, 500)
+    }
+}

@@ -1,0 +1,503 @@
+<template>
+    <el-form :model="form" ref="form" :rules="rules">
+        <el-row>
+            <el-col :span="24" class="cbstyle">
+                <el-collapse class="bdcoll rpShowimgDialog" ref="rpShowimgDialog" v-model="activeNames">
+                    <el-collapse-item class="lefw10 wzpdt10" name="1">
+                        <div slot="title">
+                            请选择安装产品 <span class="prompt-text">(选择报单公司后才能选择安装产品哦)</span>
+                        </div>
+                        <product-list></product-list>
+                    </el-collapse-item>
+                    <el-collapse-item title="车主车辆信息" class="lefw10 wzpdt10" name="2">
+                        <div slot="title">
+                            车主车辆信息
+                            <span class="prompt-text">(为了便于保险出单，选择含盗抢险产品请填写详细信息)</span>
+                            <el-tooltip class="item" effect="dark" content="" placement="bottom-end">
+                                <div slot="content">说明：含盗抢险服务的产品需补充填<br>写：发动机号、车辆购置价、赔偿限<br>额、万网盗抢险服务费和初登日期，<br>才能顺利保险出单</div>
+                                <i class="el-icon-question"></i>
+                            </el-tooltip>
+                        </div>
+                        <el-row :gutter="20">
+                            <el-col :span="8">
+                                <el-form-item label="车主姓名" prop="vehicleowner">
+                                    <el-input type="text" placeholder="请输入车主姓名" v-model="form.vehicleowner"></el-input>
+                                </el-form-item>
+                            </el-col>
+                            <el-col :span="8">
+                                <el-form-item label="车主电话" prop="vehicleownercontact">
+                                    <el-input type="text" placeholder="请输入车主电话" v-model="form.vehicleownercontact"></el-input>
+                                </el-form-item>
+                            </el-col>
+                            <el-col :span="8">
+                                <el-form-item label="车主证件号码" prop="vehicleowneridcard">
+                                    <el-input type="text" placeholder="请输入车主证件号码" v-model="form.vehicleowneridcard"></el-input>
+                                </el-form-item>
+                            </el-col>
+                        </el-row>
+                        <el-row :gutter="20">
+                            <el-col :span="8">
+                                <el-form-item label="车架号" prop="vehiclevin">
+                                    <el-input v-model="form.vehiclevin" placeholder="请输入车架号"></el-input>
+                                </el-form-item>
+                            </el-col>
+                            <el-col :span="8">
+                                <el-form-item label="厂牌型号" prop="vehiclemodel">
+                                    <el-input type="text" placeholder="请输入厂牌型号" v-model="form.vehiclemodel"></el-input>
+                                </el-form-item>
+                            </el-col>
+                            <el-col :span="8">
+                                <el-form-item label="车辆购置价" prop="vehicleprice">
+                                    <el-input type="text" placeholder="请输入车辆购置价" v-model="form.vehicleprice">
+                                        <template slot="append">元</template>
+                                    </el-input>
+                                </el-form-item>
+                            </el-col>
+                        </el-row>
+                        <el-row :gutter="20">
+                            <el-col :span="8">
+                                <el-form-item label="第一受益人" prop="beneficiary">
+                                    <el-autocomplete v-model="form.beneficiary" class="inline-input width" :fetch-suggestions="getCorpList"
+                                                     placeholder="请选择第一受益人" value-key="corpname"></el-autocomplete>
+                                </el-form-item>
+                            </el-col>
+                            <el-col :span="8">
+                                <el-form-item label="车辆分类" prop="vehiclemodel">
+                                    <el-input type="text" placeholder="请输入车辆型号" v-model="form.vehiclemodel"></el-input>
+                                </el-form-item>
+                            </el-col>
+                            <el-col :span="8">
+                                <el-form-item label="车辆类型" prop="vehiclecategory">
+                                    <el-select v-model="form.vehiclecategory" @focus="vehChange" filterable
+                                               placeholder="请选择车类型" clearable>
+                                        <el-option v-for="item in vehlist" :key="item.id" :label="item.typedesc" :value="item.typedesc">
+                                        </el-option>
+                                    </el-select>
+                                </el-form-item>
+                            </el-col>
+                        </el-row>
+                        <el-row :gutter="20">
+                            <el-col :span="8">
+                                <el-form-item label="发动机号" prop="vehicleenginenum">
+                                    <el-input type="text" placeholder="请输入发动机号" v-model="form.vehicleenginenum"></el-input>
+                                </el-form-item>
+                            </el-col>
+                            <el-col :span="8">
+                                <el-form-item label="车牌号" prop="vehicleplate">
+                                    <el-input type="text" placeholder="请输入车牌号" v-model="form.vehicleplate"></el-input>
+                                </el-form-item>
+                            </el-col>
+                            <el-col :span="8">
+                                <el-form-item label="初登日期" prop="createdate">
+                                    <el-date-picker type="date" placeholder="选择初登日期" v-model="form.createdate"
+                                                    value-format="yyyy-MM-dd"
+                                                    style="width: 100%;"></el-date-picker>
+                                </el-form-item>
+                            </el-col>
+                        </el-row>
+                        <el-row :gutter="20">
+                            <el-col :span="8">
+                                <el-form-item label="赔偿限额" prop="vehicleprice">
+                                    <el-input type="text" placeholder="请输入赔偿限额" v-model="form.vehicleprice">
+                                        <template slot="append">元</template>
+                                    </el-input>
+                                </el-form-item>
+                            </el-col>
+                            <el-col :span="8">
+                                <el-form-item label="万网盗抢险服务费" prop="vehicleprice">
+                                    <el-input type="text" placeholder="请输入赔偿限额" v-model="form.price">
+                                        <template slot="append">元</template>
+                                    </el-input>
+                                </el-form-item>
+                            </el-col>
+                            <el-col :span="8">
+                                <el-form-item label="车辆颜色" prop="vehiclecolor">
+                                    <br>
+                                    <div style="display: flex">
+                                        <el-select v-model="form.vehiclecolor" clearable placeholder="请选择车辆颜色">
+                                            <el-option v-for="item in carColor" :key="item.color" :label="item.color" :value="item.color_rgb">
+                                                <div :style="{height:'20px',width:'20px',backgroundColor:item.color_rgb,float:'left',marginTop:'7px'}"></div>&nbsp;{{
+                                                item.color }}
+                                            </el-option>
+                                        </el-select>
+                                        <el-color-picker v-model="form.vehiclecolor"></el-color-picker>
+                                    </div>
+                                </el-form-item>
+                            </el-col>
+                        </el-row>
+                        <el-row :gutter="20">
+                            <el-col :span="8">
+                                <el-form-item label="能源类型" prop="vehicleplate">
+                                    <el-select v-model="form.vehiclecategory" @focus="vehChange" filterable
+                                               placeholder="请选择能源类型" clearable>
+                                        <el-option v-for="item in vehlist" :key="item.id" :label="item.typedesc" :value="item.typedesc">
+                                        </el-option>
+                                    </el-select>
+                                </el-form-item>
+                            </el-col>
+                            <el-col :span="16">
+                                <el-form-item label="联系地址" prop="vehicleplate">
+                                    <el-input placeholder="请输入联系地址"></el-input>
+                                </el-form-item>
+                            </el-col>
+                        </el-row>
+                        <el-row :gutter="20">
+                            <el-col :span="24">
+                                <el-form label-position="top">
+                                    <el-form-item label="保险出单所需图片上传">
+                                        <el-col class="photosh sgphtosh">
+                                            <el-card :body-style="{ padding: '0px !important' }" class="devptosty">
+                                                <el-upload name="file" class="avatar-uploader" action="/admin/atta/upload/picture"
+                                                           :show-file-list="false"
+                                                           :headers="{Authorization: 'Bearer '+ token}"
+                                                           :accept="accept" :before-upload="util.beforeAvatarUpload" :on-success="uploadSuccessInvoice">
+                                                    <img v-if="form.picinvoice"
+                                                         :src="$store.state.IMG_URL+form.picinvoice" class="avatar">
+                                                    <i v-else class="el-icon-plus avatar-uploader-icon"></i>
+                                                </el-upload>
+                                                <div class="btsty">
+                                                    <span class="fl">购车发票</span>
+                                                    <div class="bottom clearfix text_al fr" v-if="form.picinvoice">
+                                                        <i title="删除照片" class="iconfont icon-p-delet operate operate-p-delet"
+                                                           @click="removePic('picinvoice')"></i>
+                                                    </div>
+                                                </div>
+                                            </el-card>
+                                        </el-col>
+                                        <el-col class="photosh sgphtosh">
+                                            <el-card :body-style="{ padding: '0px !important' }" class="devptosty">
+                                                <el-upload name="file" class="avatar-uploader" action="/admin/atta/upload/picture"
+                                                           :show-file-list="false"
+                                                           :headers="{Authorization: 'Bearer '+ token}"
+                                                           :accept="accept" :before-upload="util.beforeAvatarUpload"
+                                                           :on-success="uploadSuccessVehiclelicense">
+                                                    <img v-if="form.picvehiclelicense"
+                                                         :src="$store.state.IMG_URL+form.picvehiclelicense" class="avatar">
+                                                    <i v-else class="el-icon-plus avatar-uploader-icon"></i>
+                                                </el-upload>
+                                                <div class="btsty">
+                                                    <span class="fl">行驶证</span>
+                                                    <div class="bottom clearfix text_al fr" v-if="form.picvehiclelicense">
+                                                        <i title="删除照片" class="iconfont icon-p-delet operate operate-p-delet"
+                                                           @click="removePic('picvehiclelicense')"></i>
+                                                    </div>
+                                                </div>
+                                            </el-card>
+                                        </el-col>
+                                        <el-col class="photosh sgphtosh">
+                                            <el-card :body-style="{ padding: '0px !important' }" class="devptosty">
+                                                <el-upload name="file" class="avatar-uploader" action="/admin/atta/upload/picture"
+                                                           :show-file-list="false"
+                                                           :headers="{Authorization: 'Bearer '+ token}"
+                                                           :accept="accept" :before-upload="util.beforeAvatarUpload" :on-success="uploadSuccessIdcard">
+                                                    <img v-if="form.picidcard"
+                                                         :src="$store.state.IMG_URL+form.picidcard" class="avatar">
+                                                    <i v-else class="el-icon-plus avatar-uploader-icon"></i>
+                                                </el-upload>
+                                                <div class="btsty">
+                                                    <span class="fl">身份证</span>
+                                                    <div class="bottom clearfix text_al fr" v-if="form.picidcard">
+                                                        <i title="删除照片" class="iconfont icon-p-delet operate operate-p-delet"
+                                                           @click="removePic('picidcard')"></i>
+                                                    </div>
+                                                </div>
+                                            </el-card>
+                                        </el-col>
+                                        <el-col class="photosh sgphtosh">
+                                            <el-card :body-style="{ padding: '0px !important' }" class="devptosty">
+                                                <el-upload name="file" class="avatar-uploader" action="/admin/atta/upload/picture"
+                                                           :show-file-list="false"
+                                                           :headers="{Authorization: 'Bearer '+ token}"
+                                                           :accept="accept" :before-upload="util.beforeAvatarUpload" :on-success="uploadRegistration">
+                                                    <img v-if="form.picregistration"
+                                                         :src="$store.state.IMG_URL+form.picregistration" class="avatar">
+                                                    <i v-else class="el-icon-plus avatar-uploader-icon"></i>
+                                                </el-upload>
+                                                <div class="btsty">
+                                                    <span class="fl">登记证</span>
+                                                    <div class="bottom clearfix text_al fr" v-if="form.picregistration">
+                                                        <i title="删除照片" class="iconfont icon-p-delet operate operate-p-delet"
+                                                           @click="removePic('picregistration')"></i>
+                                                    </div>
+                                                </div>
+                                            </el-card>
+                                        </el-col>
+                                        <el-col class="photosh sgphtosh">
+                                            <el-card :body-style="{ padding: '0px !important' }" class="devptosty">
+                                                <el-upload name="file" class="avatar-uploader" action="/admin/atta/upload/picture"
+                                                           :show-file-list="false"
+                                                           :headers="{Authorization: 'Bearer '+ token}"
+                                                           :accept="accept" :before-upload="util.beforeAvatarUpload"
+                                                           :on-success="uploadSuccessCertificate">
+                                                    <img v-if="form.piccertificate"
+                                                         :src="$store.state.IMG_URL+form.piccertificate" class="avatar">
+                                                    <i v-else class="el-icon-plus avatar-uploader-icon"></i>
+                                                </el-upload>
+                                                <div class="btsty">
+                                                    <span class="fl">合格证</span>
+                                                    <div class="bottom clearfix text_al fr" v-if="form.piccertificate">
+                                                        <i title="删除照片" class="iconfont icon-p-delet operate operate-p-delet"
+                                                           @click="removePic('piccertificate')"></i>
+                                                    </div>
+                                                </div>
+                                            </el-card>
+                                        </el-col>
+                                        <el-col class="photosh sgphtosh">
+                                            <el-card :body-style="{ padding: '0px !important' }" class="devptosty">
+                                                <el-upload name="file" class="avatar-uploader" action="/admin/atta/upload/picture"
+                                                           :show-file-list="false"
+                                                           :headers="{Authorization: 'Bearer '+ token}"
+                                                           :accept="accept" :before-upload="util.beforeAvatarUpload" :on-success="uploadSuccessImport">
+                                                    <img v-if="form.picimport"
+                                                         :src="$store.state.IMG_URL+form.picimport" class="avatar">
+                                                    <i v-else class="el-icon-plus avatar-uploader-icon"></i>
+                                                </el-upload>
+                                                <div class="btsty">
+                                                    <span class="fl">货物进口证</span>
+                                                    <div class="bottom clearfix text_al fr" v-if="form.picimport">
+                                                        <i title="删除照片" class="iconfont icon-p-delet operate operate-p-delet"
+                                                           @click="removePic('picimport')"></i>
+                                                    </div>
+                                                </div>
+                                            </el-card>
+                                        </el-col>
+                                    </el-form-item>
+                                </el-form>
+                            </el-col>
+                        </el-row>
+                    </el-collapse-item>
+                    <el-collapse-item title="申请安装信息" class="lefw10 wzpdt10" name="3">
+                        <el-row :gutter="20">
+                            <el-col :span="8">
+                                <el-form-item label="安装联系人" prop="vehicleenginenum">
+                                    <el-input type="text" placeholder="请输入安装联系人" v-model="form.vehicleenginenum"></el-input>
+                                </el-form-item>
+                            </el-col>
+                            <el-col :span="8">
+                                <el-form-item label="安装联系方式" prop="vehicleenginenum">
+                                    <el-input type="text" placeholder="请输入安装联系方式" v-model="form.vehicleenginenum"></el-input>
+                                </el-form-item>
+                            </el-col>
+                            <el-col :span="8">
+                                <el-form-item label="预约安装时间" prop="vehicleenginenum">
+                                    <el-date-picker type="date" placeholder="选择初登日期" v-model="form.createdate"
+                                                    value-format="yyyy-MM-dd"
+                                                    style="width: 100%;"></el-date-picker>
+                                </el-form-item>
+                            </el-col>
+                        </el-row>
+                        <el-row :gutter="20">
+                            <el-col :span="8">
+                                <el-form-item label="车辆到达情况" prop="vehicleenginenum">
+                                    <div style="overflow: hidden; width: 100%">
+                                        <el-radio-group v-model="form.isArrive">
+                                            <el-radio-button label="车已到"></el-radio-button>
+                                            <el-radio-button label="车未到"></el-radio-button>
+                                        </el-radio-group>
+                                    </div>
+                                </el-form-item>
+                            </el-col>
+                            <el-col :span="16">
+                                <el-form-item label="安装地址">
+                                    <el-select
+                                            v-model="address"
+                                            filterable
+                                            remote
+                                            reserve-keyword
+                                            placeholder="请输入关键词"
+                                            :remote-method="autoInput"
+                                            value-key="name"
+                                            @change="changeAdress"
+                                            @focus="autoInput(address)"
+                                            :loading="loading">
+                                        <el-option
+                                                v-for="(item, index) in addressList"
+                                                :key="index"
+                                                :label="item.name + '-' + item.district"
+                                                :value="item">
+                                        </el-option>
+                                    </el-select>
+                                    <!--<el-input placeholder="请输入安装地址" v-model="address"></el-input>-->
+                                </el-form-item>
+                            </el-col>
+                        </el-row>
+                        <el-row :gutter="20">
+                            <el-amap vid="amapDemo" :center="center" :plugin="plugin" :amap-manager="amapManager" :zoom="zoom" :events="events"
+                                     style="width:100%;height:300px;margin: 10px 0;"></el-amap>
+                        </el-row>
+                        <el-row :gutter="20">
+                            <el-col :span="8">
+                                <el-form-item label="选择安装人员" prop="vehicleenginenum">
+                                    <el-input type="text" placeholder="请输入选择安装人员" v-model="form.vehicleenginenum"></el-input>
+                                </el-form-item>
+                            </el-col>
+                        </el-row>
+                        <el-row :gutter="20">
+                            <el-button type="primary" style="float: right; margin: 10px;">提交派单</el-button>
+                        </el-row>
+                    </el-collapse-item>
+                </el-collapse>
+            </el-col>
+        </el-row>
+    </el-form>
+</template>
+
+<script>
+    import { getVehList } from "@/views/basicManage/ownerVehicleManage/service";
+    import { getToken } from '@/utils/auth'
+    import util from 'utils/tools';
+    import productList from './productList'
+    import VueAMap from 'vue-amap'
+
+    let amapManager = new VueAMap.AMapManager();
+
+    export default {
+        name: "installOrder",
+        components: {
+            productList
+        },
+        data () {
+            return {
+                form: {
+                    corpname: '',// 保单公司
+                },
+                rules: {},
+                vehlist: [], // 车型
+                carColor: [],
+                token: getToken(),
+                accept: '.jpg,.png',
+                util: util,
+                activeNames: ['1', '2', '3'],
+                zoom: 12,
+                center: [121.59996, 31.197646],
+                amapManager,
+                events: {
+                    init (o) {
+                        // let marker = new AMap.Marker({
+                        //     position: [121.59996, 31.197646]
+                        // });
+                        // marker.setMap(o);
+                    }
+                },
+                address: '成都市高新区',
+                loading: false,
+                addressList: [],
+                marker: null,
+                plugin: [{
+                    pName: 'Geolocation',
+                    enableHighAccuracy: true,
+                    showButton: true, //显示定位按钮，默认：true
+                    showMarker: false, //定位成功后在定位到的位置显示点标记，默认：true
+                    zoomToAccuracy: false, //定位成功后调整地图视野范围使定位位置及精度范围视野内可见，默认：false
+                }]
+            }
+        },
+        methods: {
+            vehChange (r) {
+                const params = {
+                    page: 1,
+                    limit: 10000,
+                    isactive: 1
+                }
+                getVehList(params).then((res) => {
+                    this.vehlist = res.data.data;
+                });
+            },
+            async getCorpList (parm, cb) {
+                // if (!show) return
+                let param = {
+                    page: 1,
+                    limit: 10000,
+                    corpcategory: 'BANK',
+                    corpname: parm
+                }
+                try {
+                    const {data} = await getParentInfoList(param)
+                    cb(data.data.records)
+                    // this.corplist = data.data.records;
+                } catch (e) {
+
+                }
+            },
+            uploadSuccessInvoice (res, file) {
+                this.form.picinvoice = res.data
+                this.initViewer()
+            },
+            uploadSuccessVehiclelicense (res, file) {
+                this.form.picvehiclelicense = res.data
+                this.initViewer()
+            },
+            uploadSuccessIdcard (res, file) {
+                this.form.picidcard = res.data
+                this.initViewer()
+            },
+            uploadRegistration (res, file) {
+                this.form.picregistration = res.data
+                this.initViewer()
+            },
+            uploadSuccessCertificate (res, file) {
+                this.form.piccertificate = res.data
+                this.initViewer()
+            },
+            uploadSuccessImport (res, file) {
+                this.form.picimport = res.data
+                this.initViewer()
+            },
+            initViewer () {
+                if (this.viewer)
+                    this.viewer.destroy()
+                const el = this.$refs['rpShowimgDialog'].$el
+                this.$nextTick(() => {
+                    this.viewer = new Viewer(el)
+                });
+            },
+            /**
+             * 高德地图API autocomplete
+             * @param query
+             */
+            autoInput (query) {
+                if (query !== '') {
+                    this.loading = true;
+                    let autoComplete = new AMap.Autocomplete({
+                        city: '全国'
+                    });
+                    autoComplete.search(query, (status, result) => {
+                        // 搜索成功时，result即是对应的匹配数据
+                        console.log(result)
+                        this.addressList = result.tips
+                        this.loading = false
+                    })
+                } else {
+                    this.addressList = [];
+                }
+            },
+            changeAdress (item) {
+                let o = amapManager.getMap();
+                let {location} = item
+                if (this.marker) {
+                    this.marker.setMap(null);
+                    this.marker = null
+                }
+                let lnglatXY = [location.lng, location.lat];
+                this.marker = new AMap.Marker({
+                    position: lnglatXY, // 经纬度对象，也可以是经纬度构成的一维数组[116.39, 39.9]
+                    draggable: true
+                });
+                this.marker.setMap(o);
+                this.center = lnglatXY
+                this.marker.on('dragend', (e) => {
+                    console.log(e)
+                    this.center = [e.lnglat.lng, e.lnglat.lat]
+                })
+                this.address = item.name
+            }
+        },
+        created () {
+            // this.debouncedGetAnswer = _.debounce(this.autoInput, 500)
+        }
+    }
+</script>
+
+<style scoped>
+
+</style>

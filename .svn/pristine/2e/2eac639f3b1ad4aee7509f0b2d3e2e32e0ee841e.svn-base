@@ -1,0 +1,71 @@
+import insuranceCountChart from '@/components/insuranceCountChart'
+import { getInsuranceDataCount, getPolicyno } from './service'
+import { mapState } from 'vuex'
+
+export default {
+    name: "insuranceCount",
+    data () {
+        return {
+            policynos: [],
+            policyno: '',
+            countData: {}
+        }
+    },
+    components: {
+        insuranceCountChart
+    },
+    computed: {
+        ...mapState({
+            corporateinfo: state => {
+                return state.user.corporateinfo
+            },
+            permissions: state => {
+                return state.user.permissions
+            }
+        }),
+    },
+    methods: {
+        async getInsuranceDataCount () {
+            try {
+                const params = {
+                    insurancecorpid: this.corporateinfo.id,
+                    policyno: this.policyno
+                }
+                const {data} = await getInsuranceDataCount(params)
+                this.countData = data.data
+            } catch (e) {
+
+            }
+        },
+        async getPolicyno () {
+            try {
+                const params = {
+                    insurancecorpid: this.corporateinfo.id
+                }
+                const {data} = await getPolicyno(params)
+                this.policynos = data.data
+            } catch (e) {
+
+            }
+        },
+        jump (name, boolean) {
+            if (!boolean) {
+                this.$message.warning('该账号无权限进入详情页面，请联系管理员!')
+                return
+            }
+            this.$router.push({
+                name,
+                params: {
+                    policyno: this.policyno
+                }
+            })
+        },
+        isJump (page) {
+            return this.permissions.includes(page)
+        }
+    },
+    mounted () {
+        this.getInsuranceDataCount();
+        this.getPolicyno();
+    }
+}

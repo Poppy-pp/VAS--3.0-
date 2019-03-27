@@ -1,0 +1,160 @@
+import { fetchTree } from './service'
+
+export default {
+    name: 'panels',
+    data () {
+        return {
+            treeData: [],
+            aExpandedKeys: [],
+            defaultProps: {
+                children: 'children',
+                label: 'name'
+            },
+            listQuery: {
+                name: undefined
+            },
+            labelPosition: 'right',
+            form: {
+                permission: "",
+                name: "",
+                menuId: "",
+                parentId: "",
+                url: "",
+                icon: "",
+                sort: "",
+                component: "",
+                type: "",
+                method: "",
+                path: ""
+            },
+            formEdit: true,
+            methodOptions: ['GET', 'POST', 'PUT', 'DELETE'],
+            typeOptions: ['0', '1'],
+            formStatus: '',
+            currentId: -1,
+            currentData: {}}
+
+    },
+    mounted () {
+        this.getList();
+    },
+    filters: {
+        typeFilter (type) {
+            const typeMap = {
+                0: '菜单',
+                1: '按钮'
+            }
+            return typeMap[type]
+        }
+    },
+    methods: {
+        /**
+         * 获取列表
+         */
+        getList () {
+            fetchTree(this.listQuery).then(response => {
+                this.treeData = response.data
+            })
+        },
+        filterNode (value, data) {
+            if (!value) return true
+            return data.label.indexOf(value) !== -1
+        },
+        /**
+         * 获取单个信息
+         * @param data
+         */
+        getNodeData (data) {
+            this.resetForm();
+            if (!this.formEdit) {
+                this.formStatus = 'update'
+            }
+            this.currentId = data.id
+            this.currentData = data
+            for (let key in data) {
+                if (this.form.hasOwnProperty(key)) this.form[key] = data[key];
+            }
+            this.form.menuId = data.id;
+        },
+        nodeExpand (data) {
+            // todo
+        },
+        nodeCollapse (data) {
+            // todo
+        },
+        handlerAdd () {
+            this.resetForm()
+            this.formEdit = false
+            this.formStatus = 'create'
+        },
+        handlerEdit () {
+            if (this.form.menuId) {
+                this.formEdit = false
+                this.formStatus = 'update'
+            }
+        },
+        /**
+         * 删除
+         */
+        handleDelete () {
+            this.$confirm('此操作将永久删除, 是否继续?', '提示', {
+                confirmButtonText: '确定',
+                cancelButtonText: '取消',
+                type: 'warning'
+            }).then(() => {
+                this.$refs.tree.remove(this.currentData);
+                this.currentId = -1;
+                this.resetForm();
+                this.$notify({
+                    title: '成功',
+                    message: '删除成功',
+                    type: 'success',
+                    duration: 2000
+                })
+            })
+        },
+        onCancel () {
+            this.formEdit = true
+            this.formStatus = ''
+        },
+        update () {
+            let node = this.$refs.tree.getNode(this.currentData);
+            for (let key in this.form) {
+                if (node.data.hasOwnProperty(key)) node.data[key] = this.form[key];
+            }
+            this.$notify({
+                title: '成功',
+                message: '更新成功',
+                type: 'success',
+                duration: 2000
+            });
+            this.onCancel();
+        },
+        create () {
+            this.form.id = this.form.name
+            this.$refs.tree.append(this.form, this.currentData);
+            this.$notify({
+                title: '成功',
+                message: '创建成功',
+                type: 'success',
+                duration: 2000
+            })
+            this.onCancel();
+        },
+        resetForm () {
+            this.form = {
+                permission: "",
+                name: "",
+                menuId: "",
+                parentId: this.currentId,
+                url: "",
+                icon: "",
+                sort: "",
+                component: "",
+                type: "",
+                method: "",
+                path: ""
+            }
+        }
+    }
+}

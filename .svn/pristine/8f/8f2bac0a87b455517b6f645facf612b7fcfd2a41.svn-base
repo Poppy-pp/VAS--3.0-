@@ -1,0 +1,378 @@
+import util from 'utils/tools';
+import { getSupplierList, addSupplier, modifySupplier, removeSupplier, getSupplierDetails,getSupplierInfoSelect} from './service'
+import gdmap from '@/views/map/gdmap';
+import gdmap1 from '@/views/map/gdmap1';
+
+export default {
+        props: ['windowOutHeight'],
+        components: {
+            gdmap,
+            gdmap1
+        },
+        data() {
+            return {
+                fmtdata: util,
+                prOptions: util.initProvince(),
+                filters: {
+                    domSearch: [{
+                        select: ['suppliername'],
+                        content: ''
+                    }], //查询框
+                    isactive: '1'
+                },
+                filtersProd: {
+                    timeScope: '',
+                },
+
+                supplierProdOptions: [{
+                    value: 'A',
+                    label: 'VAS'
+                }, {
+                    value: 'B',
+                    label: 'E车宝'
+                }, {
+                    value: 'C',
+                    label: 'UCHE'
+                }],
+                listData: [],
+                total: 0,
+                currentPage: 1,
+                pageSize: 15,
+                listLoading: false,
+                activeName:'first',
+                supplierThisList: [],//基础详情
+                moreData:[],//设备信息
+                formDialogTableVisible: false,
+                dtotal: 0,//设备详情
+                dcurrentPage: 1,
+                dpageSize: 15,
+                sels: [], //列表选中列
+                editFormVisible: false, //编辑界面是否显示
+                editLoading: false,
+                editFormRules: {
+                    suppliername: [{
+                        required: true,
+                        message: '请输入供应商名称',
+                        trigger: 'blur'
+                    }],
+                    suppliertype :[{
+                        required: true,
+                        message: '请选择供应商类别',
+                        trigger: 'blur'
+                    }],
+                },
+                //编辑界面数据
+                editForm: {
+                    id: '',
+                    suppliercode: '',
+                    suppliername: '',
+                    suppliertype: '',
+                    supplierlevel:'1',
+                    supplieraddress: '',
+                    addresslng:'',
+                    addresslat:'',
+                    linkman: '',
+                    contactno: '',
+                    remark: '',
+                },
+                addFormVisible: false, //新增界面是否显示
+                addLoading: false,
+                addFormRules: {
+                    suppliername: [{
+                        required: true,
+                        message: '请输入供应商名称',
+                        trigger: 'blur'
+                    }],
+                    suppliertype: [{
+                        required: true,
+                        message: '请选择供应商类别',
+                        trigger: 'blur'
+                    }],
+                },
+                //新增界面数据
+                addForm: {
+                    suppliercode: '',
+                    suppliername: '',
+                    suppliertype: '',
+                    supplierlevel:'1',
+                    supplieraddress: '',
+                    addresslng:'',
+                    addresslat:'',
+                    linkman: '',
+                    contactno: '',
+                    remark: '',
+                },
+                createname: "",
+                updatename: "",
+            }
+        },
+        methods: {
+            // 地图
+            changeMapAdd() {
+                this.$refs.vueAmap.geocoder(this.addForm.supplieraddress, (res) => {
+                    this.addForm.addresslng = res.location.lng;
+                    this.addForm.addresslat = res.location.lat;
+                });
+            },
+            changeMapEdit() {
+                this.$refs.vueAmap1.geocoder(this.editForm.supplieraddress, (res) => {
+                    this.editForm.addresslng = res.location.lng;
+                    this.editForm.addresslat = res.location.lat;
+                });
+            },
+            //拖拽地图小点返回的地址
+            draggerMapMarker(address, lnglatXY, type) {
+                if(this.addFormVisible) {
+                    this.addForm.supplieraddress = address;
+                    this.addForm.addresslng = lnglatXY[0];
+                    this.addForm.addresslat = lnglatXY[1];
+                }
+                if(type == 2) {
+                    this.editForm.supplieraddress = address;
+                    this.editForm.addresslng = lnglatXY[0];
+                    this.editForm.addresslat = lnglatXY[1];
+                }
+            },
+            //查询清空
+            clearAll() {
+                this.filters.domSearch = [{
+                    select: [],
+                    content: ''
+                }] //清空查询框;
+            },
+            // 详情查看
+            formDetailHandle(supId) {
+                this.formDialogTableVisible = true;
+                this.supplierThisList = ''; //清空上条数据
+                let para = {  id: supId  }
+                getSupplierDetails(para).then((res) => {
+                    this.supplierThisList = res.data.data;
+                });
+            },
+            // 有效 鼠标移入
+            mouseoverChange(e) {
+                if($(e.target).hasClass('icon-duigou')) {
+                    $(e.target).addClass('operate-cha icon-cha').removeClass('operate-duigou icon-duigou');
+                } else {
+                    $(e.target).addClass('operate-duigou icon-duigou').removeClass('operate-cha icon-cha');
+                }
+            },
+            // 有效 鼠标移除
+            mouseoutChange(e) {
+                if($(e.target).hasClass('icon-cha')) {
+                    $(e.target).addClass('operate-duigou icon-duigou').removeClass('operate-cha icon-cha');
+                } else {
+                    $(e.target).addClass('operate-cha icon-cha').removeClass('operate-duigou icon-duigou');
+                }
+            },
+            // 添加查询条件
+            addSelect() {
+                this.filters.domSearch.push({
+                    select: [],
+                    content: ''
+                });
+            },
+            // 移除查询条件
+            removeSelect(index) {
+                this.filters.domSearch.splice(index, 1); //从当前index位置开始，删除一项
+            },
+            // 有效无效开关
+            showData(i) {
+                this.filters.isactive = i;
+                this.handleQuery();
+            },
+            //有效无效转换
+            isactiveFomat(row, col) {
+                return row.isactive == 1 ? '是' : row.isactive != undefined ? '否' : '未知';
+            },
+            // 有效无效颜色切换
+            tableRowClassName(row, index) {
+                if(row.isactive == 0) {
+                    return 'warning-row';
+                }
+                return '';
+            },
+            // 有效按钮切换状态
+            handleChange: function(index, row) {
+                this.$confirm('确认设置该条记录的状态吗？', '提示', {
+                    type: 'warning'
+                }).then(() => {
+                    let para = {
+                        id: row.id,
+                        isactive: row.isactive == 0 ? 1 : 0,
+                    }
+                    modifySupplier(para).then((res) => {
+                        this.$message({
+                            message: '设置成功！',
+                            type: 'success'
+                        });
+                        row.isactive = para.isactive;
+                        this.handleQuery();
+                    }).catch(() => {
+                        this.listLoading = false;
+                    });
+                });
+            },
+            //切换当前页
+            dhandleCurrentChange(val) {
+                this.dcurrentPage = val;
+                // this.getDeciceListInfo();
+            },
+            //切换每页显示数量
+            dhandleSizeChange(val) {
+                this.dpageSize = val;
+                // this.getDeciceListInfo();
+            },
+
+            //切换当前页
+            handleCurrentChange(val) {
+                this.currentPage = val;
+                this.handleQuerySelect();
+            },
+            //切换每页显示数量
+            handleSizeChange(val) {
+                this.pageSize = val;
+                this.handleQuery();
+            },
+            // 模糊查询
+            handleQuerySelect() {
+                let para = {
+                    page: this.currentPage,
+                    limit: this.pageSize,
+                    domSearch: this.filters.domSearch,
+                    isactive:this.filters.isactive
+                };
+                this.listLoading = true;
+                getSupplierInfoSelect(para).then((res) => {
+                    this.total = res.data.data.total;
+                    this.listData = res.data.data.records;
+                    this.listLoading = false;
+                }).catch((error) => {
+                    this.listLoading = false;
+                });
+            },
+            //获取列表
+            handleQuery() {
+                let para = {
+                    page: this.currentPage,
+                    limit: this.pageSize,
+                    isactive:this.filters.isactive
+                };
+                this.listLoading = true;
+                getSupplierList(para).then((res) => {
+                    this.total = res.data.data.total;
+                    this.listData = res.data.data.records;
+                    this.listLoading = false;
+                }).catch((error) => {
+                    this.listLoading = false;
+                });
+            },
+            //显示编辑界面
+            handleEdit(index, row) {
+                this.editFormVisible = true;
+                this.$nextTick(function(){
+                    this.$refs.vueAmap1.geocoder(this.editForm.supplieraddress, (res) => {
+                        this.editForm.addresslng = res.location.lng;
+                        this.editForm.addresslat = res.location.lat;
+                    });
+                });
+                this.editForm = {
+                    id: row.id,
+                    suppliercode: row.suppliercode,
+                    suppliername: row.suppliername,
+                    suppliertype: row.suppliertype,
+                    supplierlevel:row.supplierlevel,
+                    supplieraddress: row.supplieraddress,
+                    addresslng:row.addresslng,
+                    addresslat:row.addresslat,
+                    linkman: row.linkman,
+                    contactno: row.contactno,
+                    remark: row.remark,
+                }
+            },
+            //显示新增界面
+            handleAdd() {
+                this.addFormVisible = true;
+                this.addForm = {
+                    suppliercode: '',
+                    suppliername: '',
+                    suppliertype: '',
+                    supplierlevel:'1',
+                    supplieraddress: '',
+                    addresslng: '',
+                    addresslat: '',
+                    linkman: '',
+                    contactno: '',
+                    remark: '',
+                };
+
+            },
+            //编辑
+            editSubmit() {
+                this.$refs.editForm.validate((valid) => {
+                    if(valid) {
+                        this.editLoading = true;
+                        let para = {
+                            id: this.editForm.id,
+                            suppliercode: this.editForm.suppliercode,
+                            suppliername: this.editForm.suppliername,
+                            suppliertype: this.editForm.suppliertype,
+                            supplierlevel:this.editForm.supplierlevel,
+                            supplieraddress: this.editForm.supplieraddress,
+                            addresslng: this.editForm.addresslng,
+                            addresslat: this.editForm.addresslat,
+                            linkman: this.editForm.linkman,
+                            contactno: this.editForm.contactno,
+                            remark: this.editForm.remark,
+                        }
+
+                        modifySupplier(para).then((res) => {
+                            this.editLoading = false;
+                            this.$message({
+                                message: '编辑成功！',
+                                type: 'success'
+                            });
+                            this.$refs['editForm'].resetFields();
+                            this.editFormVisible = false;
+                            this.handleQuerySelect();
+                        });
+                    }
+                });
+            },
+            //新增
+            addSubmit() {
+                this.$refs.addForm.validate((valid) => {
+                    if(valid) {
+                        this.addLoading = true;
+                        let para = {
+                            suppliercode: this.addForm.suppliercode,
+                            suppliername: this.addForm.suppliername,
+                            suppliertype: this.addForm.suppliertype,
+                            supplierlevel:this.addForm.supplierlevel,
+                            supplieraddress: this.addForm.supplieraddress,
+                            addresslng: this.addForm.addresslng,
+                            addresslat: this.addForm.addresslat,
+                            linkman: this.addForm.linkman,
+                            contactno: this.addForm.contactno,
+                            remark: this.addForm.remark,
+                        }
+                        addSupplier(para).then((res) => {
+                            this.addLoading = false;
+                            this.$message({
+                                message: '新增成功！',
+                                type: 'success'
+                            });
+                            this.$refs['addForm'].resetFields();
+                            this.addFormVisible = false;
+                            this.handleQuerySelect();
+                        });
+                    }
+                });
+            },
+           
+        },
+        created() {
+            this.handleQuery();
+        },
+
+    }

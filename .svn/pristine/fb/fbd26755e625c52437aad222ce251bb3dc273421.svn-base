@@ -1,0 +1,205 @@
+import insuranceCountChart from '@/components/insuranceCountChart'
+import { getInsuranceDataCount, getPolicyno} from './service'
+import { mapState } from 'vuex'
+import echarts from 'echarts';
+
+
+export default {
+    name: "insuranceCount",
+    data () {
+        return {
+            dayjsTmp: dayjs,
+            policynos: [],
+            policyno: '',
+            countData: {},
+            todolist: [{task: '[待采购]四川区域的库管提交了要货量，请查看并采购！ ',date:'2018-12-13'},{task: '[待收货]库房向您调拨了一批设备，设备已入库，请注意签收！',date:'2018-12-13'},{task: '[待采购]四川区域的库管提交了要货量，请查看并采购！',date:'2018-12-13'},{task: '[待收货]库房向您调拨了一批设备，设备已入库，请注意签收！ ',date:'2018-12-13'},{task: '[待收货]你的小可爱，突然出现！ ',date:'2018-12-13'},{task: '[待收货]fighting！ ',date:'2018-12-13'}],
+            messagelist:[{task: '由您采购给蒲琳库房的设备DB20181101235已被收货人签收！  ',date:'2018-12-13'},{task: 'XX库房的XXX型号的设备发出库存过高预警，请查看！  ',date:'2018-12-13'},{task: '由您反馈的有关单号为XXXXXXXXX的设备数量有偏差....  ',date:'2018-12-13'},{task: '做不完了',date:'2018-12-13'}],
+            chartColumn: null,
+        }
+    },
+    components: {
+        insuranceCountChart
+    },
+    computed: {
+        ...mapState({
+            corporateinfo: state=> {
+                return state.user.corporateinfo
+            }
+        })
+    },
+    methods: {
+        async getInsuranceDataCount () {
+            try {
+                const params = {
+                    insurancecorpid: this.corporateinfo.id,
+                    policyno: this.policyno
+                }
+                const {data} = await getInsuranceDataCount(params)
+                this.countData = data.data
+            } catch (e) {
+
+            }
+        },
+        async getPolicyno () {
+            try {
+                const params = {
+                    insurancecorpid: this.corporateinfo.id
+                }
+                const {data} = await getPolicyno(params)
+                this.policynos = data.data
+            } catch (e) {
+
+            }
+        },
+        jump(name) {
+            this.$router.push({
+                name,
+                params: {
+                    policyno: this.policyno
+                }
+            })
+        },
+        /*初始化首页图表*/
+        chartColumnFuc() {
+            let that = this;
+            /*首页新报订单数量统计 start*/
+            this.chartColumn = echarts.init(document.getElementById('chartColumn'));
+            // let para = {
+            //     showCount: 11000,
+            //     type: 'new_build_start',
+            // };
+            //获取开始的订单
+            // getoaHomeBarStartList(para).then((res) => {
+            //     let yearData = [],
+            //         barData = [],
+            //         lineData = [];
+            //     res.data.data.records.forEach((item, index) => {
+            //         yearData.push(item.key);
+            //         lineData.push(item.value);
+            //     });
+                //获取完成的订单
+                // let para = {
+                //     showCount: 11000
+                // };
+                // getoaHomeBarEndList(para).then((res) => {
+                //     res.data.data.records.forEach((item, index) => {
+                //         barData.push(item.value);
+                //     });
+                    let yearData = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'],
+                            barData =[820, 932, 901, 934, 1290, 1330, 1320],
+                            lineData = [131, 142, 1344, 145, 445, 546, 647];
+                    this.chartColumn.setOption({
+                        tooltip: {
+                            trigger: 'axis'
+                        },
+                        legend: {
+                            data:['新报订单','完成订单']
+                        },
+                        dataZoom: {
+                            show: true,
+                            realtime: false,
+                            startValue:dayjs(new Date()).subtract(7, 'day').format('YYYY-MM-DD'),
+                            // endValue:dayjs(new Date()).subtract(1, 'day').format('YYYY-MM-DD')
+                        },
+                        xAxis: {
+                            type: 'category',
+                            boundaryGap: true,
+                            data: yearData
+                        },
+                        yAxis: {
+                            type: 'value'
+                        },
+                        series: [{
+                                name: '新报订单',
+                                type: 'line',
+                                data: lineData
+                            },
+                            {
+                                name: '完成订单',
+                                type: 'line',
+                                data: barData
+                            }
+                       ]
+                    });
+                  
+                // });
+            // });
+
+            /*首页订单饼图分析数量 start*/
+            // this.chartPie = echarts.init(document.getElementById('chartPie'));
+            // let para1 = {
+            //     type: util.formatDate.format(new Date(), 'yyyy-MM-dd')
+            // };
+            // getDeclareStatistics(para1).then((res) => {
+            //     let newNum = 0, //新装数量
+            //         seriesNum = 0, //维修数量
+            //         removeNum = 0; //拆除数量
+            //     res.data.data.records.forEach((item, index) => {
+            //         if(item.key == "new_build_start") {
+            //             newNum += parseInt(item.value);
+            //         }
+            //         if(item.key == "vindicate_remove_start") {
+            //             removeNum += parseInt(item.value);
+            //         }
+            //         if(item.key == "vindicate_start") {
+            //             seriesNum += parseInt(item.value);
+            //         }
+            //     });
+            //     this.chartPie.setOption({
+            //         tooltip: {
+            //             trigger: 'item',
+            //             formatter: "{b}：{c}单"
+            //         },
+            //         legend: {
+            //             orient: 'vertical',
+            //             x: 'left',
+            //             data: ['新装', '拆除', '维修']
+            //         },
+            //         calculable: true,
+            //         series: [{
+            //             name: '今日订单量：',
+            //             type: 'pie',
+            //             radius: ['50%', '70%'],
+            //             avoidLabelOverlap: false,
+            //             label: {
+            //                 normal: {
+            //                     show: false,
+            //                     position: 'center'
+            //                 },
+            //                 emphasis: {
+            //                     show: true,
+            //                     textStyle: {
+            //                         fontSize: '30',
+            //                         fontWeight: 'bold'
+            //                     }
+            //                 }
+            //             },
+            //             labelLine: {
+            //                 normal: {
+            //                     show: false
+            //                 }
+            //             },
+            //             data: [{
+            //                     value: newNum,
+            //                     name: '新装'
+            //                 },
+            //                 {
+            //                     value: removeNum,
+            //                     name: '拆除'
+            //                 },
+            //                 {
+            //                     value: seriesNum,
+            //                     name: '维修'
+            //                 },
+            //             ]
+            //         }]
+            //     });
+            // });
+            },
+    },
+    mounted () {
+        this.getInsuranceDataCount();
+        this.getPolicyno();
+        this.chartColumnFuc();//加载图表
+    }
+}

@@ -1,0 +1,69 @@
+<template>
+    <div class="app-container calendar-list-container">
+        <el-col :span="24" class="toolbar" style="padding-bottom: 0px;">
+            <el-form :inline="true">
+                <el-form-item>
+                    <el-select v-model="filters" filterable placeholder="请输入首字母" @change="reload">
+                        <el-option value="" label="全部"></el-option>
+                        <el-option
+                                v-for="item in options"
+                                :key="item"
+                                :label="item"
+                                :value="item">
+                        </el-option>
+                    </el-select>
+                </el-form-item>
+                <el-form-item>
+                    <el-button type="primary" icon="el-icon-search" @click="reload">查询</el-button>
+                </el-form-item>
+            </el-form>
+        </el-col>
+        <div class="filter-container">
+            <el-button-group>
+                <el-button type="primary" icon="el-icon-plus" @click="handlerAdd">添加</el-button>
+                <el-button type="primary" icon="el-icon-edit" @click="handlerEdit">编辑</el-button>
+                <el-button type="danger" icon="el-icon-delete" @click="handleDelete">删除</el-button>
+            </el-button-group>
+        </div>
+        <el-row :gutter="20">
+            <el-col :span="8" style='margin-top:15px;'>
+                <el-card :style="{height: windowOutHeight - 240 + 'px'}" style="overflow: auto" v-loading="loading">
+                    <el-tree
+                            v-if="show"
+                            class="filter-tree"
+                            node-key="id"
+                            ref="tree"
+                            highlight-current
+                            :default-expanded-keys="aExpandedKeys"
+                            :props="defaultProps"
+                            lazy
+                            accordion
+                            @node-click="getNodeData"
+                            @node-expand="nodeExpand"
+                            @node-collapse="nodeCollapse"
+                            :load="loadNode"
+                    >
+                    </el-tree>
+                </el-card>
+            </el-col>
+
+            <el-col :span="16" style='margin-top:15px;'>
+                <el-card>
+                    <component
+                            v-bind:is="currentTabComponent" :formEdit="formEdit" :formStatus="formStatus" @onCancel="onCancel" :data="currentData" @update="update" @create="create">
+                    </component>
+                </el-card>
+            </el-col>
+        </el-row>
+    </div>
+</template>
+
+<script src="./index.js"></script>
+
+<style lang="stylus">
+
+    .el-autocomplete {
+        width: 100%;
+    }
+
+</style>

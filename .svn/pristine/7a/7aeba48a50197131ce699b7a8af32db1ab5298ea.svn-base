@@ -1,0 +1,188 @@
+import { mapState } from 'vuex'
+import { addWarehouseProd, facilityFormRules } from '../service'
+import { getStorageInfoSelect } from '../../basicSetting/storeHouseList/service'
+import { getSIMModelList } from "../../basicSetting/simList/service";
+
+export default {
+    name: "invoice-detail",
+    data () {
+        return {
+            getOutInvoices: [],
+            invoicePagination: {
+                size: 10,
+                total: 100
+            },
+            getOutVisible: false,
+            chooseFacilityVisible: false,
+            scanNumberVisible: false,
+            devNum: '',
+            devNumList: [],
+            inTypes: [{
+                value: 'IN_PURCHASE',
+                label: '采购入库'
+            }, {
+                value: 'IN_RETURN',
+                label: '返厂入库'
+            }],
+            facilityForm: null,
+            facilityFormRules: facilityFormRules,
+            storageList: [],
+            simTypeList: []
+        }
+    },
+    props: {
+        itemInvoice: {
+            default: {},
+            type: Object
+        },
+        storageInvoice: {
+            default: {},
+            type: Object
+        }
+    },
+    computed: {
+        ...mapState({
+            user: state => {
+                return state.user
+            }
+        }),
+        isProcurement () {
+            return this.storageInvoice.intype === 'IN_PURCHASE'
+        },
+        isExcel () {
+            return this.storageInvoice.isExcel
+        },
+        isView () {
+            return this.storageInvoice.isView
+        }
+    },
+    methods: {
+        init () {
+            if (!this.itemInvoice.stoStorageDto) {
+                this.itemInvoice.stoStorageDto = {}
+            }
+
+            if (!this.itemInvoice.listUpload) {
+                this.itemInvoice.listUpload = []
+            }
+
+            this.facilityForm = Object.assign(_.cloneDeep(this.itemInvoice), {
+                actiontype: this.storageInvoice.intype,
+                receiptno: this.storageInvoice.batchno,
+                purchaseDate: new Date().format('yyyy-MM-dd'),
+                createDate: new Date().format('yyyy-MM-dd'),
+                storageid: this.itemInvoice.stoStorageDto.id,
+                purchaseid: this.storageInvoice.stoPurchase.id,
+                batchno: this.itemInvoice.receiptno,
+                attachurl: this.storageInvoice.attachurl || '',
+                contractno: this.storageInvoice.stoPurchase.contractno, //采购合同
+                suppliername: this.storageInvoice.stoPurchase.suppliername, //供应商
+                supplierid: this.storageInvoice.stoPurchase.supplierid, //供应商Id
+                stoDelivery: {}
+            })
+            JsBarcode(this.$refs['invoice-bar-code'], this.itemInvoice.receiptno, {
+                height: 30,
+                fontSize: 12,
+            });
+        },
+        remove (index) {
+            this.facilityForm.listUpload.splice(index, 1)
+        },
+        // 手动添加设备
+        addFacility (boolean) {
+            if (boolean) {
+                this.facilityForm.listUpload.push({
+                    isEdit: true
+                })
+            } else {
+                this.devNumList = []
+                this.scanNumberVisible = true
+            }
+        },
+        chooseInvoices () {
+            this.getOutVisible = true
+        },
+        // 行点击事件
+        rowClick (row) {
+            if (!this.isView) {
+                _.forEach(this.facilityForm.listUpload, item => {
+                    item.isEdit = false
+                })
+                row.isEdit = true
+            }
+        },
+        handleSizeChange () {
+
+        },
+        handleCurrentChange () {
+
+        },
+        // 扫码添加设备
+        keyUpDevice () {
+            const arr = _.map(this.devNumList, 'equipmentnum')
+            if (this.devNum && !arr.includes(this.devNum)) {
+                this.devNumList.push({
+                    equipmentnum: this.devNum
+                })
+                this.devNum = ''
+            } else {
+                this.$message.warning('已存在编号')
+            }
+        },
+        // 删除扫码设备
+        deleteSavDeviceNum (index) {
+            this.devNumList.splice(index, 1)
+        },
+        // 扫码添加设备
+        checkScanNumber () {
+            this.scanNumberVisible = false
+            this.facilityForm.listUpload = this.facilityForm.listUpload.concat(this.devNumList);
+        },
+        // 提交数据
+        submit () {
+            this.$refs.facilityForm.validate(async valid => {
+                if (valid) {
+                    await addWarehouseProd(this.facilityForm)
+                    this.$message.success('提交成功')
+                }
+            })
+        },
+        // 获取库房
+        async getStorage () {
+            try {
+                const params = {
+                    limit: 1000,
+                    page: 1
+                }
+                const {data} = await getStorageInfoSelect(params)
+                this.storageList = data.data.records
+            } catch (e) {
+
+            }
+        },
+        changeStorage (storageId) {
+            const storage = _.find(this.storageList, {id: storageId})
+            this.facilityForm.storageid = storageId
+            this.facilityForm.stoStorageDto.managermobile = storage.managermobile
+            this.facilityForm.stoStorageDto.storageaddress = storage.storageaddress
+            this.facilityForm.stoStorageDto.managername = storage.managername
+        },
+        async getSIMModelList () {
+            try {
+                const params = {
+                    limit: 1000,
+                    page: 1,
+                    isactive: 1
+                }
+                const {data} = await getSIMModelList(params)
+                this.simTypeList = data.data.records
+            } catch (e) {
+
+            }
+        }
+    },
+    mounted () {
+        // this.getSIMModelList()
+        this.init()
+    }
+}

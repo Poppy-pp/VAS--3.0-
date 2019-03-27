@@ -1,0 +1,651 @@
+import util from 'utils/tools.js';
+import { getGroupInfoList, addGroupInfo, modifyGroupInfo, removeGroupInfo, getAllDeptList, getDeptManagerInfoList, getEmpsGroupList, getEmpsList, getSelectListGroup, getCheckoutOfGroupInfo, getNamebyUserid, SetStateGroupInfo, groupClass } from './service'
+export default {
+    name: "groupManage",
+    props: ['windowOutHeight'],
+    data() {
+        //验证中文
+        var checkChinese = (rule, value, callback) => {
+            var reg = /^[\u4e00-\u9fa5]+$/g,
+                flag = reg.test(value);
+            if(!flag) {
+                return callback(new Error('只能输入中文'));
+            } else {
+                callback();
+            }
+        };
+        // 验证所有电话
+        var checkAllMobile = (rule, value, callback) => {
+            var reg = /((\d{11})|^((\d{7,8})|(\d{4}|\d{3})-(\d{7,8})|(\d{4}|\d{3})-(\d{7,8})-(\d{4}|\d{3}|\d{2}|\d{1})|(\d{7,8})-(\d{4}|\d{3}|\d{2}|\d{1}))$)/g,
+                flag = reg.test(value);
+            if(!flag) {
+                return callback(new Error('请输入电话号码或手机号码'));
+            } else {
+                callback();
+            }
+        };
+        return {
+            fmtdata: util,
+            filters: {
+                domSearch: [{
+                    select: ['groupname'],
+                    content: ''
+                }], //查询框
+                isdelete: '0'
+            },
+            pickerOptions: { //日期
+            },
+            grouptypeOptions: [],
+            value: '',
+            formDialogTableVisible: false,
+            corplist: [], //所属公司
+            corpLoading: false, //
+            groups: [],
+            groupThisList: [],
+            empOptions: [], //员工分组列表
+            groupNumData: [], //组人数详情列表
+            empLoading: false,
+            total: 0,
+            currentPage: 1,
+            pageSize: 15,
+            createname: "",
+            updatename: "",
+            listLoading: false,
+            deptlist: [], //员工所属部门列表
+            deptLoading: false,
+            sels: [], //列表选中列
+            checkoutDataT: true, //数据验证返回的布尔值true
+            checkoutDataF: [], //数据验证组
+            thisInput: '', //编辑时存入row验证的值
+            editFormVisible: false, //编辑界面是否显示
+            editLoading: false,
+            editEmpLoading: false,
+            editFormRules: {
+                groupname: [{
+                    required: true,
+                    message: '请输入组名',
+                    trigger: 'blur'
+                },
+                    {
+                        validator: checkChinese,
+                        trigger: 'blur'
+                    }
+                ],
+                leadername: [{
+                    required: true,
+                    message: '请输入组长姓名',
+                    trigger: 'blur'
+                }],
+                mobile: [{
+                    required: true,
+                    message: '请输入组长电话',
+                    trigger: 'blur'
+                },
+                    {
+                        validator: checkAllMobile,
+                        trigger: 'blur'
+                    }
+                ],
+            },
+            //编辑界面数据
+            editForm: {
+                ID: '',
+                groupleaderid: '',
+                groupcode: '',
+                croupnum: '',
+                groupname: '',
+                grouptype: '',
+                leadername: '',
+                employeename: '',
+                deptname: '',
+                corpname: '',
+                mobile: '',
+                emps: [],
+                tempEmps: []
+            },
+            editFormId: {
+                deptid: '',
+                corpid: '',
+            },
+            editEmpOptions: [],
+            addFormVisible: false, //新增界面是否显示
+            addLoading: false,
+            addFormRules: {
+                groupname: [{
+                    required: true,
+                    message: '请输入组名',
+                    trigger: 'blur'
+                },
+                    {
+                        validator: checkChinese,
+                        trigger: 'blur'
+                    }
+                ],
+                leadername: [{
+                    required: true,
+                    message: '请输入组长姓名',
+                    trigger: 'blur'
+                }],
+                mobile: [{
+                    required: true,
+                    message: '请输入组长电话',
+                    trigger: 'blur'
+                },
+                    {
+                        validator: checkAllMobile,
+                        trigger: 'blur'
+                    }
+                ],
+            },
+            //新增界面数据
+            addForm: {
+                groupleaderid: '',
+                groupcode: '',
+                groupname: '',
+                grouptype: '',
+                croupnum: '',
+                leadername: '',
+                employeename: '',
+                deptname: '',
+                corpname: '',
+                mobile: '',
+                isdelete: 0,
+                emps: []
+            },
+            grouptypeLoading: false,
+            curGroupUser: [], //编辑页当前已选择的组员
+        }
+    },
+    methods: {
+        //分组类型查询
+        grouptypeChange(r) {
+            if(!r || this.grouptypeOptions.length > 0) return;
+            this.grouptypeLoading = true;
+            let para = {
+                dictvalue: 'GroupType'
+            }
+            groupClass(para).then((res) => {
+                this.grouptypeOptions = res.data.data;
+                this.grouptypeLoading = false;
+            });
+        },
+        // 数据重复验证
+        checkout(p, v, index) {
+            if(v == "") return;
+            if(this.thisInput == v) return; //编辑时 没改输入框值
+            this.checkoutDataT = true; //初始化
+            let paras = {
+                para: p,
+                value: v,
+            }
+            getCheckoutOfGroupInfo(paras).then((res) => {
+                let errorInput = res.data.data.param; //保存验证失败的字段
+                if(!res.data.data.result) {
+                    this.$message({
+                        message: '信息输入重复！',
+                        type: 'warning'
+                    });
+                    this.$refs[errorInput].$el.className = "el-form-item is-error"; //输入框标红
+                    this.checkoutDataF[index] = false
+                } else {
+                    this.$refs[errorInput].$el.className = "el-form-item"; //输入框恢复
+                    this.checkoutDataF[index] = true
+                }
+            });
+        },
+        //查询清空
+        clearAll() {
+            this.filters.domSearch = [{
+                select: [],
+                content: ''
+            }] //清空查询框;
+        },
+        //详情查看
+        formDetailHandle(groupid) {
+            this.createname = "";
+            this.updatename = "";
+            this.formDialogTableVisible = true;
+            this.groupThisList = ''; //清空上条数据
+            // 获取当前分组信息
+            let para = {
+                id: groupid
+            }
+            getGroupInfoList(para).then((res) => {
+                this.groupThisList = res.data.data.records[0];
+                let paraThree = {
+                    createby: this.groupThisList.createby == null ? 0 : this.groupThisList.createby,
+                    updateby: this.groupThisList.updateby == null ? 0 : this.groupThisList.updateby,
+                }
+                getNamebyUserid(paraThree).then((res) => {
+                    this.createname = res.data.data[0];
+                    this.updatename = res.data.data[1];
+                });
+            });
+        },
+        // 有效 鼠标移入
+        mouseoverChange(e) {
+            if($(e.target).hasClass('icon-duigou')) {
+                $(e.target).addClass('operate-cha icon-cha').removeClass('operate-duigou icon-duigou');
+            } else {
+                $(e.target).addClass('operate-duigou icon-duigou').removeClass('operate-cha icon-cha');
+            }
+        },
+        // 有效 鼠标移除
+        mouseoutChange(e) {
+            if($(e.target).hasClass('icon-cha')) {
+                $(e.target).addClass('operate-duigou icon-duigou').removeClass('operate-cha icon-cha');
+            } else {
+                $(e.target).addClass('operate-cha icon-cha').removeClass('operate-duigou icon-duigou');
+            }
+        },
+        // 添加查询条件
+        addSelect() {
+            this.filters.domSearch.push({
+                select: [],
+                content: ''
+            });
+        },
+        // 移除查询条件
+        removeSelect(index) {
+            this.filters.domSearch.splice(index, 1); //从当前index位置开始，删除一项
+        },
+        // 排序
+        sortChange(col, prop, order) {
+            let para = {
+                prop: col.prop,
+                order: col.order.substring(0, col.order.length - 6),
+            }
+            console.log(para);
+            // getSortList(para).then((res) => {});
+        },
+        // 有效无效开关
+        showData(i) {
+            this.filters.isdelete = i;
+            this.getGroup();
+        },
+        /*所属公司——下拉*/
+        // corpChange(r){
+        //     if(!r || this.corplist.length > 0) return;
+        //     this.corpLoading = true;
+        //     getCorpList().then((res) => {
+        //         this.corplist = res.data.data.records;
+        //         this.corpLoading = false;
+        //     });
+        // },
+        // 组人数详情列表
+        showNumData(id) {
+            let para = {
+                groupid: id,
+            }
+            //获取设备信息
+            getEmpsList(para).then((res) => {
+                this.groupNumData = res.data.data;
+            });
+        },
+        editRemoteMethod(query) {
+            let para = {
+                isenable: 1,
+                showCount: 30,
+                employeename: query
+            };
+            this.editEmpLoading = true;
+            getEmpsGroupList(para).then((res) => {
+                this.editEmpLoading = false;
+                this.editEmpOptions = res.data.data.records;
+            });
+        },
+        editEmpChange(r) {
+            if(!r || this.editEmpOptions.length > 0) return;
+            this.editEmpLoading = true;
+            let para = {
+                isenable: 1,
+                showCount: 30
+            };
+            getEmpsGroupList(para).then((res) => {
+                this.editEmpOptions = res.data.data.records;
+                this.editEmpLoading = false;
+            });
+        },
+        // 新增员工分组
+        empChange(r) {
+            if(!r || this.empOptions.length > 0) return;
+            this.empLoading = true;
+            let para = {
+                isenable: 1,
+                showCount: 30
+            };
+            getEmpsGroupList(para).then((res) => {
+                this.empOptions = res.data.data.records;
+                this.empLoading = false;
+            });
+        },
+        remoteMethod(query) {
+            let para = {
+                isenable: 1,
+                showCount: 30,
+                employeename: query
+            };
+            this.empLoading = true;
+            getEmpsGroupList(para).then((res) => {
+                this.empLoading = false;
+                this.empOptions = res.data.data.records;
+            });
+        },
+        //有效无效转换
+        isdeleteFomat(row, col) {
+            return row.isdelete == 1 ? '否' : row.isdelete != undefined ? '是' : '未知';
+        },
+        // 有效无效颜色切换
+        tableRowClassName(row, index) {
+            if(row.isdelete == 1) {
+                return 'warning-row';
+            }
+            return '';
+        },
+        // 有效按钮切换状态
+        handleChange: function(index, row) {
+            this.$confirm('确认设置该条记录的状态吗？', '提示', {
+                type: 'warning'
+            }).then(() => {
+                let para = {
+                    id: row.ID,
+                    isdelete: row.isdelete == 0 ? 1 : 0,
+                }
+                SetStateGroupInfo(para).then((res) => {
+                    this.$message({
+                        message: '设置成功',
+                        type: 'success'
+                    });
+                    row.isdelete = para.isdelete;
+                }).catch(() => {
+                    this.listLoading = false;
+                });
+            });
+        },
+        // 部门——搜索下拉
+        deptChange(r) {
+            if(!r || this.deptlist.length > 0) return;
+            this.deptLoading = true;
+            getAllDeptList().then((res) => {
+                this.deptlist = res.data.data.records;
+                this.deptLoading = false;
+            });
+        },
+        // 部门——搜索下拉
+        deptChangeSelect(query) {
+            let para = {
+                showCount: 30,
+                deptname: query,
+            }
+            getAllDeptList(para).then((res) => {
+                this.deptlist = res.data.data.records;
+                this.deptLoading = false;
+            });
+        },
+        // 组长——搜索下拉
+        querySearchName(queryString, cb) {
+            let para = {
+                    employeename: queryString
+                },
+                leaderNameArray = [];
+            getDeptManagerInfoList(para).then((res) => {
+                res.data.data.records.forEach(function(item, index) {
+                    leaderNameArray.push({
+                        value: item.employeename,
+                        id: item.id,
+                        leadermobile: item.mobile
+                    });
+                });
+                cb(leaderNameArray);
+            });
+        },
+        handleSelectName(item) {
+            this.editForm.employeename = item.value;
+            this.editForm.groupleaderid = item.id;
+            this.editForm.mobile = item.leadermobile;
+            this.addForm.employeename = item.value;
+            this.addForm.groupleaderid = item.id;
+            this.addForm.mobile = item.leadermobile;
+        },
+        //分组类型显示转换
+        formattype(row, column) {
+            return !row.grouptype ? '未知' : row.grouptype;
+        },
+        //切换当前页
+        handleCurrentChange(val) {
+            this.currentPage = val;
+            this.handleQuerySelect();
+            // this.getGroup();
+        },
+        //切换每页显示数量
+        handleSizeChange(val) {
+            this.pageSize = val;
+            this.getGroup();
+        },
+        //搜索按钮——模糊查询
+        handleQuerySelect() {
+            let para = {
+                currentPage: this.currentPage,
+                showCount: this.pageSize,
+                isdelete: this.filters.isdelete,
+                domSearch: this.filters.domSearch,
+            };
+            this.listLoading = true;
+            getSelectListGroup(para).then((res) => {
+                this.total = res.data.data.totalResult;
+                this.groups = res.data.data.records;
+                this.listLoading = false;
+            }).catch((error) => {
+                this.listLoading = false;
+            });
+        },
+        //获取用户列表
+        getGroup() {
+            let para = {
+                currentPage: this.currentPage,
+                showCount: this.pageSize,
+                isdelete: this.filters.isdelete,
+            };
+            this.listLoading = true;
+            getGroupInfoList(para).then((res) => {
+                this.total = res.data.data.totalResult;
+                this.groups = res.data.data.records;
+                this.listLoading = false;
+            }).catch((error) => {
+                this.listLoading = false;
+            });
+        },
+        //删除
+        handleDel(index, row) {
+            this.$confirm('确认删除该记录吗?', '提示', {
+                type: 'warning'
+            }).then(() => {
+                this.listLoading = true;
+                let para = {
+                    ids: row.ID,
+                    method: "delete"
+                };
+                removeGroupInfo(para).then((res) => {
+                    this.listLoading = false;
+                    this.$message({
+                        message: '删除成功',
+                        type: 'success'
+                    });
+                    this.getGroup();
+                });
+            }).catch(() => {
+                s
+
+            });
+        },
+        //显示编辑界面
+        handleEdit(index, row) {
+            $(".is-error").removeClass('is-error'); //清空验证时的红框
+            this.editFormVisible = true;
+            this.curGroupUser = row.emps; //当前已选择的组员
+            this.editForm = {
+                id: row.ID,
+                groupcode: row.groupcode,
+                groupname: row.groupname,
+                deptname: row.deptname,
+                corpname: row.corpname,
+                croupnum: row.croupnum,
+                grouptype: row.grouptype,
+                mobile: row.mobile,
+                groupleaderid: row.groupleaderid,
+                leadername: row.leadername,
+                emps: [],
+                tempEmps: [],
+            };
+            this.editForm.tempEmps = this.curGroupUser;
+            this.editEmpOptions = this.curGroupUser;
+            this.editFormId = {
+                deptid: row.deptid,
+                deptname: row.deptname,
+                corpid: row.corpid,
+                corpname: row.corpname,
+            }
+            this.thisInput = this.editForm.groupname; //将当前验证的字段 已获得的值存入
+        },
+        //显示新增界面
+        handleAdd() {
+            $(".is-error").removeClass('is-error'); //清空验证时的红框
+            this.addFormVisible = true;
+            this.addForm = {
+                groupcode: '',
+                groupname: '',
+                grouptype: '',
+                groupleaderid: '',
+                mobile: '',
+                croupnum: '',
+                leadername: '',
+                deptname: '',
+                corpname: '',
+                isdelete: 0,
+                emps: []
+            };
+        },
+        //编辑
+        editSubmit() {
+            this.$refs.editForm.validate((valid) => {
+                if(valid) {
+                    let grouptype = null,
+                        para,
+                        reg = /^[A-Za-z]+$/;
+                    this.editLoading = true;
+                    if(reg.test(this.editForm.grouptype)) {
+                        grouptype = this.editForm.grouptype;
+                    }
+                    para = {
+                        id: this.editForm.id,
+                        groupcode: this.editForm.groupcode,
+                        groupname: this.editForm.groupname,
+                        deptid: this.editForm.deptname,
+                        corpid: this.editForm.corpname,
+                        mobile: this.editForm.mobile,
+                        grouptype: grouptype,
+                        groupleaderid: this.editForm.groupleaderid,
+                        leadername: this.editForm.leadername,
+                        // emps:this.editForm.tempEmps
+                        emps: [],
+                    }
+                    if(this.editFormId.deptname == this.editForm.deptname) {
+                        para.deptid = this.editFormId.deptid;
+                    } else {
+                        para.deptid = this.editForm.deptname;
+                    }
+                    var empsIds = new Array();
+                    this.editForm.tempEmps.forEach(function(item, index) {
+                        empsIds.push(item.id);
+                    });
+                    para.emps = empsIds;
+
+                    modifyGroupInfo(para).then((res) => {
+                        this.editLoading = false;
+                        if(res.data.result.code == 0) {
+                            this.$message({
+                                message: '编辑成功',
+                                type: 'success'
+                            });
+                            this.$refs['editForm'].resetFields();
+                            this.editFormVisible = false;
+                            this.getGroup();
+                        }
+                    });
+                }
+            });
+        },
+        //新增
+        addSubmit() {
+            this.checkoutDataF.forEach((item, index) => {
+                this.checkoutDataT = item && this.checkoutDataT;
+            });
+            this.$refs.addForm.validate((valid) => {
+                if(valid) {
+                    this.addLoading = true;
+                    let para = {
+                        groupcode: this.addForm.groupcode,
+                        groupname: this.addForm.groupname,
+                        deptid: this.addForm.deptname,
+                        corpid: this.addForm.corpname,
+                        mobile: this.addForm.mobile,
+                        grouptype: this.addForm.grouptype,
+                        groupleaderid: this.addForm.groupleaderid,
+                        leadername: this.addForm.leadername,
+                        emps: this.addForm.emps,
+                        isdelete: this.addForm.isdelete,
+                    }
+                    if(this.checkoutDataT) { //验证通过时(无重复时)
+                        addGroupInfo(para).then((res) => {
+                            this.addLoading = false;
+                            this.$message({
+                                message: '新增成功',
+                                type: 'success'
+                            });
+                            this.$refs['addForm'].resetFields();
+                            this.addFormVisible = false;
+                            this.getGroup();
+                        });
+                    } else {
+                        this.addLoading = false;
+                        this.$message({
+                            message: '标红信息已存在！',
+                            type: 'warning'
+                        });
+                    }
+
+                }
+            });
+        },
+        selsChange(sels) {
+            this.sels = sels;
+        },
+        //批量删除
+        batchRemove() {
+            var ids = this.sels.map(item => item.id).toString();
+            this.$confirm('确认删除选中记录吗？', '提示', {
+                type: 'warning'
+            }).then(() => {
+                this.listLoading = true;
+                let para = {
+                    ids: ids,
+                    method: "delete"
+                };
+                removeGroupInfo(para).then((res) => {
+                    this.listLoading = false;
+                    this.$message({
+                        message: '删除成功',
+                        type: 'success'
+                    });
+                    this.getGroup();
+                });
+            }).catch(() => {
+
+            });
+        }
+    },
+    mounted() {
+        this.getGroup();
+    }
+
+}

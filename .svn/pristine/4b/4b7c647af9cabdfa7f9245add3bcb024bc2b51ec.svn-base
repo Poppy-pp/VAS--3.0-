@@ -1,0 +1,578 @@
+<template>
+    <div class="order-process-box">
+        <div style="height: 500px; width: 200px; min-width: 200px; margin-top: 10px">
+            <el-steps direction="vertical" :active="3">
+                <el-step title="新建安装单"></el-step>
+                <el-step title="接单"></el-step>
+                <el-step title="施工安装"></el-step>
+                <el-step title="保险出单"></el-step>
+                <el-step title="订单完成/复核"></el-step>
+            </el-steps>
+        </div>
+        <div style="flex-grow: 1;">
+            <el-collapse v-model="activeNames" class="bdcoll rpShowimgDialog" ref="rpShowimgDialog">
+                <el-collapse-item class="lefw10 wzpdt10" name="1">
+                    <template slot="title">未自动出单原因
+                    </template>
+                    <span style="margin-left: 10px; color: red">
+                            未填写发动机号，未填写车辆购置价
+                        </span>
+                </el-collapse-item>
+
+                <el-collapse-item title="安装信息" name="14" class="enlargeArea lefw10 wzpdt10">
+
+                    <el-row class="mt5" v-for="(item,index) in ruleFormStatic.installDetails">
+                        <el-row>
+                            <div class="install-title">
+                                {{item.packInfo.E_PRODTYPE+'设备'+item.packInfo.E_PRODMODEL}}
+                            </div>
+                            <span style="margin-left: 30px;">
+                                <el-tag v-if="item.pass" type="success"><i class="el-icon-success"></i> 检测通过</el-tag>
+                                <el-tag v-else type="danger"><i class="el-icon-error"></i> 检测未通过</el-tag>
+                            </span>
+                        </el-row>
+                        <el-col :span="24" v-if="item.isActive == 0">
+                            <dl class="dllist">
+                                <dd style="color:red;">无效设备</dd>
+                            </dl>
+                        </el-col>
+                        <el-col :span="8">
+                            <dl class="dllist">
+                                <dt>安装位置:</dt>
+                                <dd>{{ item.installpositionname }}</dd>
+                            </dl>
+                        </el-col>
+                        <el-col :span="8">
+                            <dl class="dllist">
+                                <dt>安装时状态：</dt>
+                                <dd v-if="item.onlinestatus">{{ item.onlinestatus == 0 ? "未上线" : "在线" }}</dd>
+                                <dd v-else>未上线</dd>
+                            </dl>
+                        </el-col>
+                        <el-col :span="8">
+                            <dl class="dllist">
+                                <dt>设备ID:</dt>
+                                <dd>{{ item.packInfo.E_PRODUNUM }}</dd>
+                            </dl>
+                        </el-col>
+                        <el-col :span="8">
+                            <dl class="dllist">
+                                <dt>设备类型:</dt>
+                                <dd>{{ item.packInfo.E_PRODTYPE }}</dd>
+                            </dl>
+                        </el-col>
+                        <el-col :span="8">
+                            <dl class="dllist">
+                                <dt>设备型号:</dt>
+                                <dd>{{ item.packInfo.E_PRODMODEL }}</dd>
+                            </dl>
+                        </el-col>
+                        <el-col :span="8">
+                            <dl class="dllist">
+                                <dt>SIM卡号:</dt>
+                                <dd>{{ item.packInfo.C_PRODUNUM }}</dd>
+                            </dl>
+                        </el-col>
+                        <el-col :span="8">
+                            <dl class="dllist">
+                                <dt>iccid:</dt>
+                                <dd>{{ item.packInfo.SIMCARDID }}</dd>
+                            </dl>
+                        </el-col>
+                        <el-col :span="8">
+                            <dl class="dllist">
+                                <dt>卡类型:</dt>
+                                <dd>{{ item.packInfo.C_PRODMODEL }}</dd>
+                            </dl>
+                        </el-col>
+                        <el-col :span="8">
+                            <dl class="dllist">
+                                <dt>设备实时状态：</dt>
+                                <dd v-if="item.curonlinestatus">{{ item.curonlinestatus }}</dd>
+                            </dl>
+                        </el-col>
+                        <el-col :span="8">
+                            <dl class="dllist">
+                                <dt>最后一次通讯时间：</dt>
+                                <dd v-if="item.recvtime">{{ item.recvtime }}</dd>
+                            </dl>
+                        </el-col>
+                        <el-col :span="16">
+                            <dl class="dllist">
+                                <dt>实时位置信息：</dt>
+                                <dd>
+                                    {{ item.curaddress ? item.curaddress : '-' }}
+                                    <el-button size='mini' icon="el-icon-refresh" @click="cldeviceIsOnstateItem(item)">刷新</el-button>
+                                </dd>
+                            </dl>
+                        </el-col>
+                        <el-col :span="24">
+                            <dl class="dllist lh55_mb10">
+                                <dd>
+                                    <div class="imgMd mr4 mt5" v-for="(item,index) in item.pictures">
+                                        <img :title="item.picdesc" class="image" :src="$store.state.ORIGINAL_URL+item.piclink">
+                                        <span>{{ item.picdesc }}</span>
+                                    </div>
+                                </dd>
+                            </dl>
+                        </el-col>
+                    </el-row>
+                    <hr>
+                    <el-row>
+                        <el-col :span="24">
+                            <dl class="dllist">
+                                <dt>安装产品：</dt>
+                                <dd>
+                                    <el-table
+                                            :data="tableData">
+                                        <el-table-column
+                                                prop="date"
+                                                label="产品编号"
+                                                width="180">
+                                        </el-table-column>
+                                        <el-table-column
+                                                prop="name"
+                                                label="产品名称"
+                                                width="180">
+                                        </el-table-column>
+                                        <el-table-column
+                                                label="内容">
+                                            <template slot-scope="scope">
+                                                <div>
+                                                    <dl>
+                                                        <dt>常规产品：</dt>
+                                                        <dd>有线设备1台</dd>
+                                                    </dl>
+                                                    <dl>
+                                                        <dt>保险产品：</dt>
+                                                        <dd>无线设备1台</dd>
+                                                    </dl>
+                                                    <dl>
+                                                        <dt>中国人民财产保险股份有限公司3年盗抢险服务1份</dt>
+                                                    </dl>
+                                                </div>
+                                            </template>
+                                        </el-table-column>
+                                    </el-table>
+                                </dd>
+                            </dl>
+                        </el-col>
+                    </el-row>
+                    <el-row class="mt5">
+                        <el-col :span="24">
+                            <dl class="dllist lh55_mb10">
+                                <dt>车辆照片：</dt>
+                                <dd>
+                                    <div class="imgMd mr4 mt5" v-for="(item,index) in ruleFormStatic.pictures">
+                                    <img :title="item.picdesc" class="image" :src="$store.state.ORIGINAL_URL+item.piclink">
+                                    <span>{{ item.picdesc }}</span>
+                                    </div>
+                                </dd>
+                            </dl>
+                            <!--<el-row :gutter="20">-->
+                                <!--<el-col class="photosh sgphtosh">-->
+                                    <!--<el-card :body-style="{ padding: '0px !important' }" class="devptosty"-->
+                                             <!--v-for="(item,index) in ruleFormStatic.pictures">-->
+                                        <!--<el-upload name="file" class="avatar-uploader" action="/admin/atta/upload/picture" :show-file-list="false"-->
+                                                   <!--:headers="{Authorization: 'Bearer '+ token}"-->
+                                                   <!--:accept="accept" :before-upload="util.beforeAvatarUpload" :on-success="uploadSuccessInvoice">-->
+                                            <!--<img v-if="item.piclink"-->
+                                                 <!--:src="$store.state.IMG_URL+item.piclink" class="avatar">-->
+                                            <!--<i v-else class="el-icon-plus avatar-uploader-icon"></i>-->
+                                        <!--</el-upload>-->
+                                        <!--<div class="btsty">-->
+                                            <!--<span class="fl">{{ item.picdesc }}</span>-->
+                                            <!--<div class="bottom clearfix text_al fr" v-if="item.piclink">-->
+                                                <!--<i title="删除照片" class="iconfont icon-p-delet operate operate-p-delet"-->
+                                                   <!--@click="removePic('picinvoice')"></i>-->
+                                            <!--</div>-->
+                                        <!--</div>-->
+                                    <!--</el-card>-->
+                                <!--</el-col>-->
+                            <!--</el-row>-->
+                        </el-col>
+                        <el-col :span="8">
+                            <dl class="dllist lh55_mb10">
+                                <dt>接单时间：</dt>
+                                <dd></dd>
+                            </dl>
+                        </el-col>
+                        <el-col :span="8">
+                            <dl class="dllist lh55_mb10">
+                                <dt>安装人员：</dt>
+                                <dd></dd>
+                            </dl>
+                        </el-col>
+                        <el-col :span="8">
+                            <dl class="dllist lh55_mb10">
+                                <dt>开始安装时间：</dt>
+                                <dd></dd>
+                            </dl>
+                        </el-col>
+                        <el-col :span="8">
+                            <dl class="dllist lh55_mb10">
+                                <dt>完成安装时间：</dt>
+                                <dd></dd>
+                            </dl>
+                        </el-col>
+                        <el-col :span="8">
+                            <dl class="dllist lh55_mb10">
+                                <dt>开始安装时地址：</dt>
+                                <dd></dd>
+                            </dl>
+                        </el-col>
+                        <el-col :span="8">
+                            <dl class="dllist lh55_mb10">
+                                <dt>完成安装时地址：</dt>
+                                <dd></dd>
+                            </dl>
+                        </el-col>
+                        <el-col :span="8">
+                            <dl class="dllist lh55_mb10">
+                                <dt>安装备注信息：</dt>
+                                <dd></dd>
+                            </dl>
+                        </el-col>
+                        <el-col :span="8">
+                            <dl class="dllist lh55_mb10">
+                                <dt>
+                                    <el-tag>差旅费50元</el-tag>
+                                </dt>
+                            </dl>
+                        </el-col>
+                    </el-row>
+                </el-collapse-item>
+
+                <el-collapse-item title="保险出单操作" name="8" class="lefw10">
+                    <el-form label-position="top" :model="ruleForm" ref="ruleForm" :rules="ruleFormrules" class="cur-form-inn" label-width="110px"
+                             inline>
+                        <el-form-item label="保险出单所需图片上传" class="mt10">
+                            <el-row :gutter="20">
+                                <el-col class="photosh sgphtosh">
+                                    <el-card :body-style="{ padding: '0px !important' }" class="devptosty">
+                                        <el-upload name="file" class="avatar-uploader" action="/admin/atta/upload/picture" :show-file-list="false"
+                                                   :headers="{Authorization: 'Bearer '+ token}"
+                                                   :accept="accept" :before-upload="util.beforeAvatarUpload" :on-success="uploadSuccessInvoice">
+                                            <img v-if="form.picinvoice"
+                                                 :src="$store.state.IMG_URL+form.picinvoice" class="avatar">
+                                            <i v-else class="el-icon-plus avatar-uploader-icon"></i>
+                                        </el-upload>
+                                        <div class="btsty">
+                                            <span class="fl">购车发票</span>
+                                            <div class="bottom clearfix text_al fr" v-if="form.picinvoice">
+                                                <i title="删除照片" class="iconfont icon-p-delet operate operate-p-delet"
+                                                   @click="removePic('picinvoice')"></i>
+                                            </div>
+                                        </div>
+                                    </el-card>
+                                </el-col>
+                                <el-col class="photosh sgphtosh">
+                                    <el-card :body-style="{ padding: '0px !important' }" class="devptosty">
+                                        <el-upload name="file" class="avatar-uploader" action="/admin/atta/upload/picture" :show-file-list="false"
+                                                   :headers="{Authorization: 'Bearer '+ token}"
+                                                   :accept="accept" :before-upload="util.beforeAvatarUpload" :on-success="uploadSuccessVehiclelicense">
+                                            <img v-if="form.picvehiclelicense"
+                                                 :src="$store.state.IMG_URL+form.picvehiclelicense" class="avatar">
+                                            <i v-else class="el-icon-plus avatar-uploader-icon"></i>
+                                        </el-upload>
+                                        <div class="btsty">
+                                            <span class="fl">行驶证</span>
+                                            <div class="bottom clearfix text_al fr" v-if="form.picvehiclelicense">
+                                                <i title="删除照片" class="iconfont icon-p-delet operate operate-p-delet"
+                                                   @click="removePic('picvehiclelicense')"></i>
+                                            </div>
+                                        </div>
+                                    </el-card>
+                                </el-col>
+                                <el-col class="photosh sgphtosh">
+                                    <el-card :body-style="{ padding: '0px !important' }" class="devptosty">
+                                        <el-upload name="file" class="avatar-uploader" action="/admin/atta/upload/picture" :show-file-list="false"
+                                                   :headers="{Authorization: 'Bearer '+ token}"
+                                                   :accept="accept" :before-upload="util.beforeAvatarUpload" :on-success="uploadSuccessIdcard">
+                                            <img v-if="form.picidcard"
+                                                 :src="$store.state.IMG_URL+form.picidcard" class="avatar">
+                                            <i v-else class="el-icon-plus avatar-uploader-icon"></i>
+                                        </el-upload>
+                                        <div class="btsty">
+                                            <span class="fl">身份证</span>
+                                            <div class="bottom clearfix text_al fr" v-if="form.picidcard">
+                                                <i title="删除照片" class="iconfont icon-p-delet operate operate-p-delet"
+                                                   @click="removePic('picidcard')"></i>
+                                            </div>
+                                        </div>
+                                    </el-card>
+                                </el-col>
+                                <el-col class="photosh sgphtosh">
+                                    <el-card :body-style="{ padding: '0px !important' }" class="devptosty">
+                                        <el-upload name="file" class="avatar-uploader" action="/admin/atta/upload/picture" :show-file-list="false"
+                                                   :headers="{Authorization: 'Bearer '+ token}"
+                                                   :accept="accept" :before-upload="util.beforeAvatarUpload" :on-success="uploadRegistration">
+                                            <img v-if="form.picregistration"
+                                                 :src="$store.state.IMG_URL+form.picregistration" class="avatar">
+                                            <i v-else class="el-icon-plus avatar-uploader-icon"></i>
+                                        </el-upload>
+                                        <div class="btsty">
+                                            <span class="fl">登记证</span>
+                                            <div class="bottom clearfix text_al fr" v-if="form.picregistration">
+                                                <i title="删除照片" class="iconfont icon-p-delet operate operate-p-delet"
+                                                   @click="removePic('picregistration')"></i>
+                                            </div>
+                                        </div>
+                                    </el-card>
+                                </el-col>
+                                <el-col class="photosh sgphtosh">
+                                    <el-card :body-style="{ padding: '0px !important' }" class="devptosty">
+                                        <el-upload name="file" class="avatar-uploader" action="/admin/atta/upload/picture" :show-file-list="false"
+                                                   :headers="{Authorization: 'Bearer '+ token}"
+                                                   :accept="accept" :before-upload="util.beforeAvatarUpload" :on-success="uploadSuccessCertificate">
+                                            <img v-if="form.piccertificate"
+                                                 :src="$store.state.IMG_URL+form.piccertificate" class="avatar">
+                                            <i v-else class="el-icon-plus avatar-uploader-icon"></i>
+                                        </el-upload>
+                                        <div class="btsty">
+                                            <span class="fl">合格证</span>
+                                            <div class="bottom clearfix text_al fr" v-if="form.piccertificate">
+                                                <i title="删除照片" class="iconfont icon-p-delet operate operate-p-delet"
+                                                   @click="removePic('piccertificate')"></i>
+                                            </div>
+                                        </div>
+                                    </el-card>
+                                </el-col>
+                                <el-col class="photosh sgphtosh">
+                                    <el-card :body-style="{ padding: '0px !important' }" class="devptosty">
+                                        <el-upload name="file" class="avatar-uploader" action="/admin/atta/upload/picture" :show-file-list="false"
+                                                   :headers="{Authorization: 'Bearer '+ token}"
+                                                   :accept="accept" :before-upload="util.beforeAvatarUpload" :on-success="uploadSuccessImport">
+                                            <img v-if="form.picimport"
+                                                 :src="$store.state.IMG_URL+form.picimport" class="avatar">
+                                            <i v-else class="el-icon-plus avatar-uploader-icon"></i>
+                                        </el-upload>
+                                        <div class="btsty">
+                                            <span class="fl">货物进口证</span>
+                                            <div class="bottom clearfix text_al fr" v-if="form.picimport">
+                                                <i title="删除照片" class="iconfont icon-p-delet operate operate-p-delet"
+                                                   @click="removePic('picimport')"></i>
+                                            </div>
+                                        </div>
+                                    </el-card>
+                                </el-col>
+                            </el-row>
+                        </el-form-item>
+
+                        <el-row :gutter="20">
+                            <el-col :span="8" class="mt20">
+                                <el-form-item label="保险公司" prop="insurancecorpid">
+                                    <el-select v-model="ruleForm.insurancecorpid" @visible-change="insuranceCompanyList" filterable
+                                               placeholder="请选择" @change="chooseInsCorp" clearable>
+                                        <el-option v-for="item in insuranceCompany" :key="item.id" :label="item.insucorpname" :value="item.insucorpid">
+                                        </el-option>
+                                    </el-select>
+                                </el-form-item>
+                            </el-col>
+                            <el-col :span="8" class="mt20">
+                                <el-form-item label="保单编号" prop="policyno" ref="policyno">
+                                    <el-input type="text" placeholder="请输入保单编号" v-model="ruleForm.policyno" disabled></el-input>
+                                </el-form-item>
+                            </el-col>
+                            <el-col :span="8" class="mt20">
+                                <el-form-item label="车主姓名" prop="vehicleowner">
+                                    <el-input type="text" placeholder="请输入车主姓名" v-model="ruleForm.vehicleowner" disabled></el-input>
+                                </el-form-item>
+                            </el-col>
+                            <el-col :span="8" class="mt20">
+                                <el-form-item label="身份证号码" prop="vehicleowneridcard">
+                                    <el-input type="text" placeholder="请输入身份证号码" v-model="ruleForm.vehicleowneridcard" disabled></el-input>
+                                </el-form-item>
+                            </el-col>
+                            <el-col :span="8" class="mt20">
+                                <el-form-item label="联系电话" prop="vehicleownercontact">
+                                    <el-input type="text" placeholder="请输入出单客户手机号" v-model="ruleForm.vehicleownercontact" disabled></el-input>
+                                </el-form-item>
+                            </el-col>
+                            <el-col :span="8" class="mt20">
+                                <el-form-item label="发动机号" prop="vehicleenginenum">
+                                    <el-input type="text" placeholder="请输入发动机号" v-model="ruleForm.vehicleenginenum"></el-input>
+                                </el-form-item>
+                            </el-col>
+                            <el-col :span="8" class="mt20">
+                                <el-form-item label="厂牌型号" prop="vehiclemodel">
+                                    <el-input type="text" placeholder="请输入厂牌型号" v-model="ruleForm.vehiclemodel" disabled></el-input>
+                                </el-form-item>
+                            </el-col>
+                            <el-col :span="8">
+                                <el-form-item label="赔偿限额" class="mt20" prop="indemnitylimit" ref="indemnitylimit">
+                                    <el-input type="text" placeholder="请输入保单赔偿限额" v-model="ruleForm.indemnitylimit"
+                                              @change="checkIndemnitylimit(ruleForm.indemnitylimit, ruleForm, 'indemnitylimit')">
+                                        <template slot="append">元</template>
+                                    </el-input>
+                                    <span style="position: absolute; top: 30px; left: 0; color: #41b883"
+                                          v-if="ruleForm.priceInsucorp">使用保费：{{ruleForm.priceInsucorp}}元</span>
+                                </el-form-item>
+                            </el-col>
+                            <el-col :span="8" class="mt20">
+                                <el-form-item label="万网盗抢保障服务费" prop="price">
+                                    <el-input type="text" placeholder="请输入万网盗抢保障服务费" v-model="ruleForm.price"
+                                              @change="checkNum(ruleForm.price, ruleForm, 'price')">
+                                        <template slot="append">元</template>
+                                    </el-input>
+                                </el-form-item>
+                            </el-col>
+                            <el-col :span="8" class="mt20">
+                                <el-form-item label="出单日期" prop="issuedate">
+                                    <el-date-picker type="date" placeholder="选择出单日期" v-model="ruleForm.issuedate" style="width: 100%;"
+                                                    value-format="yyyy-MM-dd"
+                                                    @change="issuedateChange"></el-date-picker>
+                                </el-form-item>
+                            </el-col>
+                            <el-col :span="8">
+                                <el-form-item label="保险生效日期" class="mt20" prop="effectivedate">
+                                    <el-date-picker @change="effectivedateChange" type="date" placeholder="选择保险生效日期" v-model="ruleForm.effectivedate"
+                                                    value-format="yyyy-MM-dd"
+                                                    style="width: 100%;"></el-date-picker>
+                                </el-form-item>
+                            </el-col>
+                            <el-col :span="8">
+                                <el-form-item label="保险失效日期" class="mt20" prop="expiredate">
+                                    <el-date-picker type="date" placeholder="选择保险失效日期" v-model="ruleForm.expiredate" style="width: 100%;"
+                                                    @change="expiredateChange(ruleForm.expiredate)"
+                                                    value-format="yyyy-MM-dd"></el-date-picker>
+                                </el-form-item>
+                            </el-col>
+                            <el-col :span="8" class="mt20">
+                                <el-form-item label="第一受益人" prop="beneficiary">
+                                    <el-autocomplete v-model="ruleForm.beneficiary" class="inline-input width" :fetch-suggestions="getCorpList"
+                                                     placeholder="请选择第一受益人" value-key="corpname"></el-autocomplete>
+                                </el-form-item>
+                            </el-col>
+                            <el-col :span="8" class="mt20">
+                                <el-form-item label="车牌号" prop="vehicleplate">
+                                    <el-input type="text" placeholder="请输入车牌号" v-model="ruleForm.vehicleplate" disabled></el-input>
+                                </el-form-item>
+                            </el-col>
+                            <el-col :span="8" class="mt20">
+                                <el-form-item label="初登日期" prop="createdate">
+                                    <el-date-picker type="date" placeholder="选择初登日期" v-model="ruleForm.createdate"
+                                                    value-format="yyyy-MM-dd"
+                                                    style="width: 100%;"></el-date-picker>
+                                </el-form-item>
+                            </el-col>
+                            <el-col :span="8" class="mt20">
+                                <el-form-item label="联系地址" prop="owneraddress">
+                                    <el-input type="text" placeholder="请输入联系地址" v-model="ruleForm.owneraddress"></el-input>
+                                </el-form-item>
+                            </el-col>
+                        </el-row>
+                        <el-row :gutter="20">
+                            <el-col :span="24" class="mt20">
+                                <el-form-item label="备注" prop="remark">
+                                    <el-input :rows="3" type="textarea" placeholder="请输入备注" v-model="ruleForm.remark"></el-input>
+                                </el-form-item>
+                            </el-col>
+                        </el-row>
+                    </el-form>
+                    <el-row>
+                        <el-col class="footer_but_bd" :span="24" style="height: 100px;">
+                            <el-button type="primary" @click="submitForm" :loading="addLoading" style="margin-left:5px;float:right;">出单</el-button>
+                            <el-button type="primary" style="margin-left:5px;float:right;" @click="giveUpInsurance">弃保</el-button>
+                            <el-button @click="$router.back(-1)" style="margin-left:5px;float:right;">返回</el-button>
+                        </el-col>
+                    </el-row>
+                </el-collapse-item>
+            </el-collapse>
+
+            <el-dialog title="提示" width="500px" :visible.sync="insuranceAlertVisible">
+                <div style="padding: 0 20px;">
+                    <p>保险公司：{{ruleForm.insurancecorpname}}</p>
+                    <p>保单号：{{ruleForm.policyno}}</p>
+                    <p v-if="!ruleForm.isPolicynoExpire">该保单号期限剩余 <span style="color: #dc0000">{{ruleForm.policynoExpireTodday}}</span> 天，请联系负责人增加新保单号</p>
+                    <p v-if="!ruleForm.isPremiumBalance">该保单号余额为 <span style="color: #dc0000">{{ruleForm.premiumBalance}}</span> 元，请联系负责人增加新保单号</p>
+                </div>
+            </el-dialog>
+
+            <el-dialog
+                    title="退回保险"
+                    :visible.sync="sendBackVisible"
+                    width="30%">
+                <el-input
+                        type="textarea"
+                        :rows="4"
+                        placeholder="请输入退回原因"
+                        v-model="sendBackRemark">
+                </el-input>
+                <span slot="footer" class="dialog-footer">
+                    <el-button @click="sendBackVisible = false">取消</el-button>
+                    <el-button type="primary" @click="sendBack">提交</el-button>
+                </span>
+            </el-dialog>
+        </div>
+    </div>
+</template>
+
+<script src="./index.js"></script>
+
+<style lang="stylus">
+    @import '../../../assets/styl/customerDeclaration.styl';
+    green-bg = #41B883
+    blue-bg = #409eff
+
+    .order-process-box {
+        padding: 10px;
+        display flex
+    }
+
+    .width.el-autocomplete
+        width: 100%
+
+    .cust-title
+        line-height 40px
+        padding-left 15px
+        &:before
+            content: "";
+            padding: 0 2px;
+            height: 20px;
+            background: green-bg;
+            float left;
+            margin-top 10px;
+            margin-right 10px;
+
+    .location-refresh
+        font-weight bold;
+        margin-left 10px;
+        cursor pointer
+        font-size 18px;
+
+    .hint-message
+        text-align: center;
+        div:first-of-type
+            height: 1px;
+            background: #ccc;
+            margin-bottom: 30px;
+        div:last-of-type
+            margin-top: 30px;
+        div:nth-child(2)
+            color #787878
+            font-size 16px;
+
+    .install-title
+        color white
+        margin-bottom 10px;
+        background blue-bg
+        height 36px;
+        line-height 36px;
+        padding 0 10px;
+        font-size 15px;
+        display inline-block
+        /*float left*/
+        position relative
+        &::after
+            content: ''
+            width: 0;
+            height: 0;
+            display block
+            position absolute
+            border: 18px solid transparent;
+            border-left-color: blue-bg;
+            border-right-width: 0;
+            right -18px
+            top 0
+</style>

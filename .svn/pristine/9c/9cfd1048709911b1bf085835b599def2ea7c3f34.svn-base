@@ -1,0 +1,155 @@
+<template>
+    <section>
+        <el-col :span="24" class="toolbar" style="padding-bottom: 0px;">
+            <el-form :inline="true" :model="filters">
+                <template v-for="(item, index) in filters.domSearch">
+                    <template v-if="index == 0">
+                        <div style="display:inline-block;margin:0 10px 10px 0;">
+                            <el-input class="noborder color icon nofocus" @keyup.native.ctrl.8="resetForm()" @keyup.native.13="get" placeholder="请输入查询内容"
+                                      v-model="filters.domSearch[index].content">
+                                <el-select class="wp_select" multiple clearable filterable v-model="filters.domSearch[index].select" slot="prepend"
+                                           placeholder="选择条件">
+                                    <el-option label="单号" value="batchno"></el-option>
+                                </el-select>
+                                <template v-if="index == filters.domSearch.length-1">
+                                    <el-button slot="append" @click="addSelect" icon="el-icon-plus" title="添加查询条件"></el-button>
+                                </template>
+                                <template v-else>
+                                    <el-button slot="append" @click="removeSelect(index)" icon="el-icon-minus" title="移除查询条件"></el-button>
+                                </template>
+                            </el-input>
+                        </div>
+                    </template>
+                    <template v-else>
+                        <el-col :span="24">
+                            <div style="display:inline-block;margin:0 10px 10px 0;">
+                                <el-input class="noborder color icon nofocus" @keyup.native.ctrl.8="clearAll()" @keyup.native.13="get"
+                                          placeholder="请输入查询内容"
+                                          v-model="filters.domSearch[index].content">
+                                    <el-select class="wp_select" multiple clearable filterable v-model="filters.domSearch[index].select" slot="prepend"
+                                               placeholder="选择条件">
+                                        <el-option label="单号" value="batchno"></el-option>
+                                    </el-select>
+                                    <template v-if="index == filters.domSearch.length-1">
+                                        <el-button slot="append" @click="addSelect" icon="el-icon-plus" title="添加查询条件"></el-button>
+                                    </template>
+                                    <template v-else>
+                                        <el-button slot="append" @click="removeSelect(index)" icon="el-icon-minus" title="移除查询条件"></el-button>
+                                    </template>
+                                </el-input>
+                            </div>
+                        </el-col>
+                    </template>
+                    <template v-if="index == 0">
+                        <el-form-item>
+                            <el-button type="primary" @click="get" icon="el-icon-search">查询</el-button>
+                        </el-form-item>
+                        <el-form-item>
+                            <el-button type="info" @click="resetForm" icon="el-icon-refresh">重置</el-button>
+                        </el-form-item>
+                        <el-form-item>
+                            <el-button type="primary" :disabled="!multipleSelection.length" @click="receivingVisible = true">供应商收货</el-button>
+                        </el-form-item>
+                        <el-form-item>
+                            <el-button type="primary" @click="$router.push('/stockManage/returnFactoryInvoice')">新增返厂</el-button>
+                        </el-form-item>
+                    </template>
+                </template>
+            </el-form>
+        </el-col>
+        <el-table :max-height="windowOutHeight-215" :data="putInList" border ref="todeTable" highlight-current-row v-loading="loading"
+                  @selection-change="handleSelectionChange">
+            <el-table-column
+                    type="selection"
+                    align="center"
+                    width="35">
+            </el-table-column>
+            <el-table-column type="index" align="center" label="序号" width="50">
+            </el-table-column>
+            <el-table-column prop="batchno" label="单号" min-width="200" align="center">
+            </el-table-column>
+            <el-table-column prop="actiondate" align="center" label="返厂日期" min-width="100" :formatter="dateFormatter">
+            </el-table-column>
+            <el-table-column prop="fromemploreename" align="center" label="供应商" min-width="100">
+            </el-table-column>
+            <el-table-column prop="allocactionnum" align="center" label="返厂数量" min-width="100">
+            </el-table-column>
+            <el-table-column prop="actionstatusname" align="center" label="设备状态" width="160">
+            </el-table-column>
+            <el-table-column label="操作" width="90" align="center" fixed="right">
+                <template slot-scope="scope">
+                    <el-button id="button" @click="viewDetails(scope.row)" title="查看详情">
+                        <i class="iconfont icon-xiangqing operate operate-xiangqing"></i>
+                    </el-button>
+                    <el-button id="button" @click="viewDistribution(scope.row)" v-if="scope.row.deliveryid" title="查看物流">
+                        <i class="iconfont icon-wuliu operate operate-guanji"></i>
+                    </el-button>
+                </template>
+            </el-table-column>
+        </el-table>
+        <!--工具条-->
+        <el-col :span="24" class="toolbar">
+            <el-pagination @size-change="handleSizeChange" background @current-change="handleCurrentChange" :page-sizes="[15, 50, 80, 99]"
+                           :page-size="pagination.limit" layout="total, sizes, prev, pager, next" :total="pagination.total">
+            </el-pagination>
+        </el-col>
+
+        <el-dialog title="物流信息" :visible.sync="distributionVisible">
+            <div class="logistice_content" style="overflow: hidden" v-loading="expandLoading" element-loading-text="物流信息加载中..."
+                 element-loading-spinner="el-icon-loading"
+                 element-loading-background="rgba(0, 0, 0, 0.7)">
+                <article v-if="logisticsList.length">
+                    <span class="logistics">快递公司：<i>{{ logisticsList.logisticName }}</i></span>
+                    <span class="logistics">快递单号：<i>{{ logisticsList.logisticCode }}</i></span>
+                    <section v-for="(item,index) in logisticsList" :key="index">
+                        <span :class="[index === 0 ? 'point-green': '', 'point-time']"></span>
+                        <div class="aside">
+                            <p class="things"><span :class="[index === 0 ? 'text-green': '']">{{ item.acceptTime }}</span></p>
+                            <p class="brief"><span :class="[index === 0 ? 'text-green': '']">{{ item.acceptStation }}</span></p>
+                        </div>
+                    </section>
+                </article>
+                <div v-else="notext" style="text-align: center;color: #555;margin-top: 40px;">
+                    <span class="iconfont icon-notfind01" style="font-size:8rem;dispaly:block;color:#555"></span>
+                    <p>{{ notext || '暂无物流信息' }}</p>
+                </div>
+            </div>
+            <div slot="footer" class="dialog-footer">
+                <el-button @click="distributionVisible = false">关 闭</el-button>
+            </div>
+        </el-dialog>
+
+        <el-dialog title="确认收货" :visible.sync="receivingVisible">
+            <div style="padding: 10px;">
+                <p style="font-size: 16px; margin-bottom: 5px; text-align: center">你确定要将以下返厂单标记为供应商时已收货吗？</p>
+                <span v-for="(item, key) in multipleSelection">
+                    <span v-if="key !== 0">,</span>
+                    {{item.batchno}}
+                </span>
+            </div>
+            <div slot="footer" class="dialog-footer">
+                <el-button @click="receivingVisible = false">关 闭</el-button>
+                <el-button type="primary" @click="receivingVisible = false">提 交</el-button>
+            </div>
+        </el-dialog>
+
+    </section>
+</template>
+
+<script src="./index.js">
+
+</script>
+
+<style scoped lang="stylus">
+    .upload-row {
+        display flex
+        flex-direction column
+        /*margin-left 20px;*/
+        .el-button {
+            width 100px;
+            margin-top 20px;
+            margin-left 0
+        }
+    }
+
+</style>

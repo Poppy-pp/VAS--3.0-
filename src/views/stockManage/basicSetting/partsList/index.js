@@ -1,0 +1,371 @@
+import util from 'utils/tools';
+import { 
+    getPartsBatchno,
+    getPartsInfo,
+    getPartsList,
+    getPartsModelList,
+    addPartsInfo,
+    modifyPartsInfo,
+    removePartsInfo,
+    getSupplierList,
+    editPartsInfo,
+    addPartsInStore,
+    getDetails,
+    getStoPurchaseList
+} from './service.js';
+import { getModelUnit } from '../equipmentList/service';
+import { checkNum } from '@/utils/formValidation'
+
+export default {
+    props: ['windowOutHeight'],
+    data() {
+        return {
+            filters: {
+                domSearch: [{
+                    select: ['modelname'],
+                    content: ''
+                }], //查询框
+            },
+            listData: [],
+            partsType: [], //配件类型
+            partsLoading: false,
+            purchaseList:[],//采购合同
+            contractno:'',//采购合同
+            deviceListData: [], //入库量列表
+            deviceFormVisible: false,
+            devicelistLoading: false,
+            total: 0,
+            currentPage: 1,
+            pageSize: 15,
+            listLoading: false,
+            addFormVisible: false, //新增界面是否显示
+            addLoading: false,
+            addFormRules: {
+                contractid: [{required: true,message: '请选择采购合同',trigger: 'blur'}],
+                modelId: [{required: true,message: '请选择配件类型',trigger: 'blur'}],
+                instocknum: [{required: true,message: '请输入入库数量',trigger: 'blur'},{validator: checkNum,trigger: 'blur'}],
+            },
+            //新增界面数据
+            addForm: {
+                batchno:'',
+                contractid:'',
+                supplierid:'',
+                suppliername:'',
+                storagename:'',
+                modelId: '',
+                instocknum: '',
+                remarks:'',
+                operatingpersonnel:''
+            },
+            // 类型设置
+            typeFormVisible:false,//设备型号设置
+            typeListData:[],//设备型号数据
+            typeListLoading:false,
+            typetotal:0,//设备类型分页
+            typepageSize:15,
+            typecurrentPage: 1,
+            editable:false,//是否可编辑
+            typeForm:{
+                modelitem:'',
+                modelname:'',
+                supplierid:'',
+                modelunit:'',
+                isactive:'1'
+            },
+            supplierOptions:[],//供应商
+            supplierLoading:false,
+            modelunitOptions:[],//单位
+            modelunitLoading:false,
+            showEdit: [], //显示编辑框
+            editRowIndex:'',//编辑行下标
+        }
+    },
+    methods: {
+        // 打开配件类型弹窗，查询卡类型数据
+        showType(){
+            this.typeFormVisible = true;
+            this.getModel();
+        },
+        // 查询卡类型
+        getModel(){
+            let para = {
+                page: this.typecurrentPage,
+                limit: this.typepageSize,
+            };
+            this.typeListLoading = true;
+            getPartsModelList(para).then((res) => {
+                this.typetotal = res.data.data.total;
+                this.typeListData = res.data.data.records;
+                this.typeListLoading = false;
+            }).catch((error) => {
+                this.typeListLoading = false;
+            });
+        },
+        // 确定更新
+        typeConfirm(){
+            if (this.editable) {            //新增时
+                this.typeAddConfirm();
+            }else{                                  //修改时
+                this.typeEditConfirm();
+            }
+        },
+        // 取消
+        typeCancel(){
+            if (this.editable) {            //新增时
+                this.typeAddCancel();
+            }else{                                  //修改时
+                this.typeEditCancel();
+            }
+        },
+        // 配件型号点击新增
+        typeAddClick(){
+            this.typeForm = {
+                modelitem:'',
+                modelname:'',
+                supplierid:'',
+                modelunit:'',
+                isactive:'1'
+            },//清空输入框，初始化
+            this.typeListData.push(this.typeForm);
+            this.editable = true;
+        },
+        // 点击编辑类型
+        handleTypeEdit(index,row){
+            this.showEdit[index] = true;
+            this.$set(this.showEdit);//触发视图更新
+            this.editRowIndex = index;//存储下标
+        },
+        // 确定修改
+        typeEditConfirm(){
+            this.typeListLoading = true;
+            this.$refs.typeForm.validate((valid) => {
+                if (valid) {
+                    let para = Object.assign({}, this.typeListData[this.editRowIndex]);
+                    editPartsInfo(para).then((res) => {
+                        this.typeListLoading = false;
+                        this.$message.success('编辑成功！');
+                        this.getModel();
+                        this.typeEditCancel();
+                    });
+                }else{
+                    this.typeListLoading = false;
+                }
+            });
+        },
+        // 取消修改
+        typeEditCancel(){
+            this.showEdit = [];//取消
+            this.getModel();
+        },
+        // 确定新增
+        typeAddConfirm(){
+            this.typeListLoading = true;
+            this.$refs.typeForm.validate((valid) => {
+                if (valid) {
+                    let para = Object.assign({}, this.typeForm);
+                    addPartsInfo(para).then((res) => {
+                        this.typeListLoading = false;
+                        this.$message.success('新增成功！');
+                        this.getModel();
+                        this.typeAddCancel();
+                    }).catch((error) => {
+                        this.typeListLoading = false;
+                    });
+                }else{
+                    this.typeListLoading = false;
+                }
+            });
+            
+        },
+        // 取消新增
+        typeAddCancel(){
+            this.editable = false;//取消编辑
+            this.typeListData.splice(this.typeListData.length-1, 1); //从当前index位置开始，删除一项
+            this.handleQuery();
+        },
+        // 配件类型停用和启用
+        typeHandleChange(index,row){
+            if (row.id === '' || row.id === undefined) return;//当新增时
+            let para = {
+                id:row.id,
+                isactive : row.isactive,
+            }
+            modifyPartsInfo(para).then((res) => {
+                this.typeListLoading = false;
+                this.$message.success('修改成功！');
+                this.getModel();
+                this.typeCancel();
+            });
+        },
+        // 供应商下拉
+        supplierChange(r) {
+            if(!r || this.supplierOptions.length > 0) return;
+            this.supplierLoading = true;
+            let para = {
+                limit:1000,
+                page:1,
+                isactive:1,
+                domSearch:[{"select":["suppliertype"],"content":"PART"}]
+            }
+            getSupplierList(para).then((res) => {
+                this.supplierOptions = res.data.data.records;
+                this.supplierLoading = false;
+            });
+        },
+        // 选择供应商时
+        chooseSupplier(val){
+            this.typeListData[this.editRowIndex].supplierid = val;
+        },
+        // 单位下拉
+        modelunitChange(r) {
+            if(!r || this.modelunitOptions.length > 0) return;
+            this.modelunitLoading = true;
+            getModelUnit({limit:1000}).then((res) => {
+                this.modelunitOptions = res.data.data;
+                this.modelunitLoading = false;
+            });
+        },
+        // 配件类型分页
+        handleCurrentChangeType(val) {
+            this.typecurrentPage = val;
+            this.getModel();
+            this.typeAddCancel();
+        },
+        //切换每页显示数量
+        handleSizeChangeType(val) {
+            this.typepageSize = val;
+            this.getModel();
+            this.typeAddCancel();
+        },
+
+
+        // ----------------------------------------------------配件入库--------------------------------------------------
+        // 获取采购合同
+        async getStoPurchaseList () {
+            try {
+                const {data} = await getStoPurchaseList()
+                this.purchaseList = data.data;
+            } catch (e) {}
+        },
+        // 选择合同匹配供应商
+        chooseChange(val){                                         //新增入库
+            this.addForm.contractid = val.id;
+            this.addForm.suppliername = val.suppliername;
+            this.addForm.supplierid = val.supplierid;
+        },
+        // 配件类型——搜索下拉
+        partsChange(r) {
+            if(!r || this.partsType.length > 0) return;
+            this.partsLoading = true;
+            let para = {
+                limit:100
+            }
+            getPartsModelList(para).then((res) => {
+                this.partsType = res.data.data.records;
+                this.partsLoading = false;
+            });
+        },
+
+        //显示新增界面
+        handleAdd() {
+            this.addFormVisible = true;
+            this.contractno = '';
+            this.addForm = {
+                batchno:'',
+                contractid:'',
+                supplierid:'',
+                suppliername:'',
+                storagename:'新品库',
+                modelId: '',
+                instocknum: '',
+                remarks:'',
+                operatingpersonnel:this.$store.getters.userInfo.name,
+            };
+            //获取批次号
+            getPartsBatchno().then((res) => {
+                this.addForm.batchno = res.data.data;
+            });
+        },
+        //新增
+        addSubmit() {
+            this.$refs.addForm.validate((valid) => {
+                if(valid) {
+                    this.addLoading = true;
+                    let para = Object.assign({}, this.addForm);
+                    addPartsInStore(para).then((res) => {
+                        this.addLoading = false;
+                        this.$message.success('新增成功！');
+                        this.$refs['addForm'].resetFields();
+                        this.addFormVisible = false;
+                        this.handleQuery();
+                    }).catch((e) =>{
+                        this.addLoading = false;
+                    });
+                }
+            });
+        },
+
+        // 入库单详情
+        async toPutInStoDetails(rows){
+            this.deviceFormVisible = true;
+            try {
+                 const res = await getDetails({modelid:rows.modelId});
+                 this.deviceListData = res.data.data;
+            } catch (e) {}
+        },
+        
+        
+        //查询清空
+        clearAll() {
+            this.filters.domSearch = [{
+                select: [],
+                content: ''
+            }] //清空查询框;
+        },        // 添加查询条件
+        addSelect() {
+            this.filters.domSearch.push({
+                select: [],
+                content: ''
+            });
+        },
+        // 移除查询条件
+        removeSelect(index) {
+            this.filters.domSearch.splice(index, 1); //从当前index位置开始，删除一项
+        },
+        //切换当前页
+        handleCurrentChange(val) {
+            this.currentPage = val;
+            this.handleQuery();
+        },
+        //切换每页显示数量
+        handleSizeChange(val) {
+            this.pageSize = val;
+            this.handleQuery();
+        },
+       
+        //获取列表
+        handleQuery() {
+            let para = {
+                page: this.currentPage,
+                limit: this.pageSize,
+                domSearch: this.filters.domSearch,
+            };
+            this.listLoading = true;
+            getPartsInfo(para).then((res) => {
+                this.total = res.data.data.total;
+                this.listData = res.data.data.records;
+                this.listLoading = false;
+            }).catch((error) => {
+                this.listLoading = false;
+            });
+        },
+        //时间转换1
+        dateFormatter: function(row, col) {
+            if(row.actiondate == "" || row.actiondate == undefined) return '--';
+            return util.formatDate.format(new Date(row.actiondate), 'yyyy-MM-dd hh:mm:ss');
+        },
+    },
+    created() {
+        this.handleQuery();
+    }
+}

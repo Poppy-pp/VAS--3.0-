@@ -1,0 +1,89 @@
+import { mapState } from 'vuex'
+
+export default {
+    name: "invoice-detail",
+    data () {
+        return {
+            getOutInvoices: [],
+            invoicePagination: {
+                size: 10,
+                total: 100
+            },
+            isAdd: true,
+            isProcurement: true,
+            getOutVisible: false,
+            chooseFacilityVisible: false,
+            scanNumberVisible: false,
+            facilityForm: {
+                createDate: new Date().toLocaleDateString(),
+                dataList: [],
+            },
+            devNum: '',
+            devNumList: []
+        }
+    },
+    computed: {
+        ...mapState({
+            user: state => {
+                return state.user
+            }
+        }),
+    },
+    methods: {
+        remove (index) {
+            this.facilityForm.dataList.splice(index, 1)
+        },
+        addFacility (boolean) {
+            if (boolean) {
+                this.facilityForm.dataList.push({
+                    isEdit: false,
+                    detection: 'true',
+                    prodnum: ''
+                })
+            } else {
+                this.devNumList = []
+                this.scanNumberVisible = true
+            }
+        },
+        chooseInvoices () {
+            this.getOutVisible = true
+        },
+        rowClick (row) {
+            _.forEach(this.facilityForm.dataList, item => {
+                item.isEdit = false
+            })
+            row.isEdit = true
+        },
+        handleSizeChange () {
+
+        },
+        handleCurrentChange () {
+
+        },
+        keyUpDevice () {
+            const arr = _.map(this.devNumList, 'prodnum')
+            if (this.devNum && !arr.includes(this.devNum)) {
+                this.devNumList.push({
+                    prodnum: this.devNum
+                })
+                this.devNum = ''
+            } else {
+                this.$message.warning('已存在编号')
+            }
+        },
+        deleteSavDeviceNum (index) {
+            this.devNumList.splice(index, 1)
+        },
+        checkScanNumber () {
+            this.scanNumberVisible = false
+            this.facilityForm.dataList = this.facilityForm.dataList.concat(this.devNumList);
+        }
+    },
+    mounted () {
+        const num = (Math.random(0, 1) * 10000000).toFixed(0)
+        JsBarcode(this.$refs['invoice-bar-code'], num, {
+            height: 30,
+            fontSize: 12,
+        });
+    }
+}

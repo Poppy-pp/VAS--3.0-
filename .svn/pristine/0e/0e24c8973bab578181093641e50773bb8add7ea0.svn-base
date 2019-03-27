@@ -1,0 +1,31 @@
+import axios from 'axios';
+import Qs from 'qs';
+
+let base = '/vasms-web';
+let api = '/api';
+
+//字典管理接口
+const getSysDictionaryList = params => {
+    return axios.get(`${base}/api/v1/sys/sysDictionary`, {
+        params: params
+    });
+};
+
+const addSysDictionary = params => {
+    return axios.post(`${base}/api/v1/sys/sysDictionary`, params);
+};
+
+const modifySysDictionary = params => {
+    return axios.put(`${base}/api/v1/sys/sysDictionary/` + params.id, params);
+};
+
+const removeSysDictionary = params => {
+    return axios.post(`${base}/api/v1/sys/sysDictionary/batch`, Qs.stringify(params));
+};
+
+export {
+    getSysDictionaryList,
+    addSysDictionary,
+    modifySysDictionary,
+    removeSysDictionary
+}   

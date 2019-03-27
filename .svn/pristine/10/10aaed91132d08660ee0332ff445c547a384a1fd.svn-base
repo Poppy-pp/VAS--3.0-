@@ -1,0 +1,262 @@
+import _import from '@/utils/import'
+
+const Layout = _import('layout/Layout')
+// 动态路由
+export const asyncRouterMap = [
+    // 个人中心
+    {
+        path: '/profile',
+        component: Layout,
+        hidden: true,
+        children: [
+            {
+                path: 'index',
+                component: _import('profile/index'),
+                name: 'profile',
+                meta: {
+                    title: '个人中心',
+                    icon: ''
+                }
+            }
+        ]
+    },
+
+    // 车辆监控
+    {
+        path: '/vehicleMonitoring',
+        component: Layout,
+        redirect: 'noredirect',
+        name: 'vehicleMonitoring',
+        children: [
+            {
+                path: 'vehicleMonitoring',
+                component: _import('vehicleMonitoring/index'),
+                name: 'vehicleMonitoring',
+                meta: {title: '车辆监控', icon: 'iconfont icon-cheliangwanshuiqingkuangchaxun'}
+            },
+        ]
+    },
+
+    // 基础管理
+    {
+        path: '/basicManage',
+        component: Layout,
+        redirect: 'noredirect',
+        name: 'basicManage',
+        meta: {
+            title: '基础管理',
+            icon: 'iconfont icon-piliang'
+        },
+        children: [
+            {
+                path: 'ownerVehicleManage',
+                component: _import('basicManage/ownerVehicleManage/index'),
+                name: 'ownerVehicleManage',
+                meta: {title: '车主车辆管理'}
+            },
+            {
+                path: 'carmodelManage',
+                component: _import('basicManage/carmodelManage/index'),
+                name: 'carmodelManage',
+                meta: {title: '车型管理'}
+            },
+            {
+                path: 'employeeManage',
+                component: _import('basicManage/employeeManage/index'),
+                name: 'employeeManage',
+                meta: {title: '员工中心'}
+            },
+            {
+                path: 'customerManage',
+                component: _import('basicManage/customerManage/index'),
+                name: 'customerManage',
+                meta: {title: '客户管理'}
+            }
+        ]
+    },
+
+    // 系统配置
+    {
+        path: '/sysManage',
+        component: Layout,
+        redirect: 'noredirect',
+        name: 'sysManage',
+        meta: {
+            title: '系统配置',
+            icon: 'iconfont icon-xitongguanli-copy'
+        },
+        children: [
+            {
+                path: 'userCenter',
+                component: _import('sysManage/userCenter/index'),
+                name: 'userCenter',
+                meta: {title: '用户中心'}
+            },
+            {
+                path: 'roleManage',
+                component: _import('sysManage/roleManage/index'),
+                name: 'roleManage',
+                meta: {title: '角色权限'}
+            },
+            {
+                path: 'resourceManage',
+                component: _import('sysManage/resourceManage/index'),
+                name: 'resourceManage',
+                meta: {title: '资源菜单'}
+            },
+            {
+                path: 'organizationManage',
+                component: _import('sysManage/organizationManage/index'),
+                name: 'organizationManage',
+                meta: {title: '组织架构'}
+            },
+            {
+                path: 'groupManage',
+                component: _import('sysManage/group/index'),
+                name: 'groupManage',
+                meta: {title: '分组管理'}
+            },
+            {
+                path: 'dictionaryManage',
+                component: _import('sysManage/dictionaryManage/index'),
+                name: 'dictionaryManage',
+                meta: {title: '字典管理'}
+            },
+            {
+                path: 'interfaceManage',
+                component: _import('sysManage/interfaceManage/index'),
+                name: 'interfaceManage',
+                meta: {title: '接口管理'}
+            },
+            {
+                path: 'operationLog',
+                component: _import('sysManage/operationLog/index'),
+                name: 'operationLog',
+                meta: {title: '操作日志'}
+            },
+        ]
+    },
+
+    // 保险管理
+    {
+        path: '/insuranceManage',
+        component: Layout,
+        redirect: 'noredirect',
+        name: 'insuranceManage',
+        meta: {
+            title: '保险业务',
+            icon: 'iconfont icon-baoxian'
+        },
+        children: [
+            {
+                path: 'addInsurance',
+                component: _import('insuranceManage/addInsurance/index'),
+                name: 'addInsurance',
+                meta: {title: '新建保险单'}
+            },
+            {
+                path: 'insuranceBacklog',
+                component: _import('insuranceManage/insuranceBacklog/index'),
+                name: 'insuranceBacklog',
+                meta: {title: '保险待办'}
+            },
+           {
+                path: 'insuranceList',
+                component: _import('insuranceManage/insuranceList/index'),
+                name: 'insuranceList',
+                meta: {title: '保单管理'}
+            },
+            {
+                path: 'insuranceTemplate',
+                component: _import('insuranceManage/insuranceTemplate/index'),
+                name: 'insuranceTemplate',
+                meta: {title: '保单模板'}
+            },
+            {
+                path: 'policynoList',
+                component: _import('insuranceManage/policynoList/index'),
+                name: 'policynoList',
+                meta: {title: '保单号管理'}
+            },
+            {
+                path: 'orderSupplement',
+                component: _import('insuranceManage/orderSupplement/index'),
+                name: 'orderSupplement',
+                meta: {title: '订单补登'}
+            },
+            {
+                path: 'issuingPolicy/:id',
+                component: _import('insuranceManage/issuingPolicy/index'),
+                name: 'issuingPolicy',
+                hidden: true,
+                meta: {title: '保险出单'}
+            }
+        ]
+    },
+
+    // 行政管理
+    {
+        path: '/adminManage',
+        component: Layout,
+        redirect: 'noredirect',
+        name: 'adminManage',
+        meta: {
+            title: '行政管理',
+            icon: 'iconfont icon-qiandao'
+        },
+        children: [
+            {
+                path: 'attendanceRecord',
+                component: _import('adminManage/attendanceRecord/index'),
+                name: 'attendanceRecord',
+                meta: {title: '考勤历史记录'}
+            },
+            {
+                path: 'attendanceRules',
+                component: _import('adminManage/attendanceRules/index'),
+                name: 'attendanceRules',
+                meta: {title: '考勤规则维护'}
+            },
+            {
+                path: 'attendanceArea',
+                component: _import('adminManage/attendanceArea/index'),
+                name: 'attendanceArea',
+                meta: {title: '考勤区域维护'}
+            },
+        ]
+    },
+    // 库存管理
+    {
+        path: '/stockManage',
+        component: Layout,
+        redirect: 'noredirect',
+        name: 'stockManage',
+        meta: {
+            title: '库存管理',
+            icon: 'iconfont icon-yunkucun'
+        },
+        children: [
+            {
+                path: 'stockDesk',
+                component: _import('stockManage/stockDesk/index'),
+                name: 'stockDesk',
+                meta: {title: '工作台'}
+            },
+            {
+                path: 'basicSetting',
+                component: _import('stockManage/basicSetting/index'),
+                name: 'basicSetting',
+                meta: {title: '基础设置'}
+            },
+            {
+                path: 'purchaseContract',
+                component: _import('stockManage/purchaseContract/index'),
+                name: 'purchaseContract',
+                meta: {title: '采购合同'}
+            },
+        ]
+    },
+
+    // 404页面
+    {path: '*', redirect: '/404', hidden: true}
+]

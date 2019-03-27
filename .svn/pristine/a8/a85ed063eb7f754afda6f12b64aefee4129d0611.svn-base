@@ -1,0 +1,575 @@
+import util from '../../../utils/tools.js'
+import $ from 'jquery'
+import {
+    getSysRoleInfoList,
+    addSysRoleInfo,
+    modifySysRoleInfo,
+    removeSysRoleInfo,
+    getSysResourceInfoList,
+    editRuleResourceInfo,
+    getRuleResourceInfo
+} from './service';
+
+export default {
+    props: ['windowOutHeight'],
+    data () {
+        //验证角色名称是否为中文
+        var checkname = (rule,value,callback) => {
+            var reg =/^[\u4e00-\u9fa5]+$/g,
+            flag = reg.test(value);
+            if(!flag){
+                return callback(new Error('请输入中文字符'));
+            } else{
+                callback();
+            }
+        };
+        var checkvalue = (rule,value,callback) => {
+            var reg =/^[a-zA-Z]+$/g,
+            flag = reg.test(value);
+            if(!flag){
+                return callback(new Error('请输入英文字符'));
+            } else{
+                callback();
+            }
+        };
+        return {
+            filters: {
+                rolename: ''
+            },
+            listData: [],
+            customers: [],
+            total: 0,
+            currentPage: 0,
+            pageSize: 15,
+            listLoading: false,
+            addRourceInfoVisible: false,
+            sels: [], //列表选中列
+            editFormVisible: false, //编辑界面是否显示
+            editLoading: false,
+            nodeLoading: false,
+            defaultCheckedKeys: [],
+            defaultExpandedKeys: [],
+            curRoleId: '',
+            editFormRules: {
+                rolename: [{
+                    required: true,
+                    message: '请输入角色名称',
+                    trigger:'blur'
+                },
+                {
+                    validator: checkname,
+                    trigger:'blur'
+               }
+            ],  
+            rolevalue : [{
+                    required: true,
+                    message: '请输入角色值',
+                    trigger:'blur'
+                },
+                {
+                    validator: checkvalue,
+                    trigger:'blur'
+            }]   
+            },
+            //编辑界面数据
+            editForm: {
+                id: 0,
+                rolename: '',
+                rolevalue: '',
+                description: '',
+                isenable: '',
+            },
+            addFormVisible: false, //新增界面是否显示
+            addLoading: false,
+            addFormRules: {
+                rolename: [{
+                        required: true,
+                        message: '请输入角色名称',
+                        trigger:'blur'
+                    },
+                    {
+                        validator: checkname,
+                        trigger:'blur'
+                   }
+                ],  
+                rolevalue : [{
+                        required: true,
+                        message: '请输入角色值',
+                        trigger:'blur'
+                    },
+                    {
+                        validator: checkvalue,
+                        trigger:'blur'
+                }]   
+            },
+            //新增界面数据
+            addForm: {
+                rolename: '',
+                rolevalue: '',
+                description: '',
+                isenable: '1',
+            },
+            regions: [],
+            regionsGis: [],
+            regionsEct: [],
+            treeRouseLoading: false,
+            treeRouseGisLoading: false,
+            treeRouseEctLoading: false,
+            defaultProps: {
+                label: 'name',
+                children: 'children'
+            },
+            isPewe: true
+        }
+    },
+    methods: {
+        rouseEditClose () {
+            this.regions = [];
+            this.regionsGis = [];
+            this.regionsEct = [];
+        },
+        //树的选中操作
+        handleCheckChangeEct (data, checked, indeterminate) {
+            var arr = this.$refs.treeRouseEct.getCheckedKeys(),
+                kesarry = this.$refs.treeRouseEct.getCheckedNodes(),
+                isClearFl = false;
+            /*如果子菜单有选中不能取消当前选择 start*/
+            if (!checked && data.parentid != 0) {
+                kesarry.forEach((res, index) => {
+                    if (res.id == data.parentid) {
+                        res.children.forEach((res, index) => {
+                            if ($.inArray(res.id, arr) > 0) {
+                                isClearFl = true;
+                                return false;
+                            }
+                        });
+                        if (!isClearFl) {
+                            this.$refs.treeRouseEct.setChecked(data.parentid, false);
+                            return false;
+                        }
+                    }
+                });
+            }
+            /*如果子菜单有选中不能取消当前选择 end*/
+            /*选中子类的时候选中 至少一个父类*/
+            if ($.inArray(data.parentid, arr) < 0 && checked && data.parentid != 0) {
+                this.$refs.treeRouseEct.setChecked(data.parentid, true);
+                /*选中父类时候选中所有子类*/
+                if (data.children.length > 0 && this.isPewe) {
+                    util.setChecked(this.$refs.treeRouseEct, data, true, true);
+                }
+                ;
+                this.isPewe = false;
+                return;
+            }
+            ;
+            /*选中父类时候选中给所有子类*/
+            if (data.parentid == 0 && checked && this.isPewe) {
+                util.setChecked(this.$refs.treeRouseEct, data, true, true);
+                return;
+            }
+            ;
+            /*选中父类时候取消所有子类*/
+            if (data.parentid == 0 && !checked && this.isPewe) {
+                util.setChecked(this.$refs.treeRouseEct, data, false, true);
+                return;
+            }
+            ;
+
+            /*选中父类时候选中所有子类*/
+            if (data.parentid != 0 && data.children.length > 0 && checked && this.isPewe) {
+                util.setChecked(this.$refs.treeRouseEct, data, true, true);
+                return;
+            }
+            ;
+            /*选中父类时候取消所有子类*/
+            if (data.parentid != 0 && data.children.length > 0 && !checked && this.isPewe) {
+                util.setChecked(this.$refs.treeRouseEct, data, false, true);
+                return;
+            }
+            ;
+            this.isPewe = true;
+        },
+        //树的选中操作
+        handleCheckChangeGis (data, checked, indeterminate) {
+            var arr = this.$refs.treeRouseGis.getCheckedKeys(),
+                kesarry = this.$refs.treeRouseGis.getCheckedNodes(),
+                isClearFl = false;
+            /*如果子菜单有选中不能取消当前选择 start*/
+            if (!checked && data.parentid != 0) {
+                kesarry.forEach((res, index) => {
+                    if (res.id == data.parentid) {
+                        res.children.forEach((res, index) => {
+                            if ($.inArray(res.id, arr) > 0) {
+                                isClearFl = true;
+                                return false;
+                            }
+                        });
+                        if (!isClearFl) {
+                            this.$refs.treeRouseGis.setChecked(data.parentid, false);
+                            return false;
+                        }
+                    }
+                });
+            }
+            /*如果子菜单有选中不能取消当前选择 end*/
+            /*选中子类的时候选中 至少一个父类*/
+            if ($.inArray(data.parentid, arr) < 0 && checked && data.parentid != 0) {
+                this.$refs.treeRouseGis.setChecked(data.parentid, true);
+                /*选中父类时候选中所有子类*/
+                if (data.children.length > 0 && this.isPewe) {
+                    util.setChecked(this.$refs.treeRouseGis, data, true, true);
+                }
+                ;
+                this.isPewe = false;
+                return;
+            }
+            ;
+            /*选中父类时候选中给所有子类*/
+            if (data.parentid == 0 && checked && this.isPewe) {
+                util.setChecked(this.$refs.treeRouseGis, data, true, true);
+                return;
+            }
+            ;
+            /*选中父类时候取消所有子类*/
+            if (data.parentid == 0 && !checked && this.isPewe) {
+                util.setChecked(this.$refs.treeRouseGis, data, false, true);
+                return;
+            }
+            ;
+
+            /*选中父类时候选中所有子类*/
+            if (data.parentid != 0 && data.children.length > 0 && checked && this.isPewe) {
+                util.setChecked(this.$refs.treeRouseGis, data, true, true);
+                return;
+            }
+            ;
+            /*选中父类时候取消所有子类*/
+            if (data.parentid != 0 && data.children.length > 0 && !checked && this.isPewe) {
+                util.setChecked(this.$refs.treeRouseGis, data, false, true);
+                return;
+            }
+            ;
+            this.isPewe = true;
+        },
+        //树的选中操作
+        handleCheckChange (data, checked, indeterminate) {
+            var arr = this.$refs.treeRouse.getCheckedKeys(),
+                kesarry = this.$refs.treeRouse.getCheckedNodes(),
+                isClearFl = false;
+            /*如果子菜单有选中不能取消当前选择 start*/
+            if (!checked && data.parentid != 0) {
+                kesarry.forEach((res, index) => {
+                    if (res.id == data.parentid) {
+                        res.children.forEach((res, index) => {
+                            if ($.inArray(res.id, arr) > 0) {
+                                isClearFl = true;
+                                return false;
+                            }
+                        });
+                        if (!isClearFl) {
+                            this.$refs.treeRouse.setChecked(data.parentid, false);
+                            return false;
+                        }
+                    }
+                });
+            }
+            /*如果子菜单有选中不能取消当前选择 end*/
+            /*选中子类的时候选中 至少一个父类*/
+            if ($.inArray(data.parentid, arr) < 0 && checked && data.parentid != 0) {
+                this.$refs.treeRouse.setChecked(data.parentid, true);
+                /*选中父类时候选中所有子类*/
+                if (data.children.length > 0 && this.isPewe) {
+                    util.setChecked(this.$refs.treeRouse, data, true, true);
+                }
+                ;
+                this.isPewe = false;
+                return;
+            }
+            ;
+
+            /*选中父类时候选中给所有子类*/
+            if (data.parentid == 0 && checked && this.isPewe) {
+                util.setChecked(this.$refs.treeRouse, data, true, true);
+                return;
+            }
+            ;
+            /*选中父类时候取消所有子类*/
+            if (data.parentid == 0 && !checked && this.isPewe) {
+                util.setChecked(this.$refs.treeRouse, data, false, true);
+                return;
+            }
+            ;
+            /*选中父类时候选中所有子类*/
+            if (data.parentid != 0 && data.children.length > 0 && checked && this.isPewe) {
+                util.setChecked(this.$refs.treeRouse, data, true, true);
+                return;
+            }
+            ;
+            /*选中父类时候取消所有子类*/
+            if (data.parentid != 0 && data.children.length > 0 && !checked && this.isPewe) {
+                util.setChecked(this.$refs.treeRouse, data, false, true);
+                return;
+            }
+            ;
+            this.isPewe = true;
+        },
+        handleNodeClick () {
+            let treeNode = this.$refs.treeRouse.getCheckedNodes(),//VAS
+                treeRouseGis = this.$refs.treeRouseGis.getCheckedNodes(),//GIS
+                treeRouseEct = this.$refs.treeRouseEct.getCheckedNodes(),//ECT
+                para = [],
+                _this = this;
+
+            treeNode.forEach(function (item, index) {
+                var obj = {};
+                obj.roleid = _this.curRoleId;
+                obj.resid = item.id;
+                para.push(obj);
+                /*2c*/
+                if (item.children.length > 0) {
+                    item.children.forEach(function (item1, index) {
+                        var obj = {};
+                        if (item1.hidden == 1 && item1.restype == 1) {
+                            obj.roleid = _this.curRoleId;
+                            obj.resid = item1.id;
+                            para.push(obj);
+                        }
+                    });
+                }
+            });
+            treeRouseGis.forEach(function (item, index) {
+                var obj = {};
+                obj.roleid = _this.curRoleId;
+                obj.resid = item.id;
+                para.push(obj);
+                /*2c*/
+                if (item.children.length > 0) {
+                    item.children.forEach(function (item1, index) {
+                        var obj = {};
+                        if (item1.hidden == 1 && item1.restype == 1) {
+                            obj.roleid = _this.curRoleId;
+                            obj.resid = item1.id;
+                            para.push(obj);
+                        }
+                    });
+                }
+            });
+            treeRouseEct.forEach(function (item, index) {
+                var obj = {};
+                obj.roleid = _this.curRoleId;
+                obj.resid = item.id;
+                para.push(obj);
+                /*2c*/
+                if (item.children.length > 0) {
+                    item.children.forEach(function (item1, index) {
+                        var obj = {};
+                        if (item1.hidden == 1 && item1.restype == 1) {
+                            obj.roleid = _this.curRoleId;
+                            obj.resid = item1.id;
+                            para.push(obj);
+                        }
+                    });
+                }
+            });
+            this.nodeLoading = true;
+            editRuleResourceInfo(para).then((res) => {
+                this.nodeLoading = false;
+                this.addRourceInfoVisible = false;
+                if (res.data.result.code == 0) {
+                    this.$message({
+                        message: '编辑资源成功！',
+                        type: 'success'
+                    });
+                }
+            });
+        },
+        //有效转换器
+        formatIsactive (row, column) {
+            return row.isactive == 1 ? '有效' : row.isactive == 0 ? '无效' : '未知';
+        },
+        //切换每页显示数量
+        handleSizeChange (val) {
+            this.pageSize = val;
+            this.handleQuery();
+        },
+        handleCurrentChange (val) {
+            this.currentPage = val;
+            this.handleQuery();
+        },
+        //编辑角色资源
+        addResource (index, row) {
+            this.curRoleId = row.id;
+            this.addRourceInfoVisible = true;
+            let para = {
+                roleid: row.id,
+                showCount: 2000,
+                rolename: this.filters.rolename
+            };
+            this.treeRouseLoading = true;
+            this.treeRouseGisLoading = true;
+            this.treeRouseEctLoading = true;
+            getRuleResourceInfo(para).then((res) => {
+                var dk = [], ek = [],
+                    para = {
+                        parentid: 0,
+                        system: 'A'
+                    };
+                res.data.data.records.forEach(function (obj) {
+                    dk.push(obj.resid);
+                    ek.push(obj.resid);
+                });
+                this.defaultCheckedKeys = dk; //选中当前树
+                this.defaultExpandedKeys = ek; //展开
+                if (this.regions.length > 0) return;
+                //初始化所有父节点树
+                getSysResourceInfoList(para).then((res) => {//VAS菜单列
+                    this.regions = res.data.data.records;
+                    this.treeRouseLoading = false;
+                    //初始化所有父节点树
+                    getSysResourceInfoList({//GIS菜单列
+                        parentid: 0,
+                        system: 'E'
+                    }).then((res) => {
+                        this.regionsGis = res.data.data.records;
+                        this.treeRouseGisLoading = false;
+                    });
+
+                    getSysResourceInfoList({//ECT菜单列
+                        parentid: 0,
+                        system: 'ECT'
+                    }).then((res) => {
+                        this.regionsEct = res.data.data.records;
+                        this.treeRouseEctLoading = false;
+                    });
+                });
+            });
+        },
+        renderContent (h, {
+            node,
+            data,
+            store
+        }) {
+            if (data.hidden == 1 && data.restype == 1) store.remove(data);
+            if (!data.name && !data.children[0]) return;
+            return (
+                <span>
+		              <span>{!data.name ? data.children[0].name : data.name}</span>
+		            </span>);
+        },
+        //获取保单列表
+        handleQuery () {
+            let para = {
+                currentPage: this.currentPage,
+                showCount: this.pageSize,
+                rolename: this.filters.rolename
+            };
+            this.listLoading = true;
+            getSysRoleInfoList(para).then((res) => {
+                this.listLoading = false;
+                if (res.data.result.code == 0) {
+                    this.total = res.data.data.totalResult;
+                    this.listData = res.data.data.records;
+                }
+            });
+        },
+        //删除
+        handleDel (index, row) {
+            this.$confirm('确认删除该记录吗?', '提示', {
+                type: 'warning'
+            }).then(() => {
+                this.listLoading = true;
+                let para = {
+                    ids: row.id,
+                    method: "delete"
+                };
+                removeSysRoleInfo(para).then((res) => {
+                    this.listLoading = false;
+                    this.$message({
+                        message: '删除成功',
+                        type: 'success'
+                    });
+                    this.handleQuery();
+                });
+            }).catch(() => {
+
+            });
+        },
+        //显示编辑界面
+        handleEdit (index, row) {
+            this.editFormVisible = true;
+            this.editForm = Object.assign({}, row);
+        },
+        //显示新增界面
+        handleAdd () {
+            this.addFormVisible = true;
+        },
+        //编辑
+        editSubmit () {
+            this.$refs.editForm.validate((valid) => {
+                if (valid) {
+                    this.editLoading = true;
+                    let para = Object.assign({}, this.editForm);
+                    modifySysRoleInfo(para).then((res) => {
+                        this.editLoading = false;
+                        this.$message({
+                            message: '编辑成功',
+                            type: 'success'
+                        });
+                        this.$refs['editForm'].resetFields();
+                        this.editFormVisible = false;
+                        this.handleQuery();
+                    });
+                }
+            });
+        },
+        //新增
+        addSubmit () {
+            this.$refs.addForm.validate((valid) => {
+                if (valid) {
+                    this.addLoading = true;
+                    let para = Object.assign({}, this.addForm);
+                    addSysRoleInfo(para).then((res) => {
+                        this.addLoading = false;
+                        this.$message({
+                            message: '新增成功',
+                            type: 'success'
+                        });
+                        this.$refs['addForm'].resetFields();
+                        this.addFormVisible = false;
+                        this.handleQuery();
+                    });
+                }
+            });
+        },
+        selsChange (sels) {
+            this.sels = sels;
+        },
+        //批量删除
+        batchRemove () {
+            var ids = this.sels.map(item => item.id).toString();
+            this.$confirm('确认删除选中记录吗？', '提示', {
+                type: 'warning'
+            }).then(() => {
+                this.listLoading = true;
+                let para = {
+                    ids: ids,
+                    method: "delete"
+                };
+                removeSysRoleInfo(para).then((res) => {
+                    this.listLoading = false;
+                    this.$message({
+                        message: '删除成功',
+                        type: 'success'
+                    });
+                    this.handleQuery();
+                });
+            }).catch(() => {
+
+            });
+        }
+    },
+    created () {
+        this.handleQuery();
+    }
+}

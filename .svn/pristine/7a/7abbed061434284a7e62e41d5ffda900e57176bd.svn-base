@@ -1,0 +1,267 @@
+import echarts from 'echarts'
+import { getStockQuantityKpi, createDateDate, purchasePlanHistory, getPurchaseData, getStorages, getStorageDataDetail } from './service'
+
+const option = {
+    tooltip: {
+        trigger: 'axis',
+        axisPointer: {
+            type: 'cross',
+            crossStyle: {
+                color: '#999'
+            }
+        }
+    },
+    toolbox: {
+        feature: {
+            dataView: {show: true, readOnly: false},
+            magicType: {show: true, type: ['line', 'bar']},
+            restore: {show: true},
+            saveAsImage: {show: true}
+        }
+    },
+    legend: {
+        data: ['期初库存量', '期末库存量', '安装量'],
+        padding: 5
+    },
+    grid: {
+        top: '10%',
+        left: '3%',
+        right: '4%',
+        bottom: '3%',
+        containLabel: true
+    },
+    xAxis: [
+        {
+            type: 'category',
+            data: [],
+            axisPointer: {
+                type: 'shadow'
+            }
+        }
+    ],
+    yAxis: [
+        {
+            type: 'value',
+            name: '台',
+            axisLabel: {
+                formatter: '{value} 个'
+            }
+        }
+    ],
+    series: [
+        {
+            name: '期初库存量',
+            type: 'bar',
+            data: []
+        },
+        {
+            name: '期末库存量',
+            type: 'bar',
+            data: []
+        },
+        {
+            name: '安装量',
+            type: 'line',
+            data: []
+        }
+    ]
+};
+
+
+export default {
+    name: "purchasePlan",
+    data () {
+        return {
+            options: createDateDate(),
+            defaultProps: {
+                children: 'children',
+                label: 'storagename'
+            },
+            treeLoading: false,
+            chartInstance: null,
+            showHistory: false,
+            // showDetail: false,
+            historyList: [],
+            historyTime: new Date().format('yyyy-MM'),
+            historyLoading: false,
+            currentDate: new Date().format('yyyy-MM-dd'),
+            defaultExpandedKeys: [0],
+            purchaseList: [],
+            purchaseLoading: false,
+            storageTree: [{
+                children: [],
+                storagename: '全部库房',
+                id: 0
+            }],
+            key: [0],
+            storagePurchaseLoading: false,
+            storagePurchaseList: [],
+            storagePurchaseObj: {},
+            currentNum: 0,
+            addFormVisible: false,
+            addForm: {
+                purchaseamount: 0,
+                purchaseqty: 0
+            },
+            typeForm: {},
+            addFormRules: {},
+            editable: false,
+            addLoading: false,
+            typeListData: [],
+            typeListLoading: false,
+            supplierLoading: false,
+            supplierOptions: []
+        }
+    },
+    watch: {
+        showHistory (newValue) {
+            if (newValue) {
+                this.purchasePlanHistory()
+            } else {
+                this.getStockQuantityKpi()
+            }
+        }
+    },
+    methods: {
+        async handleNodeClick (storage) {
+            if (!storage.id) {
+                return
+            }
+            if (this.storagePurchaseObj[storage.id]) {
+                this.storagePurchaseList = this.storagePurchaseObj[storage.id]
+                return
+            }
+            try {
+                this.storagePurchaseLoading = true;
+                const {data} = await getStorageDataDetail({storageid: storage.id})
+                this.storagePurchaseLoading = false
+                _.forEach(data.data, item => {
+                    item.isEdit = false
+                })
+                this.storagePurchaseList = data.data
+                this.storagePurchaseObj[storage.id] = data.data
+            } catch (e) {
+                this.storagePurchaseLoading = false
+                console.log(e)
+            }
+        },
+        tableRowClick (row) {
+            _.forEach(this.storagePurchaseList, item => {
+                item.isEdit = false
+            })
+            row.isEdit = true
+        },
+        changePurchaseNum (row) {
+            if (row.parchasenum < 0) {
+                row.parchasenum = 0
+            }
+            const num = row.parchasenum - this.currentNum
+            _.forEach(this.purchaseList, item => {
+                if (item.prodspec === row.modelspec) {
+                    item.parchasenum = item.parchasenum + num
+                }
+            })
+        },
+        dateFormatter (row) {
+            if (row.needdate) {
+                return new Date(row.needdate).format('yyyy-MM-dd')
+            } else {
+                return ''
+            }
+        },
+        // treeHandleNodeClick () {
+        // },
+        async getStockQuantityKpi () {
+            try {
+                const params = {
+                    time: new Date().format('yyyyMM')
+                }
+                const {data} = await getStockQuantityKpi(params)
+                if (this.chartInstance) {
+                    this.chartInstance.clear()
+                }
+                this.chartInstance = echarts.init(this.$refs.stockChart)
+                const newOption = _.cloneDeep(option)
+                _.forEach(data.data, item => {
+                    newOption.xAxis[0].data.push(item.yearmonth)
+                    newOption.series[0].data.push(item.balanceInit)
+                    newOption.series[1].data.push(item.balanceEnd)
+                    newOption.series[2].data.push(item.installnum)
+                })
+                this.chartInstance.setOption(newOption)
+            } catch (e) {
+                console.log(e)
+            }
+        },
+        async purchasePlanHistory () {
+            try {
+                this.historyLoading = true
+                const params = {
+                    time: this.historyTime.split('-').join('')
+                }
+                const {data} = await purchasePlanHistory(params)
+                this.historyList = data.data
+                this.historyLoading = false
+            } catch (e) {
+                console.log(e)
+                this.historyLoading = false
+            }
+        },
+        // viewDetail () {
+        //     this.showDetail = true
+        // },
+        async getPurchaseData () {
+            try {
+                this.purchaseLoading = true
+                const {data} = await getPurchaseData()
+                this.purchaseList = data.data
+                this.purchaseLoading = false
+            } catch (e) {
+                console.log(e)
+                this.purchaseLoading = false
+            }
+        },
+        async getStorages () {
+            try {
+                const {data} = await getStorages()
+                this.storageTree[0].children = data.data
+            } catch (e) {
+                console.log(e)
+            }
+        },
+        init () {
+            this.getStockQuantityKpi()
+            this.getPurchaseData()
+            this.getStorages()
+        },
+        typeAddConfirm () {
+
+        },
+        typeAddCancel () {
+
+        },
+        typeAddClick () {
+
+        },
+        closeDialog () {
+
+        },
+        addSubmit () {
+
+        },
+        supplierChange () {
+
+        },
+        showLink () {
+
+        }
+    },
+    mounted () {
+        this.init()
+        window.onresize = () => {
+            if (this.chartInstance) {
+                this.chartInstance.resize()
+            }
+        }
+    }
+}

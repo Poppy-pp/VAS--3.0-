@@ -1,0 +1,49 @@
+import axios from 'axios'
+
+export const getStockQuantityKpi = params => {
+    return axios.get('sto/stoStat/parchasePlan/query/stockQuantityKpi', {
+        params
+    })
+}
+
+export const purchasePlanHistory = params => {
+    return axios.get('sto/stoStat/parchasePlan/query/parchasePlanHistory', {
+        params
+    })
+}
+
+export const getPurchaseData = params => {
+    return axios.get('sto/stoStat/parchasePlan/query/allStoragesParchaseData', {
+        params
+    })
+}
+
+export const getStorages = params => {
+    return axios.get('sto/stoStat/parchasePlan/query/listSecondStorageParchases', {
+        params
+    })
+}
+
+export const createDateDate = () => {
+    let datelist = []
+    let date = new Date()
+    let Y = date.getFullYear()
+    let M = date.getMonth() + 1
+    for (let i = 0; i < 12; i++) {
+        let dateoption = {
+            label: '',
+            value: ''
+        }
+        if (!M) {
+            M = 12
+            Y = Y - 1
+        }
+        let m = M
+        m = m < 10 ? '0' + m : m
+        dateoption.label = `${Y}年${m}月`
+        dateoption.value = `${Y}-${m}`
+        M--
+        datelist.push(dateoption)
+    }
+    return datelist
+}

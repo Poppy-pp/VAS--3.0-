@@ -1,0 +1,247 @@
+import util from 'utils/tools';
+import {
+    getViewLogistics,
+    getStorageInfoSelect,
+    getdeliveryListAll,
+    getAllocationDetails,
+    modifyCurUserDeviceInfo,
+    receiptDelivery,
+    returnDelivery,
+    getDeliveryCorps,
+    getReturnReason,
+    getDeliveryDetails
+} from './service.js';
+import {checkVehicleNumber} from '@/utils/formValidation'
+
+export default {
+    props: ['windowOutHeight'],
+    data() {
+        return {
+            filters: {
+                domSearch: [{
+                    select: ['batchno'],
+                    content: ''
+                }], //查询框
+                timeScope: '',
+                batchno:'',
+            },
+            listData: [],
+            total: 0,
+            currentPage: 1,
+            pageSize: 15,
+            listLoading: false,
+            notext: '', //物流
+            logisticsList: [],
+            distributionVisible: false,
+            expandLoading: false,
+            noteDialogVisible: false, //确认收货弹窗
+            rowData:[],
+            noteForm: {
+                deliveryreason: '',
+                remarks: '',
+                rowBatchno: '',
+            },
+            rejectDialogVisible: false, //退回弹窗
+            rejectForm: {
+                storageid:'',
+                storagename: '',
+                deliveryreason: '',
+                deliverytype: '',
+                deliveryno: '',
+                deliverycorp: '',
+                vehicleplate: '',
+                deliveryfee: '',
+                contactno:'',
+            },
+            rejectFormRules: {
+                deliveryreason: [{required: true,message: '请输入退回原因',trigger: 'blur'}],
+                deliverytype: [{required: true,message: '请选择退回方式',trigger: 'blur'}],
+                deliveryno: [{required: true,message: '请输入快递单号',trigger: 'blur'}],
+                deliverycorp: [{required: true,message: '请选择物流公司',trigger: 'blur'}],
+                vehicleplate: [{required: true,message: '请输入车牌号',trigger: 'blur'},{validator:checkVehicleNumber,trigger:'blur'}],
+            },
+            deliveryCorps: [],//物流公司s
+            returnlist:[],//退户原因
+            returnLoading: false,
+        }
+    },
+    methods: {
+        // ---------------------------------------------------------查看物流-----------------------------------------------------------
+         async viewDistribution (row) {
+            this.distributionVisible = true
+            this.expandLoading = true
+            this.logisticsList = []
+            this.notext = ''
+            try {
+                const params = {
+                    id: row.id
+                }
+                const {data} = await getViewLogistics(params)
+                this.expandLoading = false;
+                this.logisticsList = data.data.traces.reverse();//倒叙
+                this.logisticsList.logisticName = data.data.logisticName;
+                this.logisticsList.logisticCode = data.data.logisticCode;
+            } catch (e) {
+                this.expandLoading = false
+                this.notext = '抱歉！该订单暂不支持查询！'
+                if (e && e.data && e.data.msg) {
+                    this.notext = e.data.msg
+                }
+            }
+        },
+
+        // ---------------------------------------------------------查看详情-----------------------------------------------------------
+        viewDetails(row){
+            let para = {id:row.actionid}
+            getDeliveryDetails(para).then((res) => {
+                this.$router.push({
+                    name: `allocation-detail`,
+                    query: res.data.data
+                })
+            })
+        },
+
+
+        // ---------------------------------------------------------确认收货--------------------------------------------------------------------
+        // 点击收货
+        handelDeliver(index, row) {
+            this.noteDialogVisible = true;
+            this.noteForm.storagename = ''; //初始化
+            this.noteForm.rowBatchno = row.batchno; //当前 单号，用于弹窗显示
+            this.rowData = row;//存储当前行的数据
+        },
+        //确认收货
+        comfirmDeliver() {
+            let para = {
+                id: this.rowData.id,
+                deliveryreason:this.noteForm.deliveryreason,
+                remarks:this.noteForm.remarks,
+            };
+            receiptDelivery(para).then((res) => {
+                this.handleQuery();
+                this.noteDialogVisible = false;
+                this.$message.success("确认收货成功！");
+            });
+        },
+
+
+        // ---------------------------------------------------------退回--------------------------------------------------------------------
+        // 点击退回
+        handelBackDeliver(index, row) {
+            this.rejectDialogVisible = true;
+            this.rowData = row;//存储当前行的数据
+            this.rejectForm = {//初始化
+                storageid:row.fromstoid,
+                storagename: row.fromstoname,
+                deliveryreason: '',
+                deliverytype: '',
+                deliveryno: '',
+                deliverycorp: '',
+                vehicleplate: '',
+                deliveryfee: '',
+                contactno:'',
+            }
+            this.rejectForm.rowBatchno = row.batchno; //当前 单号，用于弹窗显示
+        },
+        // 确认退回
+        comfirmBack() {
+            this.$refs.rejectForm.validate((valid) => {
+                if(valid) {
+                    this.rejectForm.id = this.rowData.id;
+                    let para = Object.assign({}, this.rejectForm);
+                    returnDelivery(para).then((res) => {
+                        this.handleQuery();
+                        this.$message.success("确认退回成功！");
+                        this.rejectDialogVisible = false;
+                    });
+                }
+            });
+            
+        },
+        // 选择物流公司
+        async getDeliveryCorps () {
+            try {
+                const params = {
+                    dictvalue: 'ExpressCompany',
+                    limit: 1000,
+                    page: 1
+                }
+                const {data} = await getDeliveryCorps(params)
+                this.deliveryCorps = data.data.records
+            } catch (e) {}
+        },
+        // 选择退回原因
+        returnReasons () {
+            this.returnlist = []; //初始化
+            this.returnLoading = true;
+            getReturnReason().then((res) => {
+                this.returnlist = res.data.data.records;
+                this.returnLoading = false;
+            });
+        },
+
+
+        //查询清空
+        clearAll() {
+            this.filters.domSearch = [{
+                select: [],
+                content: ''
+            }] //清空查询框;
+        }, // 添加查询条件
+        addSelect() {
+            this.filters.domSearch.push({
+                select: [],
+                content: ''
+            });
+        },
+        // 移除查询条件
+        removeSelect(index) {
+            this.filters.domSearch.splice(index, 1); //从当前index位置开始，删除一项
+        },
+        //获取列表
+        handleQuery() {
+            let para = {
+                page: this.currentPage,
+                limit: this.pageSize,
+                // domSearch: this.filters.domSearch,
+                batchno: this.filters.batchno,
+                startTime: this.filters.timeScope ? (this.filters.timeScope[0] ? util.formatDate.format(new Date(this.filters.timeScope[0]), 'yyyy-MM-dd') : '') : '',
+                endTime: this.filters.timeScope ? (this.filters.timeScope[1] ? util.formatDate.format(new Date(this.filters.timeScope[1]), 'yyyy-MM-dd') : '') : '',
+            };
+            this.listLoading = true;
+            getdeliveryListAll(para).then((res) => {
+                this.listLoading = false;
+                this.total = res.data.data.total;
+                this.listData = res.data.data.records;
+            }).catch((error) => {
+                this.listLoading = false;
+            });
+        },
+        //切换当前页
+        handleCurrentChange(val) {
+            this.currentPage = val;
+            this.handleQuery();
+        },
+        //切换每页显示数量
+        handleSizeChange(val) {
+            this.pageSize = val;
+            this.handleQuery();
+        },
+        //时间转换1
+        dateFormatter: function(row, col) {
+            if (row.deliverydate == "" || row.deliverydate == undefined) return '--';
+            return util.formatDate.format(new Date(row.deliverydate), 'yyyy-MM-dd');
+        },
+        dateFormatter2: function(row, col) {
+            if (row.receivedate == "" || row.receivedate == undefined) return '--';
+            return util.formatDate.format(new Date(row.receivedate), 'yyyy-MM-dd hh:mm:ss');
+        },
+        //格式化发生费用
+        dateFormatterDepuee(row, col) {
+            return (row.DELIVERYFEE ? row.DELIVERYFEE : 0) + "元";
+        },
+    },
+    created() {
+        this.handleQuery();
+    }
+}

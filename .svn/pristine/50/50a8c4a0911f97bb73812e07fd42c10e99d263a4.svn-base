@@ -1,0 +1,225 @@
+<template>
+    <el-form label-position="right" label-width="110px" :model="form" ref="form">
+        <el-form-item label="所属公司" prop="corpname">
+            <el-autocomplete class="inline-input searchInput" :disabled="formEdit || formStatus==='create'" v-model="form.corpname" :fetch-suggestions="querySearchCorpName" placeholder="请输入公司名称"
+                             :trigger-on-focus="false" clearable @select="handleSelectCorpName"></el-autocomplete>
+        </el-form-item>
+        <el-form-item label="部门名称" prop="deptname" ref="deptname">
+            <el-input v-model="form.deptname" :disabled="formEdit" placeholder="请输入部门名称" auto-complete="off" @blur="checkout('deptname',form.deptname,0)"></el-input>
+        </el-form-item>
+        <el-form-item label="部门名称缩写" prop="deptshortname" ref="deptshortname">
+            <el-input v-model="form.deptshortname" :disabled="formEdit" placeholder="请输入部门名称缩写" auto-complete="off"
+                      @blur="checkout('deptshortname',form.deptshortname,1)"></el-input>
+        </el-form-item>
+        <el-form-item label="负责人" prop="deptmanagername">
+            <el-autocomplete class="inline-input searchInput" :disabled="formEdit" v-model="form.deptmanagername" :fetch-suggestions="querySearchName" placeholder="请输入负责人"
+                             :trigger-on-focus="false" @select="handleSelectName"></el-autocomplete>
+        </el-form-item>
+        <el-form-item label="部门电话" prop="deptcontactno">
+            <el-input v-model="form.deptcontactno" :disabled="formEdit" placeholder="请输入部门电话" auto-complete="off"></el-input>
+        </el-form-item>
+        <el-form-item label="地址" prop="addressAll">
+            <el-cascader placeholder="请选择省/市/区" :disabled="formEdit" v-model="form.addressAll" :options="prOptions" filterable clearable change-on-select></el-cascader>
+        </el-form-item>
+        <!-- 判断是否有父级部门 -->
+        <el-form-item label="父级部门" prop="hasParent">
+            <el-switch v-model="form.hasParent" :disabled="formEdit" active-color="#00C1DE" inactive-color="#ff4949" active-value="1" active-text="有" inactive-value="0"
+                       inactive-text="无">
+            </el-switch>
+        </el-form-item>
+        <el-form-item>
+            <el-select v-show="form.hasParent == '1'" :disabled="formEdit" v-model="form.parentname" @visible-change="deptChange" :loading="deptLoading" filterable
+                       placeholder="请选择父级部门" clearable>
+                <el-option v-for="item in deptlist" :key="item.deptname" :label="item.deptname" :value="item.id">
+                </el-option>
+            </el-select>
+        </el-form-item>
+        <el-form-item v-if="formStatus === 'update'">
+            <el-button type="primary" @click="update">更新</el-button>
+            <el-button @click="$emit('onCancel')">取消</el-button>
+        </el-form-item>
+        <el-form-item v-if="formStatus === 'create'">
+            <el-button type="primary" @click="create">保存</el-button>
+            <el-button @click="$emit('onCancel')">取消</el-button>
+        </el-form-item>
+    </el-form>
+</template>
+
+<script>
+    import util from 'utils/tools.js';
+    // import { getAllCorpList, getCheckoutOfDeptInfo, getDeptManagerInfoList, getAllDeptList } from './service'
+
+    export default {
+        name: "department-form",
+        props: ['formEdit', 'formStatus', 'data'],
+        data () {
+            return {
+                //新增界面数据
+                form: {
+                    deptcode: '',
+                    deptname: '',
+                    deptaddress: '',
+                    addressAll: ["四川", "成都", "高新区"],
+                    deptcontactno: '',
+                    deptshortname: '',
+                    parentdeptcode: '',
+                    parentname: '',
+                    corpid: '',
+                    corpname: '',
+                    deptmanagername: '',
+                    showorder: 0,
+                    isenable: 1,
+                    hasParent: '0'
+                },
+                corpOptions: [{
+                    value: '0',
+                    label: '集团'
+                }, {
+                    value: '1',
+                    label: '分公司'
+                }, {
+                    value: '2',
+                    label: '子公司'
+                }, {
+                    value: '3',
+                    label: '门店'
+                }],
+                deptlist: [],
+                prOptions: util.initProvince(),
+                deptLoading: false,
+                thisInput: [], //编辑时存入row验证的值
+                checkoutDataF: [], //数据验证组
+            }
+        },
+        watch: {
+            data (newData) {
+                this.initForm()
+            },
+            formStatus () {
+                this.initForm()
+            }
+        },
+        mounted () {
+            this.initForm()
+        },
+        methods: {
+            initForm() {
+                if(this.data) {
+                    if (this.formStatus === 'create') {
+                        this.init();
+                    } else {
+                        this.form = _.cloneDeep(this.data);
+                        this.thisInput.push(this.form.deptname, this.form.deptshortname); //将当前验证的字段 已获得的值存入
+                    }
+                }
+            },
+            init() {
+                this.form = {
+                    deptcode: '',
+                    deptname: '',
+                    deptaddress: '',
+                    addressAll: ["四川", "成都", "高新区"],
+                    deptcontactno: '',
+                    deptshortname: '',
+                    parentdeptcode: '',
+                    parentname: '',
+                    corpid: this.data.corpcode,
+                    corpname: this.data.corpname,
+                    deptmanagername: '',
+                    showorder: 0,
+                    isenable: 1,
+                    hasParent: '0'
+                }
+                this.thisInput = []
+            },
+            // 公司——搜索下拉
+            querySearchCorpName (queryString, cb) {
+                let para = {
+                        corpname: queryString,
+                        isdelete: 0,
+                    },
+                    corpNameArray = [];
+                getAllCorpList(para).then((res) => {
+                    res.data.data.records.forEach(function (item, index) {
+                        corpNameArray.push({
+                            value: item.corpname,
+                            id: item.id
+                        });
+                    });
+                    cb(corpNameArray);
+                });
+            },
+            handleSelectCorpName (item) {
+                this.form.corpname = item.value;
+                this.form.corpid = item.id;
+            },
+
+            // 数据重复验证
+            checkout (p, v, index) {
+                if (v === "") return;
+                if (this.thisInput[index] === v) return; //编辑时 没改输入框值
+                this.checkoutDataT = true; //初始化
+
+                let corpID = this.form.corpid;
+                let paras = {
+                    para: p,
+                    value: v,
+                    corpid: corpID,
+                }
+                getCheckoutOfDeptInfo(paras).then((res) => {
+                    let errorInput = res.data.data.param; //保存验证失败的字段
+                    if (!res.data.data.result) {
+                        this.$message({
+                            message: '信息输入重复！',
+                            type: 'warning'
+                        });
+                        this.$refs[errorInput].$el.className = "el-form-item is-error"; //输入框标红
+                        this.checkoutDataF[index] = false
+                    } else {
+                        this.$refs[errorInput].$el.className = "el-form-item"; //输入框恢复
+                        this.checkoutDataF[index] = true
+                    }
+                });
+            },
+            // 负责人——搜索下拉
+            querySearchName(queryString, cb) {
+                let para = {
+                        employeename: queryString
+                    },
+                    magNameArray = [];
+                getDeptManagerInfoList(para).then((res) => {
+                    res.data.data.records.forEach(function(item, index) {
+                        magNameArray.push({
+                            value: item.employeename,
+                            id: item.id
+                        });
+                    });
+                    cb(magNameArray);
+                });
+            },
+            handleSelectName(item) {
+                this.form.employeename = item.value;
+                this.form.deptmanagerid = item.id;
+            },
+            // 部门名称——下拉
+            deptChange(r) {
+                if(!r || this.deptlist.length > 0) return;
+                this.deptLoading = true;
+                getAllDeptList().then((res) => {
+                    this.deptlist = res.data.data.records;
+                    this.deptLoading = false;
+                });
+            },
+            update () {
+                this.$emit('update', this.form)
+            },
+            create () {
+                this.$emit('create', this.form)
+            }
+        }
+    }
+</script>
+
+<style scoped>
+
+</style>

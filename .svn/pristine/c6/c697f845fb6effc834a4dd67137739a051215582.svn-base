@@ -1,0 +1,374 @@
+<template>
+    <div>
+        <template v-if="!showHistory">
+            <el-row>
+                <el-form :inline="true">
+                    <el-form-item>
+                        <el-button type="primary" @click="openDialog">确定采购</el-button>
+                    </el-form-item>
+                    <el-form-item>
+                        <el-button type="primary" @click="showHistory = true">查看采购历史</el-button>
+                    </el-form-item>
+                </el-form>
+            </el-row>
+            <el-row>
+                <h3 class="plan-title">四川万网鑫成设备采购计划</h3>
+                <div ref="stockChart" style="height: 300px; width: 100%; margin: 10px 0;"></div>
+                <el-table
+                        v-loading="purchaseLoading"
+                        border
+                        :data="purchaseList"
+                        style="width: 100%">
+                    <el-table-column
+                            align="center"
+                            type="index"
+                            width="50">
+                    </el-table-column>
+                    <el-table-column
+                            align="center"
+                            prop="prodspec"
+                            label="设备类别"
+                            min-width="180">
+                    </el-table-column>
+                    <el-table-column
+                            align="center"
+                            prop="requestqty"
+                            label="所有地区采购总量"
+                            min-width="180">
+                    </el-table-column>
+                    <el-table-column
+                            align="center"
+                            prop="remainnum"
+                            min-width="180"
+                            label="新品库+周转库库存量">
+                    </el-table-column>
+                </el-table>
+            </el-row>
+            <el-row style="margin-top: 20px;">
+                <el-col :span="24">
+                    <span class="formTile">各个地区要货情况</span>
+                </el-col>
+            </el-row>
+            <el-row>
+                <el-col :span="6" style="display: flex;">
+                    <div style="overflow: auto; flex: 1; height: 400px; margin-right: 10px;" v-loading="treeLoading">
+                        <el-tree :data="storageTree" :props="defaultProps" @node-click="handleNodeClick" highlight-current class="tree-highlight" node-key="id"
+                                 :default-expanded-keys="key">
+                            <div class="custom-tree-node" slot-scope="{ node, data }">
+                                <span>{{ node.label }}</span>
+                                <span v-if="data.status" :class="[data.status === '已提交' ? 'color-success' : 'color-danger']">({{ data.status }})</span>
+                            </div>
+                        </el-tree>
+                    </div>
+                </el-col>
+                <el-col :span="18">
+                    <el-card>
+                        <el-table :data="storagePurchaseList" border highlight-current-row @row-click="tableRowClick"
+                                  v-loading="storagePurchaseLoading">
+                            <el-table-column type="index" align="center" label="序号" width="50">
+                            </el-table-column>
+                            <el-table-column prop="modelspec" align="center" label="设备类别" min-width="70">
+                            </el-table-column>
+                            <el-table-column prop="balanceInit" align="center" label="本月期初库存量" min-width="50">
+                            </el-table-column>
+                            <el-table-column prop="stocknum" align="center" label="当前库存量" min-width="50">
+                            </el-table-column>
+                            <el-table-column prop="roadnum" align="center" label="在途量" min-width="50">
+                            </el-table-column>
+                            <el-table-column prop="installnum" align="center" label="本月安装量" min-width="50">
+                            </el-table-column>
+                            <el-table-column prop="outnum" align="center" label="本月出库量" min-width="50">
+                            </el-table-column>
+                            <el-table-column prop="avgInstallnum" align="center" label="平均每日安装量" min-width="50">
+                            </el-table-column>
+                            <el-table-column prop="nextMonthInstallnum" align="center" label="预计下月安装量" min-width="50">
+                            </el-table-column>
+                            <el-table-column prop="neednum" align="center" label="要货量" min-width="50">
+                            </el-table-column>
+                            <el-table-column prop="beforeThreeMonthAvgInstallnum" align="center" label="前三月每月平均安装量" min-width="50">
+                            </el-table-column>
+                            <el-table-column prop="beforeYearInstallnum" align="center" label="去年同期安装量" min-width="50">
+                            </el-table-column>
+                            <el-table-column prop="needdate" align="center" label="要求最晚到货日期" min-width="80" :formatter="dateFormatter">
+                            </el-table-column>
+                            <el-table-column prop="remark" align="center" label="备注" min-width="60">
+                            </el-table-column>
+                            <el-table-column align="center" label="采购量" min-width="100">
+                                <template slot-scope="scope">
+                                    <el-input type="number" :min="0" v-model="scope.row.parchasenum" v-if="scope.row.isEdit"
+                                              @blur="changePurchaseNum(scope.row)" @focus="currentNum  = scope.row.parchasenum"></el-input>
+                                    <span v-else>{{scope.row.parchasenum}}</span>
+                                </template>
+                            </el-table-column>
+                            <el-table-column prop="remainnum" align="center" label="新品库+周转库库存量" min-width="50">
+                            </el-table-column>
+                            <el-table-column label="操作" width="100" align="center" fixed="right">
+                                <template slot-scope="scope">
+                                    <el-button type="text" @click="jumpAllocation(scope.row)">
+                                        发起调拨
+                                    </el-button>
+                                </template>
+                            </el-table-column>
+                        </el-table>
+                    </el-card>
+                </el-col>
+            </el-row>
+        </template>
+        <template v-else>
+            <!--<template v-if="!showDetail">-->
+            <el-row>
+                <el-form :inline="true">
+                    <el-form-item>
+                        <el-select v-model="historyTime" placeholder="请选择" @change="purchasePlanHistory">
+                            <el-option
+                                    v-for="item in options"
+                                    :key="item.value"
+                                    :label="item.label"
+                                    :value="item.value">
+                            </el-option>
+                        </el-select>
+                    </el-form-item>
+                    <!--<el-form-item>-->
+                    <!--<el-button type="primary" @click="viewDetail">查看详情</el-button>-->
+                    <!--</el-form-item>-->
+                    <el-form-item>
+                        <el-button type="primary" @click="exportPurchase">导出采购清单</el-button>
+                    </el-form-item>
+                </el-form>
+            </el-row>
+            <el-row>
+                <el-table
+                        border
+                        :data="historyList"
+                        v-loading="historyLoading"
+                        style="width: 100%">
+                    <el-table-column
+                            align="center"
+                            type="index"
+                            width="50">
+                    </el-table-column>
+                    <el-table-column
+                            align="center"
+                            prop="modelcategory"
+                            :formatter="typeFormatter"
+                            label="类型"
+                            min-width="180">
+                    </el-table-column>
+                    <el-table-column
+                            align="center"
+                            prop="modelname"
+                            label="型号名称"
+                            min-width="180">
+                    </el-table-column>
+                    <el-table-column
+                            align="center"
+                            prop="modelspec"
+                            label="规格"
+                            min-width="180">
+                    </el-table-column>
+                    <el-table-column
+                            align="center"
+                            prop="suppliername"
+                            min-width="180"
+                            label="供应商">
+                    </el-table-column>
+                    <el-table-column
+                            align="center"
+                            prop="qty"
+                            min-width="180"
+                            label="采购数量">
+                    </el-table-column>
+                </el-table>
+            </el-row>
+            <el-button style="float: right; margin: 10px 0" @click="showHistory = false">返回</el-button>
+        </template>
+
+        <el-dialog :modal-append-to-body="false" :visible.sync="addFormVisible" v-if="addFormVisible" :close-on-click-modal="false">
+            <div style="margin: 10px 0; overflow: hidden">
+                <span v-for="item in purchaseList" class="purchase-item">{{item.prodspec}}({{item.parchasenum}})</span>
+                <el-button type="primary" @click="addContract" style="float: right">
+                    增加合同
+                </el-button>
+            </div>
+            <el-form :model="addForm" label-width="100px" :rules="addFormRules" ref="addForm">
+                <el-collapse v-model="activeCollapse">
+                    <el-collapse-item style="margin-bottom: 10px;" :title="item.contractno" :name="index"
+                                      v-for="(item, index) in addForm.dataList"
+                                      :key="item.contractno">
+                        <el-card>
+                            <div class="contract-title">
+                                <h2>采购合同</h2>
+                                <svg :ref="'barcode'+index"></svg><!-- 条形码 -->
+                            </div>
+
+                            <el-row :gutter="10">
+                                <el-col :span="24">
+                                    <span class="formTile">基础信息</span>
+                                </el-col>
+                                <el-col :span="12">
+                                    <el-form-item label="采购金额(总)">
+                                        <span class="totol-price">{{ item.purchaseamount + ' 元' }}</span>
+                                    </el-form-item>
+                                    <el-form-item label="采购日期：" prop="purchasedate" :prop="'dataList.'+index+'.purchasedate'" :rules="{required: true, message: '采购日期不能为空', trigger: 'change'}">
+                                        <el-date-picker v-model="item.purchasedate" type="date" placeholder="请选择采购日期"></el-date-picker>
+                                    </el-form-item>
+                                    <el-form-item label="供应商：" prop="suppliername" :prop="'dataList.'+index+'.suppliername'" :rules="{required: true, message: '供应商不能为空', trigger: 'change'}">
+                                        <el-select v-model="item.suppliername" @focus="supplierChange" :loading="supplierLoading" @change="showLink(item)"
+                                                   filterable
+                                                   clearable value-key="suppliername">
+                                            <el-option v-for="item in supplierOptions" :key="item.id" :label="item.suppliername"
+                                                       :value="item"></el-option>
+                                        </el-select>
+                                    </el-form-item>
+                                    <el-form-item label="联系人：">
+                                        <el-input disabled v-model="item.linkman"></el-input>
+                                    </el-form-item>
+                                </el-col>
+                                <el-col :span="12">
+                                    <el-form-item label="采购数量(总)">
+                                        <span class="quantity">{{ item.purchaseqty }}</span>
+                                    </el-form-item>
+                                    <el-form-item label="合同名称：" :prop="'dataList.'+index+'.contractname'" :rules="{required: true, message: '合同名称不能为空', trigger: 'blur'}">
+                                        <el-input v-model="item.contractname" placeholder="请输入合同名称"></el-input>
+                                    </el-form-item>
+                                    <el-form-item label="经办人：">
+                                        <span>{{ item.createbyname }}</span>
+                                    </el-form-item>
+                                    <el-form-item label="联系方式：">
+                                        <el-input disabled v-model="item.contactno"></el-input>
+                                    </el-form-item>
+                                </el-col>
+                            </el-row>
+                            <el-row :gutter="10">
+                                <el-col :span="24">
+                                    <span class="formTile">设备信息</span>
+                                </el-col>
+                                <!--列表-->
+                                <el-form :ref="'typeForm'+index" :model="item.typeForm">
+                                    <el-table border :data="item.typeListData" max-height="800" v-loading="typeListLoading">
+                                        <el-table-column type="index" width="30" align="center" label="#"></el-table-column>
+                                        <el-table-column label="采购型号" align="center">
+                                            <template slot-scope="scope">
+                                                <div v-if="scope.$index == item.typeListData.length-1 && item.editable">
+                                                    <el-form-item prop="modelname" label-width="0"
+                                                                  :rules="{required: true, message: '采购型号不能为空', trigger: 'change'}">
+                                                        <el-cascader @focus="modelCascader(item)" @change="handleChange(item, index)" :options="modelOptions"
+                                                                     v-model="item.typeForm.modelname"
+                                                                     :ref="'cascader'+index" clearable></el-cascader>
+                                                    </el-form-item>
+                                                </div>
+                                                <span v-else>{{ scope.row.modelnameSpan }}</span>
+                                            </template>
+                                        </el-table-column>
+                                        <el-table-column label="采购单价(元)" align="center" width="110">
+                                            <template slot-scope="scope">
+                                                <div v-if="scope.$index == item.typeListData.length-1 && item.editable">
+                                                    <el-form-item prop="unitprice"
+                                                                  :rules="{required: true, message: '单价不能为空', trigger: 'blur'}" label-width="0">
+                                                        <el-input type="number" min="0" v-model="item.typeForm.unitprice"
+                                                                  @input="calculatePrice(item)"></el-input>
+                                                    </el-form-item>
+                                                </div>
+                                                <span v-else>{{ scope.row.unitprice }}</span>
+                                            </template>
+                                        </el-table-column>
+                                        <el-table-column label="采购数量" align="center" width="90">
+                                            <template slot-scope="scope">
+                                                <div v-if="scope.$index == item.typeListData.length-1 && item.editable">
+                                                    <el-form-item prop="qty"
+                                                                  :rules="{required: true, message: '数量不为空', trigger: 'blur'}" label-width="0">
+                                                        <el-input type="number" min="0" v-model="item.typeForm.qty" @input="calculatePrice(item)"></el-input>
+                                                    </el-form-item>
+                                                </div>
+                                                <span v-else>{{ scope.row.qty }}</span>
+                                            </template>
+                                        </el-table-column>
+                                        <el-table-column label="采购金额(元)" prop="amount" align="center" width="120"></el-table-column>
+                                        <el-table-column label="删除" align="center" width="50">
+                                            <template scope="scope">
+                                                <el-button v-if="!item.editable" id="button" @click="handleDel(scope.$index, item)" title="删除"><i
+                                                        class="iconfont icon-p-delet  operate operate-delet"></i></el-button>
+                                            </template>
+                                        </el-table-column>
+                                    </el-table>
+                                </el-form>
+
+                                <!--工具条-->
+                                <el-col :span="24" class="toolbar">
+                                    <el-button-group v-if="item.editable">
+                                        <el-button type="primary" size="small" @click="typeAddConfirm(index, item)"><i class="el-icon-check"></i> 确定添加
+                                        </el-button>
+                                        <el-button type="info" size="small" @click="typeAddCancel(item)"><i class="el-icon-close"></i> 取 消</el-button>
+                                    </el-button-group>
+                                    <el-button v-else type="danger" size="small" @click="typeAddClick(item)"><i class="iconfont icon-plus"></i> 添加采购清单
+                                    </el-button>
+                                </el-col>
+                            </el-row>
+                        </el-card>
+                    </el-collapse-item>
+                </el-collapse>
+            </el-form>
+            <div slot="footer" class="dialog-footer">
+                <el-button @click.native="addFormVisible = false">取消</el-button>
+                <el-button type="primary" @click.native="addSubmit" :loading="addLoading" :disabled="addLoading">提交</el-button>
+            </div>
+        </el-dialog>
+    </div>
+</template>
+
+<script src="./index.js"></script>
+
+<style scoped lang="stylus">
+    @import "../../../../assets/styl/variables.styl";
+
+    .plan-title {
+        text-align: center;
+        font-size: 16px;
+        color: font-color;
+    }
+
+    .current-date
+        color font-color
+        font-size 16px;
+        float right
+        margin 10px;
+
+    .color-success
+        color success-color
+
+    .color-danger
+        color danger-color
+
+    .purchase-item
+        margin 10px;
+
+    .contract-title
+        position: relative;
+        margin-bottom: 60px;
+        svg
+            position: absolute;
+            right: 0;
+            top: -8px;
+
+    .contract-title h2 {
+        text-align: center;
+    }
+
+    .totol-price {
+        color: #FF3B3B;
+        font-size: 24px;
+    }
+
+    .quantity {
+        font-size: 18px;
+        font-weight: bold;
+    }
+
+    .card {
+        margin-top: 10px;
+    }
+
+    .details .el-form-item {
+        margin-bottom: 2px;
+    }
+</style>

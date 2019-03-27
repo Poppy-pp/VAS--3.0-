@@ -1,0 +1,107 @@
+<template>
+    <section>
+        <el-row>
+            <el-col :span="24" class="toolbar" style="padding-bottom: 0px;">
+                <el-form :inline="true" :model="filters">
+                    <template v-for="(item, index) in filters.domSearch">
+                        <template v-if="index == 0">
+                            <div style="display:inline-block;margin:0 10px 10px 0;">
+                                <el-input class="noborder color icon nofocus" @keyup.native.ctrl.8="resetForm()" @keyup.native.13="get" placeholder="请输入查询内容"
+                                          v-model="filters.domSearch[index].content">
+                                    <el-select class="wp_select" multiple clearable filterable v-model="filters.domSearch[index].select" slot="prepend"
+                                               placeholder="选择条件">
+                                        <el-option label="型号" value="batchno"></el-option>
+                                    </el-select>
+                                    <template v-if="index == filters.domSearch.length-1">
+                                        <el-button slot="append" @click="addSelect" icon="el-icon-plus" title="添加查询条件"></el-button>
+                                    </template>
+                                    <template v-else>
+                                        <el-button slot="append" @click="removeSelect(index)" icon="el-icon-minus" title="移除查询条件"></el-button>
+                                    </template>
+                                </el-input>
+                            </div>
+                        </template>
+                        <template v-else>
+                            <el-col :span="24">
+                                <div style="display:inline-block;margin:0 10px 10px 0;">
+                                    <el-input class="noborder color icon nofocus" @keyup.native.ctrl.8="clearAll()" @keyup.native.13="get"
+                                              placeholder="请输入查询内容"
+                                              v-model="filters.domSearch[index].content">
+                                        <el-select class="wp_select" multiple clearable filterable v-model="filters.domSearch[index].select" slot="prepend"
+                                                   placeholder="选择条件">
+                                            <el-option label="型号" value="batchno"></el-option>
+                                        </el-select>
+                                        <template v-if="index == filters.domSearch.length-1">
+                                            <el-button slot="append" @click="addSelect" icon="el-icon-plus" title="添加查询条件"></el-button>
+                                        </template>
+                                        <template v-else>
+                                            <el-button slot="append" @click="removeSelect(index)" icon="el-icon-minus" title="移除查询条件"></el-button>
+                                        </template>
+                                    </el-input>
+                                </div>
+                            </el-col>
+                        </template>
+                        <template v-if="index == 0">
+                            <el-form-item>
+                                <el-button type="primary" @click="get" icon="el-icon-search">查询</el-button>
+                            </el-form-item>
+                            <el-form-item>
+                                <el-button type="primary" @click="resetForm">导出</el-button>
+                            </el-form-item>
+                            <el-form-item>
+                                <el-button type="primary" @click="$router.push('/stockManage/stockInquiry/wantGoods')">填写要货</el-button>
+                            </el-form-item>
+                            <el-form-item>
+                                <el-button type="primary" @click="$router.push('/stockManage/stockInquiry/purchasePlan')">采购计划</el-button>
+                            </el-form-item>
+                        </template>
+                    </template>
+                </el-form>
+            </el-col>
+        </el-row>
+        <el-row>
+            <el-col :span="6" style="display: flex;">
+                <div :style="{height: windowOutHeight - 200 + 'px'}" style="overflow: auto; flex: 1; margin-right: 10px;" v-loading="treeLoading">
+                    <el-tree :data="storageTree" :props="defaultProps" @node-click="handleNodeClick"></el-tree>
+                </div>
+            </el-col>
+            <el-col :span="18">
+                <el-table :max-height="windowOutHeight-215" :data="stockNumList" border ref="todeTable" highlight-current-row
+                          v-loading="loading">
+                    <el-table-column type="index" align="center" label="序号" width="50">
+                    </el-table-column>
+                    <el-table-column prop="modelname" align="center" label="类型" min-width="100">
+                    </el-table-column>
+                    <el-table-column prop="modelspec" align="center" label="型号" min-width="100">
+                    </el-table-column>
+                    <el-table-column prop="storageid" align="center" label="库存量" min-width="100">
+                    </el-table-column>
+                    <el-table-column prop="actionstatus" align="center" label="最低预警值" width="160">
+                    </el-table-column>
+                    <el-table-column prop="actionstatus" align="center" label="最高预警值" width="160">
+                    </el-table-column>
+                    <el-table-column label="操作" width="160" align="center" fixed="right">
+                        <template slot-scope="scope">
+                            <el-button type="text" @click="viewDetails(scope.row)">
+                                查看详情
+                            </el-button>
+                        </template>
+                    </el-table-column>
+                </el-table>
+                <!--工具条-->
+                <div class="toolbar">
+                    <el-pagination @size-change="handleSizeChange" background @current-change="handleCurrentChange" :page-sizes="[15, 50, 80, 99]"
+                                   :page-size="pagination.limit" layout="total, sizes, prev, pager, next" :total="pagination.total">
+                    </el-pagination>
+                </div>
+            </el-col>
+        </el-row>
+    </section>
+</template>
+
+<script src="./index.js">
+</script>
+
+<style scoped>
+
+</style>

@@ -1,0 +1,504 @@
+import util from 'utils/tools';
+import { 
+    getVehTypeList, 
+    addVehType, 
+    modifyVehType, 
+    removeVehType, 
+    getAllInfoList, 
+    getAllColorList, 
+    getVehTypeListSelect
+      } from './service';
+
+export default {
+    name:'carmodelManage',
+    props: ['windowOutHeight'],
+    data() {
+        return {
+            fmtdata: util,
+            filters: {
+                domSearch: [{
+                    select: ['brand'],
+                    content: ''
+                }], //查询框
+                isdelete: '0'
+            },
+            pickerOptions: { //日期
+            },
+            listData: [],
+            carColor: [], //车型颜色
+            activeNames: ['1'],
+            firstlist: ["A","B","C","D","E","F","G","H","I","J","K","L","M","N","O","P","Q","R","S","T","U","V","W","X","Y","Z"], //首字母列表
+            firstLoading: false, //
+            total: 0,
+            currentPage: 1,
+            pageSize: 15,
+            listLoading: false,
+            brandlist: [], //品牌列表
+            seriouslist: [], //车系列表
+            modellist: [], //车型列表
+            brandLoading: false, //品牌
+            seriousLoading: false, //车系
+            modelLoading: false, //车型s
+            VehTypeThisList: [],
+            formDialogTableVisible: false,
+            editFormVisible: false, //编辑界面是否显示
+            editLoading: false,
+            editFormRules: {
+                brand: [{
+                    required: true,
+                    message: "请选择品牌",
+                    trigger: 'blur'
+                }], 
+                serious: [{
+                    required: true,
+                    message: "请选择车系",
+                    trigger: 'blur'
+                }], 
+                model: [{
+                    required: true,
+                    message: "请选择车型",
+                    trigger: 'blur'
+                }], 
+            },
+            //编辑界面数据
+            editForm: {
+                id: '',
+                brand: '',
+                serious: '',
+                model: '',
+                yeartomarket: '',
+                firstcategory: '',
+                salestatus: '',
+                wgys: '',
+                wgysm: '',
+                standardprice: '',
+            },
+            addFormVisible: false, //新增界面是否显示
+            addLoading: false,
+            addFormRules: {
+                brand: [{
+                    required: true,
+                    message: "请选择品牌",
+                    trigger: 'change'
+                }], 
+                serious: [{
+                    required: true,
+                    message: "请选择车系",
+                    trigger: 'blur,change'
+                }], 
+                model: [{
+                    required: true,
+                    message: "请选择车型",
+                    trigger: 'blur,change'
+                }], 
+            },
+            //新增界面数据
+            addForm: {
+                brand: '',
+                serious: '',
+                model: '',
+                yeartomarket: '',
+                firstcategory: '',
+                salestatus: '在售',
+                wgys: '',
+                wgysm: '',
+                standardprice: '',
+            },
+        }
+    },
+    methods: {
+         // 品牌——搜索下拉
+        querySearchBrand(queryString, cb) {
+            let para = {
+                    brand: queryString,
+                    field: 'brand',
+                    limit:30
+                },
+                brandArray = [];
+            getAllInfoList(para).then((res) => {
+                res.data.data.records.forEach(function(item, index) {
+                    brandArray.push({
+                        value: item
+                    });
+                });
+                cb(brandArray);
+            });
+        },
+        handleSelectBrand(item) {
+            this.addForm.brand = item.value;
+            this.addForm.serious = '';
+            this.addForm.model = '';
+            this.editForm.brand = item.value;
+            this.editForm.serious = '';
+            this.editForm.model = '';
+        },
+        //车系——搜索下拉
+        querySearchSerious(queryString, cb) {
+            let para = {
+                    brand: queryString,
+                    field: 'serious',
+                    limit:30
+                },
+                seriousArray = [];
+            getAllInfoList(para).then((res) => {
+                res.data.data.records.forEach(function(item, index) {
+                    seriousArray.push({
+                        value: item
+                    });
+                });
+                cb(seriousArray);
+            });
+        },
+        handleSelectSerious(item) {
+            this.addForm.serious = item.value;
+            this.addForm.model = '';
+            this.editForm.serious = item.value;
+            this.editForm.model = '';
+        },
+        // 车型——搜索下拉
+        querySearchModel(queryString, cb) {
+            let para = {
+                    brand: queryString,
+                    field: 'model',
+                    limit:30
+                },
+                modelArray = [];
+            getAllInfoList(para).then((res) => {
+                res.data.data.records.forEach(function(item, index) {
+                    modelArray.push({
+                        value: item
+                    });
+                });
+                cb(modelArray);
+            });
+        },
+        handleSelectModel(item) {
+            this.addForm.model = item.value;
+            this.editForm.model = item.value;
+        },
+
+
+        // 编辑——选择品牌时，匹配车系，传brandid
+        sendBrandIdData(val) {
+            this.addForm.serious = ''; //清空车系
+            this.addForm.model = ''; //清空车型
+            this.editForm.serious='';//清空车系
+            this.editForm.model='';//清空车型
+
+            let para = {
+                brand: val,
+                field: 'serious',
+                limit:30
+            }
+            getAllInfoList(para).then((res) => {
+                this.seriouslist = res.data.data.records;
+            });
+        },
+        // 编辑——选择车系时，匹配车型
+        sendSeriousIdData(val) {
+            this.addForm.model = ''; //清空车型
+            this.editForm.model='';//清空车型
+            let para = {
+                showCount: 1000,
+                serious: val,
+                value: 'model',
+            }
+            getAllInfoList(para).then((res) => {
+                this.modellist = res.data.data.records;
+            });
+        },
+        // 选择车型时，匹配颜色
+        sendColorIdData(val) {
+            let para = {
+                model: val,
+            }
+            getAllColorList(para).then((res) => {
+                let carModelList = [];
+                res.data.data.forEach((res, index) => {
+                    if(res.color) {
+                        res.color.split(";").forEach((color, index) => {
+                            carModelList.push({
+                                color: color,
+                                color_rgb: res.color_rgb.split(";")[index]
+                            });
+                        });
+                    }
+                });
+                this.carColor = carModelList;
+            });
+        },
+        
+        //选择车辆颜色
+        changeCarColor(v) {
+            if(typeof v != "object") return;
+            if(this.editFormVisible) {
+                this.editForm.wgys = v.color; //存colorname汉字
+                this.editForm.wgysm = v.color_rgb; //存color码
+            }
+            if(this.addFormVisible) {
+                this.addForm.wgys = v.color; //存colorname汉字
+                this.addForm.wgysm = v.color_rgb; //存color码
+            }
+        },
+    
+        //查询清空
+        clearAll() {
+            this.filters.domSearch = [{
+                select: [],
+                content: ''
+            }] //清空查询框;
+        },
+        //详情查看
+        formDetailHandle(brandID) {
+            this.formDialogTableVisible = true;
+            this.VehTypeThisList = ''; //清空上条数据
+            // 获取当前分组信息
+            let para = {
+                id: brandID
+            }
+            nanobar.go(70);
+            getVehTypeList(para).then((res) => {
+                this.VehTypeThisList = res.data.data.records[0];
+                nanobar.go(100);
+            });
+        },
+        // 有效 鼠标移入
+        mouseoverChange(e) {
+            if($(e.target).hasClass('icon-duigou')) {
+                $(e.target).addClass('operate-cha icon-cha').removeClass('operate-duigou icon-duigou');
+            } else {
+                $(e.target).addClass('operate-duigou icon-duigou').removeClass('operate-cha icon-cha');
+            }
+        },
+        // 有效 鼠标移除
+        mouseoutChange(e) {
+            if($(e.target).hasClass('icon-cha')) {
+                $(e.target).addClass('operate-duigou icon-duigou').removeClass('operate-cha icon-cha');
+            } else {
+                $(e.target).addClass('operate-cha icon-cha').removeClass('operate-duigou icon-duigou');
+            }
+        },
+        // 添加查询条件
+        addSelect() {
+            this.filters.domSearch.push({
+                select: [],
+                content: ''
+            });
+        },
+        // 移除查询条件
+        removeSelect(index) {
+            this.filters.domSearch.splice(index, 1); //从当前index位置开始，删除一项
+        },
+        // 排序
+        sortChange(col, prop, order) {
+            let para = {
+                prop: col.prop,
+                order: col.order.substring(0, col.order.length - 6),
+            }
+        },
+        // 有效无效开关
+        showData(i) {
+            this.filters.isdelete = i;
+            this.GetPositions();
+        },
+
+        // 有效无效颜色切换
+        tableRowClassName(row, index) {
+            if(row.isdelete == 1) {
+                return 'warning-row';
+            }
+            return '';
+        },
+        // 有效按钮切换状态
+        handleChange: function(index, row) {
+            this.$confirm('确认设置该条记录的状态吗？', '提示', {
+                type: 'warning'
+            }).then(() => {
+                let para = {
+                    id: row.id,
+                    isdelete: row.isdelete == 0 ? 1 : 0,
+                }
+                modifyVehType(para).then((res) => {
+                    this.$message({
+                        message: '设置成功',
+                        type: 'success'
+                    });
+                    row.isdelete = para.isdelete;
+                }).catch(() => {
+                    this.listLoading = false;
+                });
+            });
+        },
+        //时间转换3
+        dateFormatterThird: function(row, col) {
+            if(row.yeartomarket == "" || row.yeartomarket == undefined) return;
+            return util.formatDate.format(new Date(row.yeartomarket), 'yyyy');
+        },
+        //删除
+        handleDel(index, row) {
+            this.$confirm('确认删除该记录吗?', '提示', {
+                type: 'warning'
+            }).then(() => {
+                this.listLoading = true;
+                let para = {
+                    ids: row.id,
+                    method: "delete"
+                };
+
+                removeVehType(para).then((res) => {
+                    this.listLoading = false;
+                    this.$message({
+                        message: '删除成功',
+                        type: 'success'
+                    });
+                    this.GetPositions();
+                    // this.handleQuerySelect();
+                });
+            }).catch(() => {
+
+            });
+        },
+        //显示编辑界面
+        handleEdit(index, row) {
+            this.editFormVisible = true;
+            this.editForm = {
+                id: row.id,
+                brand: row.brand,
+                serious: row.serious,
+                model: row.model,
+                yeartomarket: row.yeartomarket,
+                firstcategory: row.firstcategory,
+                wgys: row.wgys,
+                wgysm: row.wgysm,
+                standardprice: row.standardprice,
+            }
+        },
+        //显示新增界面
+        handleAdd() {
+            this.addFormVisible = true;
+            this.addForm = {
+                brand: '',
+                serious: '',
+                model: '',
+                yeartomarket: new Date(),
+                firstcategory: '',
+                salestatus: '在售',
+                wgys: '',
+                wgysm: '',
+                standardprice: '',
+            };
+
+        },
+        //编辑
+        editSubmit() {
+            console.log(this.editForm.brand)
+            this.$refs.editForm.validate((valid) => {
+                if(valid) {
+                    this.editLoading = true;
+                    let para = {
+                        id: this.editForm.id,
+                        brand: this.editForm.brand,
+                        serious: this.editForm.serious,
+                        model: this.editForm.model,
+                        yeartomarket:this.editForm.yeartomarket,
+                        firstcategory: this.editForm.firstcategory,
+                        wgys: this.editForm.wgys,
+                        wgysm: this.editForm.wgysm,
+                        standardprice: this.editForm.standardprice,
+                    }
+                    if (this.editForm.yeartomarket.length != 4) {//当年款发生变化时
+                        para.yeartomarket = util.formatDate.format(this.editForm.yeartomarket,'yyyy');
+                    }
+
+                    modifyVehType(para).then((res) => {
+                        this.editLoading = false;
+                        this.$message({
+                            message: '编辑成功',
+                            type: 'success'
+                        });
+                        this.$refs['editForm'].resetFields();
+                        this.editFormVisible = false;
+                        this.GetPositions();
+                        // this.handleQuerySelect();
+                    });
+                }
+            });
+        },
+        //新增
+        addSubmit() {
+            this.$refs.addForm.validate((valid) => {
+                if(valid) {
+                    this.addLoading = true;
+                    let para = {
+                        brand: this.addForm.brand,
+                        serious: this.addForm.serious,
+                        model: this.addForm.model,
+                        yeartomarket: util.formatDate.format(this.addForm.yeartomarket, 'yyyy'),
+                        firstcategory: this.addForm.firstcategory,
+                        salestatus: this.addForm.salestatus,
+                        wgys: this.addForm.wgys,
+                        wgysm: this.addForm.wgysm,
+                        standardprice: this.addForm.standardprice,
+                    }
+                    addVehType(para).then((res) => {
+                        this.addLoading = false;
+                        this.$message({
+                            message: '新增成功',
+                            type: 'success'
+                        });
+                        this.$refs['addForm'].resetFields();
+                        this.addFormVisible = false;
+                        this.GetPositions();
+                    });
+                }
+            });
+        },
+        //切换当前页
+        handleCurrentChange(val) {
+            this.currentPage = val;
+            this.handleQuerySelect();
+            // this.GetPositions();
+        },
+        //切换每页显示数量
+        handleSizeChange(val) {
+            this.pageSize = val;
+            this.GetPositions();
+        },
+        //搜索按钮——模糊查询
+        handleQuerySelect() {
+            let para = {
+                page: this.currentPage,
+                limit: this.pageSize,
+                // isdelete:this.filters.isdelete,
+                domSearch: this.filters.domSearch,
+            };
+            this.listLoading = true;
+            getVehTypeListSelect(para).then((res) => {
+                this.total = res.data.data.total;
+                this.listData = res.data.data.records;
+                this.listLoading = false;
+            }).catch((error) => {
+                this.listLoading = false;
+            });
+        },
+        //获取列表
+        GetPositions() {
+            let para = {
+                page: this.currentPage,
+                limit: this.pageSize,
+                // isdelete:this.filters.isdelete,
+            };
+            this.listLoading = true;
+            getVehTypeList(para).then((res) => {
+                this.total = res.data.data.total;
+                this.listData = res.data.data.records;
+                this.listLoading = false;
+            }).catch((error) => {
+                this.listLoading = false;
+            });
+        },
+    },
+    created() {
+        this.GetPositions();
+    }
+}

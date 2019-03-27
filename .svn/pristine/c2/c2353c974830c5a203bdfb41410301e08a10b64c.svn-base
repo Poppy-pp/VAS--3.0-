@@ -1,0 +1,188 @@
+import axios from 'axios'
+import { checkAllMobile, checkVin, checkPolicyName, checkVehicleNumber, checkMobile, checkFloatNum } from '@/utils/formValidation'
+
+/**
+ * 根据公司id 获取产品列表
+ * @param params
+ * @param corpid
+ * @returns {AxiosPromise<any>}
+ */
+export const getProducts = (params, corpid) => {
+    return axios.get(`/admin/cmsPackcust/page/${corpid}`, {
+        params
+    })
+}
+
+export const submitInstall = params => {
+    return axios.post(`/business/orderNewBuild/start`, params)
+}
+
+/**
+ * 初始化表单
+ * @returns {{corpname: string, corpid: string, declaretype: string, contactname: string, contactmobile: string, vehiclestatus: number, servicestartdate: string, serviceenddate: string, hastheftinsurance: number, packageid: string, impapplydate: string, impaddresscode: string, impaddress: string, impaddresslng: string, impaddresslat: string, impgroupid: string, impby: string, declareremark: string, busiVehicleinfo: {vehicletype: string, vehicleuse: string, vehiclecategory: string, vehiclepower: string, model: string, color: string, colorname: string, firstregisterdate: string, licenseplatenum: string, licenseplatecolor: string, vin: string, enginenum: string, price: string, corpid: string, receivingbankid: string, hastheftinsurance: string, generalproductcount: string, yearsofservice: string, ownername: string, idcard: string, gender: string, mobile: string, addresshome: string, indemnitylimit: string, beneficiary: string, priceInsucorp: string}, picinvoice: string, picvehiclelicense: string, picidcard: string, picregistration: string, piccertificate: string, picimport: string, busiPictures: Array}}
+ */
+export const initForm = () => {
+    return {
+        corpname: '',//保单公司
+        corpid: '', //客户ID
+        ordertype: 'INSTALL', //订单类型
+        declaretype: 'SELF', //保单类型（SELF, CUST）
+        contactname: '', //现场联系人姓名
+        contactmobile: '', //现场联系人手机号码
+        contactid: '', //现场联系人id
+        vehiclestatus: 1, //车辆状态（1=已到，0=未到）
+        servicestartdate: '', //服务开始时间
+        serviceenddate: '', //服务结束时间
+        hastheftinsurance: 0, //是否有盗抢险（1=有，0=无）
+        packageid: '', //申请安装套餐ID
+        impapplydate: '', //申请施工时间
+        impaddresscode: '', //施工地址编码
+        impaddress: '', //施工地址
+        impaddresslng: '', //施工地址经度
+        impaddresslat: '', //施工地址纬度
+        impgroupid: '', //施工组ID
+        impby: '', //施工组员ID(userid)
+        declareremark: '', //报单备注
+        busiVehicleinfo: {
+            vehicletype: '', //车类型（见字典表VehicleType）
+            vehicleuse: '', //车辆用途（1=乘用车，2=商用车，3=网约车）
+            vehiclecategory: '', //车辆分类（1=新车，2=二手车，3=资管追回）
+            vehiclepower: '', //能源类型(1=汽油，2=柴油，3=纯电，4=混动）
+            model: '', //车型
+            color: '', //车辆颜色
+            colorname: '', //车辆颜色名称
+            firstregisterdate: '', //车辆初始登记日期
+            licenseplatenum: '', //车牌号
+            licenseplatecolor: '', //车牌颜色名称（蓝、黄、黑、白、其他）
+            vin: '', //车架号
+            enginenum: '', //发动机号
+            price: '', //车价(元)
+            corpid: '', //所属客户ID
+            receivingbankid: '', //受理银行ID
+            hastheftinsurance: '', //是否有盗抢险（1有0无）
+            generalproductcount: '', //常规产品数量
+            yearsofservice: '', //服务期限（年）
+            ownername: '', //姓名
+            idcard: '', //证件号码
+            gender: '', //性别（F=女，M=男）
+            mobile: '', //手机号码
+            addresshome: '', //手机号码
+            indemnitylimit: '', //保单赔偿限额
+            beneficiary: '', //保险受益人
+            priceInsucorp: '' //保险公司保费
+        },
+        picinvoice: '',//购车发票
+        picvehiclelicense: '',//行驶证
+        picidcard: '',//身份证
+        picregistration: '',//登记证
+        piccertificate: '',//合格证
+        picimport: '',//货物进口证
+        busiPictures: []
+        // busiPictures: [
+        //     {
+        //         piclink: '',//图片地址
+        //         piccode: '21',//图片代码
+        //         picdesc: '购车发票',//图片描述
+        //     },{
+        //         piclink: '',//图片地址
+        //         piccode: '11',//图片代码
+        //         picdesc: '行驶证',//图片描述
+        //     },{
+        //         piclink: '',//图片地址
+        //         piccode: '22',//图片代码
+        //         picdesc: '身份证',//图片描述
+        //     },{
+        //         piclink: '',//图片地址
+        //         piccode: '10',//图片代码
+        //         picdesc: '登记证',//图片描述
+        //     },{
+        //         piclink: '',//图片地址
+        //         piccode: '23',//图片代码
+        //         picdesc: '合格证',//图片描述
+        //     },{
+        //         piclink: '',//图片地址
+        //         piccode: '24',//图片代码
+        //         picdesc: '货物进口证',//图片描述
+        //     }
+        // ]
+    }
+}
+
+export const installRules = (self) => {
+    return {
+        'busiVehicleinfo.ownername': [
+            {required: true, message: '请输入车主姓名', trigger: 'blur'},
+            {validator: checkPolicyName, trigger: 'blur'}
+        ],
+        'busiVehicleinfo.mobile': [
+            {required: true, message: '请输入车主电话', trigger: 'blur'},
+            {validator: checkMobile, trigger: 'blur'}
+        ],
+        'busiVehicleinfo.idcard': [
+            {required: true, message: '请输入车主证件号码', trigger: 'blur'}
+        ],
+        'busiVehicleinfo.vin': [
+            {required: true, message: '请输入车架号', trigger: 'blur'},
+            {validator: checkVin, trigger: 'blur'},
+            {min: 17, trigger: 'blur', message: '车架号位数不能小于17位'}
+        ],
+        'busiVehicleinfo.model': [
+            {required: true, message: '请输入厂牌型号', trigger: 'change'}
+        ],
+        'busiVehicleinfo.price': [
+            {required: true, message: '请输入车辆购置价', trigger: 'blur'},
+            {validator: checkFloatNum, trigger: 'blur'}
+        ],
+        'busiVehicleinfo.vehiclecategory': [
+            {required: true, message: '请选择车辆分类', trigger: 'change'}
+        ],
+        'busiVehicleinfo.vehicletype': [
+            {required: true, message: '请选择车辆类型', trigger: 'change'}
+        ],
+        'busiVehicleinfo.enginenum': [
+            {required: true, message: '请输入发动机号', trigger: 'blur'}
+        ],
+        'busiVehicleinfo.beneficiary': [
+            {required: true, message: '请选择第一受益人', trigger: 'change'}
+        ],
+        'busiVehicleinfo.priceInsucorp': [
+            {required: true, message: '万网盗抢险服务费', trigger: 'blur'},
+            {validator: checkFloatNum, trigger: 'blur'}
+        ],
+        'busiVehicleinfo.indemnitylimit': [
+            {required: true, message: '请选择赔偿限额', trigger: 'blur'},
+            {validator: checkFloatNum, trigger: 'blur'},
+            {
+                validator: (rule, value, callback) => {
+                    if (+value > +self.form.busiVehicleinfo.price) {
+                        console.log(value)
+                        console.log(self.form.busiVehicleinfo.price)
+                        callback(new Error('赔偿限额不能超过车辆购置价'))
+                    } else {
+                        callback()
+                    }
+                },
+                trigger: 'blur'
+            }
+        ],
+        contactname: [
+            {required: true, message: '请输入安装联系人', trigger: 'blur'}
+        ],
+        contactmobile: [
+            {required: true, message: '请输入安装联系方式', trigger: 'blur'},
+            {validator: checkMobile, trigger: 'blur'}
+        ],
+        impapplydate: [
+            {required: true, message: '选择安装时间', trigger: 'change'}
+        ],
+        vehiclestatus: [
+            {required: true, message: '选择车辆到达情况', trigger: 'change'}
+        ],
+        impaddress: [
+            {required: true, message: '选择安装地址', trigger: 'change'}
+        ],
+        impby: [
+            {required: true, message: '请选择安装人员', trigger: 'change'}
+        ]
+    }
+}

@@ -1,0 +1,36 @@
+import axios from 'axios';
+
+export const getdeliveryListAll = params => {
+    return axios.get(`/sto/stoAccessory/query`, { params: params })
+};
+
+// 查看物流
+export const getViewLogistics = params => {
+    return axios.get(`/sto/stoDelivery/queryLogisticsInfo/${param.id}`)
+};
+// 退回库房
+export const getStorageInfoSelect = params => {
+    return axios.get(`/sto/stoStorage/query/like`, {params: params})
+};
+
+
+
+
+
+
+
+export const getPartsList = params => {
+	return axios.get(`/sto/stoModel/parts/query/page`, {params: params})
+};
+
+export const addPartsInfo = params => {
+	return axios.post(`/sto/stoModel/parts`, params)
+};
+
+export const modifyPartsInfo = params => {
+	return axios.get(`/sto/stoModel/pub/isactive/`+ params.id + `/`+ params.isactive );
+};
+
+export const removePartsInfo = params => {
+	return axios.delete(`/sto/stoModel/parts/`+ params.id, params )
+};

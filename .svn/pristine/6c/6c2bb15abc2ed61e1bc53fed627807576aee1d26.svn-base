@@ -1,0 +1,255 @@
+import { mapState } from 'vuex'
+import { getProductInfoList, addWarehouseProd, facilityFormRules, getDeliveryCorps,getPurchaseCascader } from '../service'
+import { getStorageInfoSelect } from '../../basicSetting/storeHouseList/service'
+import { getSIMModelList } from "../../basicSetting/simList/service";
+import { getProdModelList } from "../../basicSetting/equipmentList/service";
+import { getEmployeeInfoList } from "@/views/basicManage/employeeManage/service";
+
+export default {
+    name: "allocation-detail",
+    data () {
+        return {
+            filtersProd: {
+                domSearch: [{
+                    select: ['prodnum'],
+                    content: ''
+                }], //查询框
+            },
+            facilities: [],//手动添加设备——选择设备列表
+            chooseFacilityVisible: false,
+            dtotal: 0,
+            dcurrentPage: 1,
+            dpageSize: 10,
+            selectFacilities: [],
+            activeName:'first',
+            scanNumberVisible: false,//扫描添加设备——选择设备列表
+            devNum: '',
+            devNumList: [],
+            inTypes: [],//调拨类型
+            facilityLoading:false,
+            facilityForm: {
+                documentmaker:this.$store.getters.userInfo.name,
+                createDate: dayjs(new Date()).format('YYYY-MM-DD'),
+                username: '',
+                userid: '',
+                actiontype: '',
+                receiptno: '',
+                purchaseDate: '',
+                storageid: '',
+                purchaseid: '',
+                batchno: '',
+                attachurl: '',
+                contractno: '',
+                suppliername: '',
+                supplierid: '',
+                stoDelivery: '',
+                stoStorageDto:{
+                    managername:'',
+                    storageaddress:'',
+                    storagename:'',
+                    managermobile:'',
+                },
+                listUpload:[]
+            },
+            facilityFormRules: facilityFormRules,
+            storageList: [],//库房
+            selectLoading: false,
+            employeeInfoLis: [],//经办人
+            deliveryCorps: [],//物流公司
+            prodDetailData:[],//设备详情已选列表
+            modelOptions:[],//配件列表
+            typeForm:{
+                modelid:'',
+                modelname:[],//cascader的v-model，选择时显示
+            },
+            showEdit: [], //显示编辑框
+            isView:false,
+        }
+    },
+    props: {
+        // itemInvoice: {
+        //     default: {},
+        //     type: Object
+        // },
+        // storageInvoice: {
+        //     default: {},
+        //     type: Object
+        // }
+    },
+    computed: {
+        // isProcurement () {
+        //     return this.storageInvoice.intype === 'IN_PURCHASE'
+        // },
+        // isExcel () {
+        //     return this.storageInvoice.isExcel
+        // },
+        // isView () {
+        //     return this.storageInvoice.isView
+        // }
+    },
+    methods: {
+        // 初始化
+        init () {            
+            JsBarcode(this.$refs['invoice-bar-code'], 12345678910, {width:1,height: 40} );
+        },
+        // 获取仓库
+        async getStorage () {
+            try {
+                const params = {
+                    limit: 1000,
+                    page: 1
+                }
+                const {data} = await getStorageInfoSelect(params)
+                this.storageList = data.data.records
+            } catch (e) {}
+        },
+        // 选择仓库获取电话地址
+        changeStorage (storageId) {
+            const storage = _.find(this.storageList, {id: storageId})
+            this.facilityForm.storageid = storageId
+            this.facilityForm.stoStorageDto.managermobile = storage.managermobile
+            this.facilityForm.stoStorageDto.storageaddress = storage.storageaddress
+            this.facilityForm.stoStorageDto.managername = storage.managername
+        },
+        // 经办人搜索
+        remoteMethod (query) {
+            let para = {
+                page: this.currentPage,
+                limit: this.pageSize,
+                isactive: '1',
+                domSearch: [{
+                    select: ['employeename'],
+                    content: query
+                }],
+            };
+            this.selectLoading = true;
+            getEmployeeInfoList(para).then(({data}) => {
+                this.selectLoading = false
+                this.employeeInfoLis = data.data.records
+            })
+        },
+        // 选择物流公司
+        async getDeliveryCorps () {
+            try {
+                const params = {
+                    dictvalue: 'ExpressCompany',
+                    limit: 1000,
+                    page: 1
+                }
+                const {data} = await getDeliveryCorps(params)
+                this.deliveryCorps = data.data.records
+            } catch (e) {}
+        },
+
+        // ------------------------------------------------------------手动添加设备---------------------------------------------------------------
+        // 点击添加
+        addFacility (boolean) {
+            if (boolean) {                      //手动添加
+                this.chooseFacilityVisible = true;
+                this.typeForm.modelname = [];
+                this.getDeciceListInfo();
+            } else {                                //扫描添加
+                this.devNumList = []
+                this.scanNumberVisible = true
+            }
+        },
+        // 获取配件下拉信息
+        modelCascader(){
+            getPurchaseCascader().then((res) => {
+                this.modelOptions = res.data.data;
+            });
+        },
+        // 级联选择器-选择配件时
+        handleChange(val) {
+            this.typeForm.modelid = val[val.length-1];
+        },
+        //获取设备列表信息
+        getDeciceListInfo() {
+            let para = {
+                page: this.dcurrentPage,
+                limit: this.dpageSize,
+                domSearch: this.filtersProd.domSearch, //查询框
+            }
+            getProductInfoList(para).then((res) => {
+                this.dtotal = res.data.data.total;
+                this.facilities = res.data.data.records;
+            })
+        },
+        //切换当前页——选择遗失设备
+        dhandleCurrentChange(val) {
+            this.dcurrentPage = val;
+            this.getDeciceListInfo();
+        },
+        //切换每页显示数量
+        dhandleSizeChange(val) {
+            this.dpageSize = val;
+            this.getDeciceListInfo();
+        },
+        // 多选设备时
+        selectFacility (selection) {
+            this.selectFacilities = selection
+        },
+        // 确定选择设备时
+        confirmFacility () {
+            this.chooseFacilityVisible = false;
+            this.facilityForm.listUpload = this.facilityForm.listUpload.concat(this.selectFacilities);
+            // this.facilityLoading = true;//刷新已选设备
+            
+            // 当返回列表有配件时，填写配件数量 
+            // this.showEdit[index] = true;
+            // this.$set(this.showEdit);//触发视图更新
+        },
+        // 删除设备
+        remove (index) {
+            this.facilityForm.listUpload.splice(index, 1)
+        },
+
+        // ------------------------------------------------------------扫码添加设备---------------------------------------------------------------
+        // 扫码添加设备
+        keyUpDevice () {
+            const arr = _.map(this.devNumList, 'equipmentnum')
+            if (this.devNum && !arr.includes(this.devNum)) {
+                this.devNumList.push({
+                    equipmentnum: this.devNum
+                })
+                this.devNum = ''
+            } else {
+                this.$message.warning('已存在编号')
+            }
+        },
+        // 删除扫码设备
+        deleteSavDeviceNum (index) {
+            this.devNumList.splice(index, 1)
+        },
+        // 扫码添加设备
+        checkScanNumber () {
+            this.scanNumberVisible = false
+            this.facilityForm.listUpload = this.facilityForm.listUpload.concat(this.devNumList);
+        },
+
+
+
+
+
+        // 提交数据
+        submit () {
+            this.$refs.facilityForm.validate(async valid => {
+                if (valid) {
+                    try {
+                        await addWarehouseProd(this.facilityForm)
+                        this.$emit('submit')
+                        this.$message.success('提交成功')
+                    } catch (e) {
+
+                    }
+                    return
+                }
+                this.$message.warning('请检查表单完善信息')
+            })
+        },
+
+    },
+    mounted () {
+        this.init()
+    }
+}
