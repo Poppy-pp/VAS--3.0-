@@ -1,0 +1,77 @@
+<!--* 
+* @description: 报单中心列表 新装单 拆除单 维修单
+*-->
+<template>
+    <section class="tab_content-wrapper yewu">
+        <el-tabs v-model="activeName" type="card" @tab-click="handleClick">
+            <el-tab-pane label="新装单管理" name="1">
+                <newpackinglist :isEmployee="isEmployee" :windowOutHeight="windowOutHeight" @exportExcel="exportExcel"></newpackinglist>
+            </el-tab-pane>
+            <el-tab-pane label="拆除单管理" name="2" v-if="isEmployee">
+                <dismantlelist :windowOutHeight="windowOutHeight" @exportExcel="exportExcel"></dismantlelist>
+            </el-tab-pane>
+            <el-tab-pane label="维修单管理" name="3" v-if="isEmployee">
+                <repairlist :windowOutHeight="windowOutHeight" @exportExcel="exportExcel"></repairlist>
+            </el-tab-pane>
+        </el-tabs>
+    </section>
+</template>
+
+<script>
+    //组件引入
+    import newpackinglist from './newPackingList/index.vue';//安装单管理
+    import dismantlelist from './dismantleList/index.vue';//拆除单管理
+    import repairlist from './repairList/index.vue';//维修单管理
+    import XLSX from 'xlsx'
+
+    console.log(XLSX)
+    console.log(XLSX.utils.sheet_to_json)
+    import { mapState } from "vuex";
+
+    export default {
+        props: ['windowOutHeight'],
+        components: {
+            newpackinglist,
+            dismantlelist,
+            repairlist,
+        },
+        computed: {
+            ...mapState({
+                isEmployee: state => state.user.isEmployee
+            }),
+        },
+        data () {
+            return {
+                activeName: '1'
+            }
+        },
+        methods: {
+            exportExcel (data) {
+                // var ws = XLSX.utils.json_to_sheet([
+                //     { S:1, h:2, e:3, e_1:4, t:5, J:6, S_1:7 },
+                //     { S:2, h:3, e:4, e_1:5, t:6, J:7, S_1:8 }
+                // ], {header:["S","h","e","e_1","t","J","S_1"]});
+                // var wb = XLSX.utils.json_to_sheet([
+                //     { A:"S", B:"h", C:"e", D:"e", E:"t", F:"J", G:"S" },
+                //     { A: 1,  B: 2,  C: 3,  D: 4,  E: 5,  F: 6,  G: 7  },
+                //     { A: 2,  B: 3,  C: 4,  D: 5,  E: 6,  F: 7,  G: 8  }
+                // ], {header:["A","B","C","D","E","F","G"], skipHeader:true});
+                // XLSX.writeFile(ws, 'out.xlsx');
+                var wopts = { bookType:'xlsx', bookSST:false, type:'array' };
+                var wb = XLSX.utils.json_to_sheet(data, wopts);
+                console.log(wb)
+                // XLSX.write(wb, {Props:{Author:"SheetJS"}});
+                // XLSX.writeFile('out.xlsx');
+            },
+            //页面管理切换
+            handleClick (tab) {
+            }
+        },
+    }
+</script>
+
+
+<style scoped lang="stylus">
+
+</style>
+
