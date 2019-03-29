@@ -1,0 +1,91 @@
+{
+  "name": "vue-vas",
+  "version": "0.1.0",
+  "private": true,
+  "author": "Pulin <15528842282@163.com>",
+  "description": "VAS systems",
+  "repository": {
+    "type": "",
+    "url": ""
+  },
+  "bugs": {
+    "url": ""
+  },
+  "keywords": [
+    "vue",
+    "vue-vas",
+    "admin",
+    "management-system",
+    "admin-template"
+  ],
+  "scripts": {
+    "dev": "vue-cli-service serve --open",
+    "build": "vue-cli-service build",
+    "lint": "vue-cli-service lint"
+  },
+  "prettier": {
+    "singleQuote": true,
+    "semi": false
+  },
+  "dependencies": {
+    "@tweenjs/tween.js": "^17.2.0",
+    "axios": "^0.18.0",
+    "dayjs": "^1.6.9",
+    "echarts": "^4.1.0",
+    "element-ui": "^2.4.11",
+    "js-cookie": "^2.2.0",
+    "lodash": "^4.17.10",
+    "mockjs": "^1.0.1-beta3",
+    "normalize.css": "^8.0.0",
+    "nprogress": "^0.2.0",
+    "qs": "^6.5.2",
+    "query-string": "^6.1.0",
+    "screenfull": "^3.3.2",
+    "viewerjs": "^1.2.0",
+    "vue": "^2.5.16",
+    "vue-grid-layout": "^2.1.13",
+    "vue-i18n": "^7.8.0",
+    "vue-router": "^3.0.1",
+    "vue-seamless-scroll": "^1.1.12",
+    "vuex": "^3.0.1",
+    "xlsx": "^0.14.1"
+  },
+  "devDependencies": {
+    "@vue/babel-preset-app": "^3.0.0-rc.2",
+    "@vue/cli-plugin-babel": "^3.0.0-rc.2",
+    "@vue/cli-service": "^3.0.0-rc.2",
+    "@vue/cli-shared-utils": "^3.0.0-rc.2",
+    "babel-plugin-component": "^1.1.1",
+    "crypto-js": "^3.1.9-1",
+    "css-loader": "^1.0.0",
+    "dayjs": "^1.7.5",
+    "file-loader": "^1.1.11",
+    "jquery": "^3.3.1",
+    "jsbarcode": "^3.11.0",
+    "postcss-import": "^11.1.0",
+    "postcss-url": "^7.3.2",
+    "prettier": "^1.13.5",
+    "raw-loader": "^0.5.1",
+    "style-loader": "^0.21.0",
+    "stylus": "^0.54.5",
+    "stylus-loader": "^3.0.2",
+    "url-loader": "^1.0.1",
+    "vue-amap": "0.4.5",
+    "vue-countupjs": "^1.0.0",
+    "vue-particles": "^1.0.9",
+    "vue-svg-icon": "^1.2.9",
+    "vue-template-compiler": "^2.5.16",
+    "webpack": "^4.16.5",
+    "webpack-bundle-analyzer": "^2.13.1",
+    "xlsx": "^0.14.1"
+  },
+  "engines": {
+    "node": ">= 8.0.0",
+    "npm": ">= 4.0.0"
+  },
+  "browserslist": [
+    "> 1%",
+    "last 2 versions",
+    "not ie <= 8"
+  ]
+}

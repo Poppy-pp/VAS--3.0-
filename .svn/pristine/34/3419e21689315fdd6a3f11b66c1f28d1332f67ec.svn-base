@@ -608,8 +608,6 @@
                 <div v-for="(item,index) in prods">
                     <p class="invoice-title" v-if="item.cmsProduct.prodcategory == 'P_WIRE'">{{ '有线设备' }}</p>
                     <p class="invoice-title" v-if="item.cmsProduct.prodcategory == 'P_WIRELESS'">{{ '无线设备' }}</p>
-                    <p class="invoice-title" v-if="item.cmsProduct.prodcategory == 'P_OTH'">{{ '其他' }}</p>
-
 
                     <span v-if="item.cmsProduct.prodcategory != 'P_ACCESSORY'">
                 <!-- 选择设备型号 -->
@@ -780,7 +778,7 @@
                     <el-card shadow="never" class="space">
                         <el-checkbox :indeterminate="isIndeterminate" v-model="checkAll" @change="handleCheckAllChange">全选</el-checkbox>
                         <el-checkbox-group v-model="checkedParts" @change="handleCheckedPartsChange">
-                            <el-checkbox v-for="item in parts" :label="item" :key="item.cmsProduct.prodmodelscope">{{item.cmsProduct.proddesc + '&emsp;X ' +
+                            <el-checkbox v-for="item in parts" :label="item" :key="item.cmsProduct.id">{{item.cmsProduct.proddesc + '&emsp;X ' +
                                 item.prodqty}}
                             </el-checkbox>
                         </el-checkbox-group>

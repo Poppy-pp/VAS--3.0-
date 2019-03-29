@@ -780,7 +780,7 @@
                     <el-card shadow="never" class="space">
                         <el-checkbox :indeterminate="isIndeterminate" v-model="checkAll" @change="handleCheckAllChange">全选</el-checkbox>
                         <el-checkbox-group v-model="checkedParts" @change="handleCheckedPartsChange">
-                            <el-checkbox v-for="item in parts" :label="item" :key="item.cmsProduct.prodmodelscope">{{item.cmsProduct.proddesc + '&emsp;X ' +
+                            <el-checkbox v-for="item in parts" :label="item" :key="item.cmsProduct.id">{{item.cmsProduct.proddesc + '&emsp;X ' +
                                 item.prodqty}}
                             </el-checkbox>
                         </el-checkbox-group>

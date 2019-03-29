@@ -1,13 +1,14 @@
 import util from 'utils/tools';
 import async from 'async';
-import {  cldeviceIsOnstate, getProdCatagorys, getOperationRecord, getNodesCount, getProdModels, getModelProds, setStartFormRules, getTodoInfoList, getInstallPositionCode, startInstall, finishInstall, validateVinVeh,deleteProcess,returnProccess  } from './service';
+import {  returnProccess, deleteProcess, getInstallProds, cldeviceIsOnstate, getOwnerInfo, getOperationRecord, getNodesCount, getModelProds, setStartFormRules, getTodoInfoList, getInstallPositionCode, startVindicate, finishVindicate,   } from './service';
+import {  nextInstall } from '../newPackingList/service.js';
 import { getVehList } from "@/views/basicManage/ownerVehicleManage/service";
 import { getAllColorList, getCarModel } from '@/views/basicManage/ownerVehicleManage/service'
 import { getParentInfoList } from '@/views/sysManage/organizationManage/service'
 import { getToken } from '@/utils/auth'
 
  export default {
-        props:['windowOutHeight','isEmployee'],
+        props:['windowOutHeight'],
         data() {
             return {
                 util:util,
@@ -20,51 +21,23 @@ import { getToken } from '@/utils/auth'
                         content: ''
                     }], //查询框
                     timeScope: '',
+                    prodnum:'',
                 },
                 // 完成安装弹窗
                 finishInstallDialogVisible:false,
                 rowFinishData:[],//存储当前行的数据
-                packList:[],//储存当前行的套餐信息数据
                 installStep:'1',//第一步第二步，步骤状态
-                isdisabled:false,//禁用
+                picLargedialogVisible:false,//图片放大
+                picLargeImageUrl:'',//图片路径
                 startForm:{//第一步
-                    // 默认
                     vin:'',
                     licenseplatenum:'',
                     vehicletype:'',
                     vehiclePic:'',
-                    // 带出其他信息
-                    ownername:'',
-                    mobile:'',
-                    idcard:'',
-                    model:'',
-                    price:'',
-                    vehiclecategory:'',
-                    vehicletype:'',
-                    vehicletypename:'',
-                    enginenum:'',
-                    color:'',
-                    colorname:'',
-                    vehiclepower:'',
-                    firstregisterdate:'',
-                    indemnitylimit:'',
-                    priceInsucorp:'',
-                    beneficiary:'',
-                    addresshome:'',
                 },
                 startFormRules:setStartFormRules,
-                isSameVin:true,//判断车架号是否一致
-                isExistVin:true,//判断车架号是否存在系统
                 vehlist:[],//车辆类型
-                prodCatagorys:[],//当前单的设备类别组
-                prods:[],//设备组
-                parts:[],//配件组prodIndex:0,//下标
-                picIndex:0,//图片的index
-                checkedParts:[],//多选的配件组
-                checkAll: false,
-                isIndeterminate: false,
-                modellist:[],//完成安装-选择设备型号
-                modelloading:false,
+                // prodCatagorys:[],//当前单的设备类别组
                 signalInfo:{},//信号检测
                 vehiclecategoryList: {//车辆分类列表
                     1: '新车',
@@ -77,20 +50,26 @@ import { getToken } from '@/utils/auth'
                     3: '纯电',
                     4: '混动'
                 },
-                InstallPositionArray: [],//设备安装位置
+                prodIndex:0,//选择设备下标
                 codeloading:false,
-                show:[],//设备显示
+                InstallPositionArray: [],//设备安装位置
+                ischange:[],//设备显示
                 endForm:{//第二步
-                    // 配件
-                    parts:[],// accessorymodelid配件型号id ,accessoryqty配件数量
-                    // 设备
-                    prods:[],
-                    impremark:'',//施工备注
+                    impremark:'',//备注
+                    prodCatagorys:[]
                 },
                 endFormRules:{
-                    installpositioncode:[{required:true,message:"请选择设备安装位置",trigger: 'blur'}],
-                    busiPictures :[{required:true,message:"请上传设备安装图片",trigger: 'blur'}],
+                    installpositioncode:[{required:true,message:"请选择设备安装位置",trigger: 'change'}],
+                    piclink :[{required:true,message:"请上传设备安装图片",trigger: 'change'}],
                 },
+                actionTypes:[
+                    {label:'维修',value:'REPAIR-YES'},
+                    {label:'无需维修',value:'REPAIR-NO'},
+                    {label:'更换设备',value:'CHANGE'},
+                    {label:'未找到设备不补装',value:'LOST'},
+                    {label:'未找到设备补装',value:'LOST-INSTALL'},
+                ],
+                sameVin:true,//车架号是否一致
                 prodData: [],//设备选择列表
                 prodLoading:false,
                 todo:[],//列表数据
@@ -119,9 +98,11 @@ import { getToken } from '@/utils/auth'
                 expandLoading:false,//表格详情
                 opHistoryData:[],//操作记录
                 activeName:'1',
+
+                copName:[],//公司下拉
+                copLoading:false,
                 isExpandeds:true,
                 accept:"jpg,png,jpeg",
-                isOvertime:false,//是否超时
             }    
         },
         methods: {
@@ -130,98 +111,73 @@ import { getToken } from '@/utils/auth'
             uploadSuccessInvoice (res, file) {
                 this.startForm.vehiclePic = res.data;
             },
-            // 点击上传-存储上传图片的index
-            uploadPicIndex(index){
-                this.picIndex = index;
-            },
             // 施工安装图片上传成功
             successInvoiceOne(res, file) {
-                this.endForm.prods[this.picIndex].busiPictures[0].piclink = res.data;
+                this.endForm.prodCatagorys[this.prodIndex].busiPictures[0].piclink = res.data;
             },
             successInvoiceTwo(res, file) {
-                this.endForm.prods[this.picIndex].busiPictures[1].piclink = res.data;
+                this.endForm.prodCatagorys[this.prodIndex].busiPictures[1].piclink = res.data;
             },
-            // 开始安装—确认消息
-            startInstall(row){
-                this.$confirm('确定当前订单开始安装？', '提示', {
+            
+            // 开始—确认消息
+            startVindicate(row){
+                this.$confirm('确定当前订单开始维修？', '提示', {
                   confirmButtonText: '确定',
                   cancelButtonText: '取消',
                   type: 'warning'
                 }).then(() => {
-                  startInstall({id:row.id}).then((res) => {
-                    this.$message.success('开始安装成功，订单状态变更为施工中！');
+                  startVindicate({id:row.id}).then((res) => {
+                    this.$message.success('开始维修成功，订单状态变更为施工中！');
                     this.getTodo()
                   })
                 }).catch(() => {});
             },
-            // 完成安装操作按钮—点击
-            finishInstall(row){
-                this.packList = [];
+            // 完成操作按钮—点击
+            finishVindicate(row){
                 this.intStartForm('');
                 this.finishInstallDialogVisible = true;
                 this.rowFinishData = row;
-                for (var i in row) {
-                    if (i == "cmsPackageInfo") {
-                        this.packList.push(row[i]); 
-                    }
-                }
             },
             // 校验车架号
             checkVin(val){
                 if (val.length == 17) {//车架号数量正确时
-                    var para = {
-                        vin:val,
-                        declarationid:this.rowFinishData.id 
-                    }
-                    validateVinVeh(para).then((res) => {
-                        if (res.data.data.localVehicle == res.data.data.vin) {//输入的车架号与派单一致
-                            this.isSameVin = true;
-                            this.startForm = res.data.data;
-                        }else{//车架号与派单不一致，且存在时
-                            this.isSameVin = false;
-                            this.isExistVin = true;
-                            this.isdisabled = true;
-                            this.startForm = res.data.data;
-                            this.startForm.vehiclecategory == 1 ? this.startForm.vehiclecategory = '新车' : this.startForm. vehiclecategory == 2 ? this.startForm.vehiclecategory = '二手车' 
-                            : this.startForm.vehiclecategory = '资管追回';
-                        }
+                    if (val == this.rowFinishData.rpvehicleinfo.vin ) {//车架号与派单信息一致
                         this.startForm.vin = val;
-                    }).catch((err) =>{
-                        // 系统不存在-新增
-                        this.$message.error('系统不存在当前车架号，请完善相关车主车辆信息！');
-                        this.intStartForm(val);//初始化
-                        this.isSameVin = false;
-                        this.isExistVin = false;
-                        this.isdisabled = false;
-                    });
+                        this.startForm.licenseplatenum = this.rowFinishData.rpvehicleinfo.licenseplatenum;
+                        this.startForm.vehicletype = this.rowFinishData.rpvehicleinfo.vehicletype;
+                        this.startForm.vehicletypename = this.rowFinishData.rpvehicleinfo.vehicletypename;
+                        this.sameVin = true;//标识
+                    }else{
+                        this.$message.error('车架号与派单信息不一致！请确认！');
+                        this.startForm.licenseplatenum = '';
+                        this.startForm.vehicletypename = '';
+                        this.sameVin = false;//标识
+                    }
                 }else if(val.length == 0){
                     this.intStartForm('');
                 }
             },
-            // 变更车主车辆信息
-            changeOwnerVeh(val){
-                if (val) {          //勾选变更
-                    this.isdisabled = false;
-                }else{              //取消变更
-                    this.isdisabled = true;
-                }
-            },
             // 开始安装下一步
             nextStep(row){
-                if (this.startForm.vin == '') {
-                    this.$message.error('请填写完整的车架号信息！');
-                    return;
+                let para = {
+                    declarationid: row.id,//报单id
+                    vin: this.startForm.vin,
+                    licenseplatenum: this.startForm.licenseplatenum,
+                    vehiclePic: this.startForm.vehiclePic,
+                    vehicletype: this.startForm.vehicletype,
+                    vehicletypename: this.startForm.vehicletypename,
                 }
-                if (this.isdisabled) {
-                    this.installStep = '2';
-                    this.getModelspec(row.id);//获取当前订单的设备类别
-                }else{
+                if (this.sameVin) {
                     this.$refs.startForm.validate(async valid => {
                         if (valid) {
-                            this.installStep = '2';
-                            this.getModelspec(row.id);//获取当前订单的设备类别
+                            nextInstall(para).then((res) => {
+                                this.installStep = '2';
+                                this.getModelspec(row.id);//获取当前订单的设备类别
+                            })
                         }
                     })
+                }else{
+                    this.$message.error('车架号与派单信息不一致！请确认！');
                 }
             },
             // 完成安装上一步
@@ -236,73 +192,62 @@ import { getToken } from '@/utils/auth'
             // 完成安装-关闭弹窗
             closeFinish(){
                 this.installStep = '1';
-                this.show = [];
+                this.intStartForm('');
             },
             // 开始
             startConfirm(){
-                this.startInstallDialogVisible = false;
+                this.startVindicateDialogVisible = false;
                 this.finishInstallDialogVisible = true;
             },
-
-            // 全选配件
-            handleCheckAllChange(val) {
-                this.checkedParts = val ? this.parts : [];
-                this.isIndeterminate = false;
+            // 选择维修情况
+            chooseActionType(val,index){
+                if (this.ischange[index] && val != 'CHANGE' && val != 'LOST-INSTALL' ) {
+                    this.cancelChoose(index,val);
+                }
             },
-            // 勾选配件
-            handleCheckedPartsChange(value) {
-                let checkedCount = value.length;
-                this.checkAll = checkedCount === this.parts.length;
-                this.isIndeterminate = checkedCount > 0 && checkedCount < this.parts.length;
-                value.forEach((item,index) => {
-                    if (index == value.length-1) {
-                        this.endForm.parts.push(
-                            {accessorymodelid:item.cmsProduct.id, accessoryqty:item.prodqty});
-                    }
+            // 点击取消选择设备按钮
+            cancelChoose(index,val){
+                this.ischange[index] = false;
+                getInstallProds({id:this.rowFinishData.id}).then((res) =>{//重新获取之前数据
+                    res.data.data.busiImpdetails[index].actiontype = val;
+                    this.$set(this.endForm.prodCatagorys,index,res.data.data.busiImpdetails[index]);//触发视图更新
                 });
             },
             // 双击选择设备
             deviceClickHandle(val){
-                this.$refs.popover[this.prodIndex].showPopper = false;
-                this.$set(this.show,this.prodIndex,true);//触发视图更新,参数（当前数组，下标，值）
-                this.endForm.prods[this.prodIndex].modelname = val.modelname;
-                this.endForm.prods[this.prodIndex].prodnum = val.prodnum;
-                this.endForm.prods[this.prodIndex].simnum = val.simnum;
-                this.endForm.prods[this.prodIndex].simmodelname = val.simmodelname;
-                this.endForm.prods[this.prodIndex].packid = val.packid;
-                this.endForm.prods[this.prodIndex].prodmodelid = this.prods[this.prodIndex].prodmodelid;
-                this.$set(this.endForm.prods,this.prodIndex,this.endForm.prods[this.prodIndex])
+                this.$refs.popover[0].showPopper = false;
+                this.ischange[this.prodIndex] = true;
+                this.endForm.prodCatagorys[this.prodIndex].stoPackinfoDto.prodnum = val.prodnum;
+                this.endForm.prodCatagorys[this.prodIndex].stoPackinfoDto.promodelname = val.modelname;
+                this.endForm.prodCatagorys[this.prodIndex].stoPackinfoDto.simnum = val.simnum;
+                this.endForm.prodCatagorys[this.prodIndex].stoPackinfoDto.simmodelname = val.simmodelname;
+                this.endForm.prodCatagorys[this.prodIndex].oripackid = this.endForm.prodCatagorys[this.prodIndex].packid;//原有设备packid
+                this.endForm.prodCatagorys[this.prodIndex].packid = val.packid;//更换设备的packid
+                this.endForm.prodCatagorys[this.prodIndex].installpositioncode = '';
+                this.endForm.prodCatagorys[this.prodIndex].busiPictures = [//设备安装图片
+                    { piccode:19, piclink:'', picdesc:'安装位置照' },
+                    { piccode:20, piclink:'',picdesc:'铭牌+设备照'}
+                ],
+                this.$set(this.endForm.prodCatagorys);//触发视图更新
             },
+            
             // 完成安装
             confirmFinishInstall(){
                 // 获取库房数组
                 let storages = this.$store.getters.userInfo.employeeinfo.storages.map((item, index) => {
                     return item.id;
                 })
-                //vehiclecategory是汉字
-                if (/^[\u3220-\uFA29]+$/.test(this.startForm.vehiclecategory)){
-                    this.startForm.vehiclecategory == '新车' ? this.startForm.vehiclecategory = 1 : this.startForm. vehiclecategory == '二手车' ? this.startForm.vehiclecategory = 2 
-                            : this.startForm.vehiclecategory = 3;
-                }
                 this.$refs.endForm.validate(async valid => {
                     if (valid) {
-                        const arr = this.endForm.parts.concat(this.endForm.prods);
-                        if(arr.filter(item => item&&item.prodnum).length !== arr.length || arr.length !== this.prods.length) {
-                                this.$message.warning('请完善安装设备信息后提交！')
-                                return;
-                        }
                         let para = {
                             id:this.rowFinishData.id,//报单id
                             taskid:this.rowFinishData.taskid,
-                            packageid:this.rowFinishData.cmsPackageInfo.id,//套餐id
-                            corpid:this.rowFinishData.corpid,
-                            busiImpdetails: arr,
-                            busiVehicleinfo: this.startForm,
+                            busiImpdetails: this.endForm.prodCatagorys,
                             impremark: this.endForm.impremark,
                             storageids: storages
                         }
-                        finishInstall(para).then((res) =>{
-                            this.$message.success('您已完成安装！');
+                        finishVindicate(para).then((res) =>{
+                            this.$message.success('您已完成维修！');
                             this.finishInstallDialogVisible = false;
                             this.getTodo();
                         })
@@ -332,35 +277,38 @@ import { getToken } from '@/utils/auth'
                 this.delorder.orderReasonDialogVisible = true;
                 this.delorder.reson = '';
             },
-            // 确认废单/退单
-            comfirDelOrder(title){
-                if(title=='废除订单'){
-                    let para = {
-                        id:this.delorder.processInstanceId,
-                        cancelremark:this.delorder.reson,
-                        taskid:this.delorder.taskid
+            comfirDelOrder (title) {
+                this.$refs.delorder.validate(async valid => {
+                    if (valid) {
+                        if (title == '废除订单') {
+                            let para = {
+                                id: this.delorder.processInstanceId,
+                                cancelremark: this.delorder.reson,
+                                taskid: this.delorder.taskid
+                            }
+                            this.delorder.delOrderLoading = true;
+                            deleteProcess(para).then((res) => {
+                                this.delorder.delOrderLoading = false;
+                                this.delorder.orderReasonDialogVisible = false;
+                                this.$message.success('废除成功！')
+                                this.getNodes();
+                            });
+                        } else if (title == '退回订单') {
+                            let para = {
+                                id: this.delorder.processInstanceId,
+                                returnremark: this.delorder.reson,
+                                taskid: this.delorder.taskid
+                            }
+                            this.delorder.delOrderLoading = true;
+                            returnProccess(para).then((res) => {
+                                this.delorder.delOrderLoading = false;
+                                this.delorder.orderReasonDialogVisible = false;
+                                this.$message.success('退回成功！')
+                                this.getNodes();
+                            });
+                        }
                     }
-                    this.delorder.delOrderLoading = true;
-                    deleteProcess(para).then((res) => {
-                        this.delorder.delOrderLoading = false;
-                        this.delorder.orderReasonDialogVisible = false;
-                        this.$message.success('废除成功！')
-                        this.getNodes();
-                    });
-                }else if(title=='退回订单'){
-                    let para = {
-                        id:this.delorder.processInstanceId,
-                        returnremark:this.delorder.reson,
-                        taskid:this.delorder.taskid
-                    }
-                    this.delorder.delOrderLoading = true;
-                    returnProccess(para).then((res) => {
-                        this.delorder.delOrderLoading = false;
-                        this.delorder.orderReasonDialogVisible = false;
-                        this.$message.success('退回成功！')
-                        this.getNodes();
-                    });
-                } 
+                })
             },
 
 
@@ -372,6 +320,7 @@ import { getToken } from '@/utils/auth'
                     return;
                 }
                 if(expandeds.length != 0){//有数据时
+
                     this.getOperation(row);
                 };
                 if(expandeds.length > 1) {
@@ -379,10 +328,23 @@ import { getToken } from '@/utils/auth'
                     this.$refs.todeTable.toggleRowExpansion(expandeds[0],false);
                 };
             },
+            getOwnerVeh(row){
+                let para = {
+                    id:row.executionId
+                }
+                this.expandLoading = true;
+                getOwnerInfo(para).then((res) => {
+                    this.expandLoading = false;
+                    this.opHistoryData = res.data.data;
+                }).catch((err)=>{
+                    this.expandLoading = false;
+                });
+            },
+            
             // 操作记录
             getOperation(row){
                 let para = {
-                    orderid:row.id
+                    id:row.executionId
                 }
                 this.expandLoading = true;
                 getOperationRecord(para).then((res) => {
@@ -412,22 +374,6 @@ import { getToken } from '@/utils/auth'
                     query: { id: row.id, taskid: row.taskid , flow: '2' }}
                 )
             },
-            // 出单
-            issueOrder(row){
-                this.$router.push(
-                    { path: '/orderManage/issuingPolicy', 
-                    query: { id: row.id, taskid: row.taskid }}
-                )
-            },
-            // 施工—双击编辑
-            editOrder(row){
-                // if (row.flownodename == '施工') {
-                //     this.$router.push(
-                //         { path: '/orderManage/orderProcess', 
-                //         query: { id: row.id, taskid: row.taskid }}
-                //     )
-                // }
-            },
             // 详情
             detailsOrder(row){
                 this.$router.push(
@@ -446,7 +392,7 @@ import { getToken } from '@/utils/auth'
                 if(v == 1) this.flowNodeId = this.curStateData.id1;//派单
                 if(v == 2) this.flowNodeId = this.curStateData.id2;//接单
                 if(v == 3) this.flowNodeId = this.curStateData.id3;//施工
-                if(v == 4) this.flowNodeId = this.curStateData.id4;//保险出单
+                if(v == 4) this.flowNodeId = this.curStateData.id4;//保险退保
                 if(v == 5) this.flowNodeId = this.curStateData.id5;//订单完成
                 
                 this.getTodo();
@@ -473,13 +419,9 @@ import { getToken } from '@/utils/auth'
                             this.fromNum.num3 = item.num;
                             this.curStateData.id3 = item.id;
                         }
-                        if(item.name == '保险出单'){
+                        if(item.name == '订单完成'){
                             this.fromNum.num4 = item.num;
                             this.curStateData.id4 = item.id;
-                        }
-                        if(item.name == '订单完成'){
-                            this.fromNum.num5 = item.num;
-                            this.curStateData.id5 = item.id;
                         }
                     });
                     this.getTodo();
@@ -491,7 +433,7 @@ import { getToken } from '@/utils/auth'
                 let para = {
                     page   : this.currentPage,
                     limit   : this.pageSize,
-                    type   :'new',
+                    type   :'repair',
                     domSearch   : this.filters.domSearch,
                     startTime     : this.filters.timeScope?(this.filters.timeScope[0]?util.formatDate.format(new Date(this.filters.timeScope[0]), 'yyyy-MM-dd'):''):'',
                     endTime        : this.filters.timeScope?(this.filters.timeScope[1]?util.formatDate.format(new Date(this.filters.timeScope[1]), 'yyyy-MM-dd'):''):'',
@@ -536,15 +478,15 @@ import { getToken } from '@/utils/auth'
             },
             //格式化后台传来的时间戳
             dateFormatter(row,col){
-                return util.formatDate.format(new Date(row.declaredate), 'yyyy-MM-dd hh:mm');
+                return row.impapplydate ? util.formatDate.format(new Date(row.impapplydate), 'yyyy-MM-dd hh:mm') : '--';
             },
             //格式化后台传来的时间戳
             dateFormatter2(row,col){
-                return util.formatDate.format(new Date(row.startDate), 'yyyy-MM-dd hh:mm');
+                return row.startDate ? util.formatDate.format(new Date(row.startDate), 'yyyy-MM-dd hh:mm') : '--';
             },
             //格式化后台传来的时间戳
             dateFormatter3(row,col){
-                return util.formatDate.format(new Date(row.endDate), 'yyyy-MM-dd hh:mm');
+                return row.endDate ? util.formatDate.format(new Date(row.endDate), 'yyyy-MM-dd hh:mm') : '--';
             },
         // ----------------------------------------------下拉框------------------------------
         /**
@@ -619,38 +561,17 @@ import { getToken } from '@/utils/auth'
                 this.vehlist = res.data.data;
             });
         },
-        // 获取设备型号
-        modelChange (item) {
-            this.modellist = [];
-            this.modelloading = true;
-            const params = {
-                page: 1,
-                limit: 10000,
-                modelspec:item.cmsProduct.prodcategory == 'P_WIRE' ? 'P1' :
-                    item.cmsProduct.prodcategory == 'P_WIRELESS' ? 'P2' : ''
-            }
-            getProdModels(params).then((res) => {
-                this.modelloading = false;
-                this.modellist = res.data.data;
-                if (this.modellist.length == 0) this.$message.error('当前账号下暂无设备信息！')
-            });
-        },
+    
         // 获取设备列表
-        getProds(index){
+        getProds(data,index){
             this.prodIndex = index;
-            if(!this.endForm.prods[this.prodIndex]) {
-                this.endForm.prods[this.prodIndex] = {
-                    installpositioncode: '',
-                    prodmodelid: '',
-                    packid:'',
-                    busiPictures:[{ piccode:19, piclink:'',}, {piccode:20,piclink:'',}],
-                }
-            }
             this.prodLoading = true;
             const params = {
                 page: this.dcurrentPage,
                 limit: this.dpageSize,
-                modelid: this.prods[index].prodmodelid
+                prodnum: this.filters.prodnum,
+                impby:this.rowFinishData.impby,
+                modelid: data.prodmodelid,
             }
             getModelProds(params).then((res) => {
                 this.prodLoading = false;
@@ -661,29 +582,12 @@ import { getToken } from '@/utils/auth'
         //设备切换当前页
         dhandleCurrentChange(val) {
             this.dcurrentPage = val;
-            this.getProds();
+            this.getProds(this.prodIndex);
         },
         //设备切换每页显示数量
         dhandleSizeChange(val) {
             this.dpageSize = val;
-            this.getProds();
-        },
-        /**
-         * 获取第一受益人
-         * @param parm
-         */
-        async getCorpList (parm, cb) {
-            let param = {
-                page: 1,
-                limit: 10000,
-                corpcategory: 'BANK',
-                corpname: parm
-            }
-            try {
-                const {data} = await getParentInfoList(param)
-                cb(data.data.records)
-            } catch (e) {
-            }
+            this.getProds(this.prodIndex);
         },
         //安装位置初始化
         changeInstallDecode(r) {
@@ -694,29 +598,11 @@ import { getToken } from '@/utils/auth'
                 this.codeloading = false;
             });
         },
-        // 完成安装-获取设备类别
+        // 完成安装-获取安装设备
         getModelspec(dataId){
-            this.prodCatagorys = [],this.parts = [],this.prods = [];//初始化
-            getProdCatagorys({declarationid:dataId}).then((res) =>{
-                res.data.data.forEach((item,index) =>{
-                    if (item.cmsProduct.prodcategory == 'P_ACCESSORY') {//配件
-                        this.parts.push(item)
-                    }else{  //有线和无线
-                        if(item.prodqty>1) {
-                            for(let i = 0; i < item.prodqty; i ++) {
-                                this.prods.push(Object.assign({}, item))
-                            }
-                        } else {
-                            this.prods.push(item)
-                        }  
-                    }
-                })
-                if (this.parts.length == 0) {//没有配件数据时
-                    this.prodCatagorys.push(this.prods);
-                }else{
-                    this.prodCatagorys.push(this.prods,this.parts);  
-                }
-            })
+            getInstallProds({id:dataId}).then((res) =>{
+                this.endForm.prodCatagorys = res.data.data.busiImpdetails;
+            });
         },
         // 选择车辆分类
         chooseCategory(val){
@@ -807,56 +693,19 @@ import { getToken } from '@/utils/auth'
 
         // 初始化安装信息
         intStartForm(vinVal){
-            this.show = [];
-            this.isSameVin = true;
-            this.isExistVin = true;
-            this.isdisabled = false;
+            this.ischange = [];
+            this.prodIndex = 0;
+            this.sameVin = true;
+            this.filters.prodnum = '';
             this.startForm = {
                 vin:vinVal,
                 licenseplatenum:'',
                 vehicletype:'',
                 vehiclePic:'',
-                ownername:'',
-                mobile:'',
-                idcard:'',
-                model:'',
-                price:'',
-                vehiclecategory:'',
-                vehiclecategoryname:'',
-                vehicletype:'',
-                enginenum:'',
-                color:'',
-                colorname:'',
-                vehiclepower:'',
-                firstregisterdate:'',
-                indemnitylimit:'',
-                priceInsucorp:'',
-                beneficiary:'',
-                addresshome:'',
             },
             this.endForm = {//第二步
-                    // 配件
-                    parts:[],
-                    // 设备
-                    prods:[
-                    {
-                        installpositioncode: '',
-                        prodmodelid: '',
-                        packid:'',
-                        busiPictures:[//设备安装图片
-                            {
-                                piccode:19,
-                                piclink:'',//安装位置照
-                                picdesc:'安装位置照'
-                            },{
-                                piccode:20,
-                                piclink:'',//名牌照+设备
-                                picdesc:'铭牌+设备照'
-                            }
-                        ],
-                    }
-                    ],
-                    impremark:'',//施工备注
+                impremark:'',//备注
+                prodCatagorys:[]
             }
         },
     },

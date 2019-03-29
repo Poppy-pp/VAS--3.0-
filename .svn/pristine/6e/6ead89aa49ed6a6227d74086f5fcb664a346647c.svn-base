@@ -14,18 +14,13 @@ import {
     validateVinVeh,
     deleteProcess,
     returnProccess,
-    nextInstall,
-    getTodoInfoListByUser,
-    getNodesCountByUser
+    nextInstall
 } from './service';
 import { getVehList } from "@/views/basicManage/ownerVehicleManage/service";
 import { getAllColorList, getCarModel } from '@/views/basicManage/ownerVehicleManage/service'
 import { getParentInfoList } from '@/views/sysManage/organizationManage/service'
 import { getToken } from '@/utils/auth'
 import delimitBox from '@/components/delimitBox'
-
-let getTodo = getTodoInfoList
-let getNodes = getNodesCount
 
 export default {
     props: ['windowOutHeight', 'isEmployee'],
@@ -44,7 +39,7 @@ export default {
                     content: ''
                 }], //查询框
                 timeScope: '',
-                prodnum: '',
+                prodnum:'',
             },
             // 完成安装弹窗
             finishInstallDialogVisible: false,
@@ -89,7 +84,7 @@ export default {
             isIndeterminate: false,
             modellist: [],//完成安装-选择设备型号
             modelloading: false,
-            signalInfo: [],//信号检测
+            signalInfo: {},//信号检测
             vehiclecategoryList: {//车辆分类列表
                 1: '新车',
                 2: '二手车',
@@ -153,15 +148,9 @@ export default {
     },
     watch: {
         $route (newValue, oldValue) {
-            if (newValue.path === '/orderManage/declarationManage' || newValue.path === '/orderManage/personalStandby') {
+            if(newValue.path === '/orderManage/declarationManage') {
                 this.active = false
-                this.initFn()
             }
-        }
-    },
-    computed: {
-        isSelf () {
-            return this.$route.name === 'personalStandby'
         }
     },
     methods: {
@@ -249,11 +238,6 @@ export default {
         },
         // 开始安装下一步
         nextStep (row) {
-            //vehiclecategory是汉字
-            if (/^[\u3220-\uFA29]+$/.test(this.startForm.vehiclecategory)) {
-                this.startForm.vehiclecategory == '新车' ? this.startForm.vehiclecategory = 1 : this.startForm.vehiclecategory == '二手车' ? this.startForm.vehiclecategory = 2
-                    : this.startForm.vehiclecategory = 3;
-            }
             let para = {
                 declarationid: row.id,//报单id
                 vin: this.startForm.vin,
@@ -263,18 +247,18 @@ export default {
                 mobile: this.startForm.mobile,
                 idcard: this.startForm.idcard,
                 model: this.startForm.model,
-                price: this.startForm.price,
-                vehiclepower: this.startForm.vehiclepower,
+                price:this.startForm.price,
                 vehiclecategory: this.startForm.vehiclecategory,
                 vehiclecategoryname: this.startForm.vehiclecategoryname,
                 vehicletype: this.startForm.vehicletype,
-                enginenum: this.startForm.enginenum,
-                color: this.startForm.color,
+                enginenum:this.startForm.enginenum,
+                color:this.startForm.color,
                 colorname: this.startForm.colorname,
+                vehiclepower: this.startForm.vehiclepower,
                 firstregisterdate: this.startForm.firstregisterdate,
-                indemnitylimit: this.startForm.indemnitylimit,
+                indemnitylimit:this.startForm.indemnitylimit,
                 priceInsucorp: this.startForm.priceInsucorp,
-                beneficiary: this.startForm.beneficiary,
+                beneficiary:this.startForm.beneficiary,
                 addresshome: this.startForm.addresshome,
             }
             if (this.startForm.vin == '') {
@@ -352,15 +336,14 @@ export default {
             this.endForm.prods[this.prodIndex].packid = val.packid;
             this.endForm.prods[this.prodIndex].prodmodelid = this.prods[this.prodIndex].prodmodelid;
             this.$set(this.endForm.prods, this.prodIndex, this.endForm.prods[this.prodIndex])
-            this.getSignalInfo(this.endForm.prods[this.prodIndex].prodnum, this.prodIndex);
         },
         // 判断设备重复
-        isRepeat (arr) {
+        isRepeat(arr){
             var hash = {};
-            for (var i in arr) {
-                if (hash[arr[i].prodnum])
-                    return true;
-                hash[arr[i].prodnum] = true;
+            for(var i in arr) {
+                 if(hash[arr[i].prodnum])
+                      return true;
+                 hash[arr[i].prodnum] = true;
             }
             return false;
         },
@@ -370,6 +353,11 @@ export default {
             let storages = this.$store.getters.userInfo.employeeinfo.storages.map((item, index) => {
                 return item.id;
             })
+            //vehiclecategory是汉字
+            if (/^[\u3220-\uFA29]+$/.test(this.startForm.vehiclecategory)) {
+                this.startForm.vehiclecategory == '新车' ? this.startForm.vehiclecategory = 1 : this.startForm.vehiclecategory == '二手车' ? this.startForm.vehiclecategory = 2
+                    : this.startForm.vehiclecategory = 3;
+            }
             this.$refs.endForm.validate(async valid => {
                 if (valid) {
                     //填写完整设备信息
@@ -391,18 +379,6 @@ export default {
                         this.$message.error('设备重复！请重新选择！');
                         return;
                     }
-                    // 添加的设备必须信号检测通过
-                    var arr = [],isTrue = true;
-                    for (let i in this.signalInfo) {
-                        arr.push(this.signalInfo[i]);
-                    }
-                    arr.forEach((item,index) => {
-                        if (item.curonlinestatus == '离线') {
-                            this.$message.error('设备型号检测未通过！请检测通过后在提交！');
-                            isTrue = false;
-                        }
-                    });
-                    if(isTrue) return;
                     let para = {
                         id: this.rowFinishData.id,//报单id
                         taskid: this.rowFinishData.taskid,
@@ -484,10 +460,12 @@ export default {
             if (expandeds.length != 0) {//有数据时
                 this.getOperation(row);
             }
+            ;
             if (expandeds.length > 1) {
                 this.isExpandeds = false;
                 this.$refs.todeTable.toggleRowExpansion(expandeds[0], false);
             }
+            ;
         },
         // 操作记录
         getOperation (row) {
@@ -536,14 +514,9 @@ export default {
         editOrder (row) {
             if (this.stepState == '3') {
                 this.active = true;
-                let url = '/orderManage/declarationManage/orderEdit'
-                if(this.isSelf)
-                    url = '/orderManage/personalStandby/orderEdit'
                 this.$router.push(
-                    {
-                        path: url,
-                        query: {id: row.id, taskid: row.taskid, isEdit: true}
-                    }
+                    { path: '/orderManage/declarationManage/orderEdit',
+                    query: { id: row.id, taskid: row.taskid, isEdit: true }}
                 )
             }
         },
@@ -573,7 +546,7 @@ export default {
         // 获取节点数量
         getNodes () {
             this.listLoading = true;
-            getNodes().then((res) => {
+            getNodesCount().then((res) => {
                 this.nodesList = res.data.data;
                 this.nodesList.forEach((item, index) => {
                     if (item.name == '全部') {
@@ -616,7 +589,7 @@ export default {
                 flowNodeId: this.flowNodeId
             };
             para = Object.assign(para);
-            getTodo(para).then((res) => {
+            getTodoInfoList(para).then((res) => {
                 this.listLoading = false;
                 this.total = res.data.data.total;
                 this.todo = res.data.data.records;
@@ -745,7 +718,7 @@ export default {
             const params = {
                 page: 1,
                 limit: 10000,
-                impby: this.rowFinishData.impby,
+                impby:this.rowFinishData.impby,
                 modelspec: item.cmsProduct.prodcategory == 'P_WIRE' ? 'P1' :
                     item.cmsProduct.prodcategory == 'P_WIRELESS' ? 'P2' : ''
             }
@@ -771,7 +744,7 @@ export default {
                 page: this.dcurrentPage,
                 limit: this.dpageSize,
                 prodnum: this.filters.prodnum,
-                impby: this.rowFinishData.impby,
+                impby:this.rowFinishData.impby,
                 modelid: this.prods[index].prodmodelid
             }
             getModelProds(params).then((res) => {
@@ -783,12 +756,12 @@ export default {
         //设备切换当前页
         dhandleCurrentChange (val) {
             this.dcurrentPage = val;
-            this.getProds(this.prodIndex);
+            this.getProds();
         },
         //设备切换每页显示数量
         dhandleSizeChange (val) {
             this.dpageSize = val;
-            this.getProds(this.prodIndex);
+            this.getProds();
         },
         /**
          * 获取第一受益人
@@ -818,8 +791,7 @@ export default {
         },
         // 完成安装-获取设备类别
         getModelspec (dataId) {
-            this.parts = [];
-            this.prods = [];//初始化
+            this.parts = [], this.prods = [];//初始化
             getProdCatagorys({declarationid: dataId}).then((res) => {
                 res.data.data.forEach((item, index) => {
                     if (item.cmsProduct.prodcategory == 'P_ACCESSORY') {//配件
@@ -845,17 +817,15 @@ export default {
             this.startForm.vehiclecategory = val;
         },
         // 设备状态
-        async getSignalInfo (productNum, index) {
+        async getSignalInfo (productNum) {
             try {
-                if (!this.signalInfo[index]) {
-                    this.signalInfo[index] = {
-                        curonlinestatus: '',//设备实时状态
-                        locationmode: '',//定位方式
-                        gps_satellite_count: '',//卫星或基站数量
-                        signalqulity: '',//卫星或基站信号强度
-                        curaddress: '',//定位地址
-                        onlineStatus: ''//上线质量
-                    }
+                this.signalInfo = {
+                    curonlinestatus: '',//设备实时状态
+                    locationmode: '',//定位方式
+                    gps_satellite_count: '',//卫星或基站数量
+                    signalqulity: '',//卫星或基站信号强度
+                    curaddress: '',//定位地址
+                    onlineStatus: ''//上线质量
                 }
                 const params = {
                     id: productNum
@@ -907,40 +877,34 @@ export default {
                         onlineStatus = '优'
                         break;
                 }
-                this.signalInfo[index].curonlinestatus = curonlinestatus
-                this.signalInfo[index].onlineStatus = onlineStatus
-                this.signalInfo[index].locationmode = realdata.locationmode
-                this.signalInfo[index].gps_satellite_count = realdata.gps_satellite_count
-                this.signalInfo[index].signalqulity = signalqulity
+                this.signalInfo.curonlinestatus = curonlinestatus
+                this.signalInfo.onlineStatus = onlineStatus
+                this.signalInfo.locationmode = realdata.locationmode
+                this.signalInfo.gps_satellite_count = realdata.gps_satellite_count
+                this.signalInfo.signalqulity = signalqulity
                 const geocoder = new AMap.Geocoder({
                     radius: 1000 //范围，默认：500
                 });
                 geocoder.getAddress([realdata.lng, realdata.lat], (status, result) => {
                     if (status === 'complete' && result.info === 'OK') {
                         //获得了有效的地址信息:
-                        this.signalInfo[index].curaddress = result.regeocode.formattedAddress
+                        this.signalInfo.curaddress = result.regeocode.formattedAddress
                     } else {
                         //获取地址失败
                     }
                 });
             } catch (e) {
-                this.signalInfo[index] = {
-                    curonlinestatus: '离线',//设备实时状态
-                    locationmode: '--',//定位方式
-                    gps_satellite_count: '--',//卫星或基站数量
-                    signalqulity: '--',//卫星或基站信号强度
-                    curaddress: '--',//定位地址
-                    onlineStatus: '--'//上线质量
-                }
-                this.signalInfo = Object.assign({}, this.signalInfo, { curonlinestatus: '离线' })
+                console.log(e)
             }
         },
 
         // 初始化安装信息
         intStartForm (vinVal) {
+            this.show = [];
             this.isSameVin = true;
             this.isExistVin = true;
             this.isdisabled = false;
+            this.checkAll = false;
             this.filters.prodnum = '';
             this.startForm = {
                 vin: vinVal,
@@ -965,9 +929,7 @@ export default {
                 addresshome: '',
             }
         },
-        intEndForm () {
-            this.show = [];
-            this.checkAll = false;
+        intEndForm(){
             this.endForm = {//第二步
                 // 配件
                 parts: [],
@@ -993,10 +955,10 @@ export default {
                 impremark: '',//施工备注
             }
         },
-        close () {
-            this.$router.go(-1)
+        close() {
+            this.$router.push('/orderManage/declarationManage')
         },
-        exportExcel () {
+        exportExcel() {
             let para = {
                 page: 1,
                 limit: 100000,
@@ -1007,26 +969,15 @@ export default {
                 flowNodeId: this.flowNodeId
             };
             para = Object.assign(para);
-            getTodo(para).then((res) => {
+            getTodoInfoList(para).then((res) => {
                 let todo = res.data.data.records;
                 if (todo == null) todo = [];
                 this.$emit('exportExcel', todo)
-            }).catch((error) => {
-            });
-        },
-        initFn() {
-            if (this.isSelf) {
-                getTodo = getTodoInfoListByUser
-                getNodes = getNodesCountByUser
-            } else {
-                getTodo = getTodoInfoList
-                getNodes = getNodesCount
-            }
-            this.getNodes();
+            }).catch((error) => {});
         }
     },
     //初始化数据
     created () {
-        this.initFn()
-    }
+        this.getNodes();
+    },
 }

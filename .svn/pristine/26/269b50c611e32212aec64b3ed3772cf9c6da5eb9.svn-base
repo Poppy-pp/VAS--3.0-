@@ -392,17 +392,16 @@ export default {
                         return;
                     }
                     // 添加的设备必须信号检测通过
-                    var arr = [],isTrue = true;
+                    var arr = []
                     for (let i in this.signalInfo) {
                         arr.push(this.signalInfo[i]);
                     }
                     arr.forEach((item,index) => {
                         if (item.curonlinestatus == '离线') {
                             this.$message.error('设备型号检测未通过！请检测通过后在提交！');
-                            isTrue = false;
+                            return;
                         }
                     });
-                    if(isTrue) return;
                     let para = {
                         id: this.rowFinishData.id,//报单id
                         taskid: this.rowFinishData.taskid,

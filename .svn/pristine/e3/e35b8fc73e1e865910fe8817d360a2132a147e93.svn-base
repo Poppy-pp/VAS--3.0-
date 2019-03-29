@@ -71,7 +71,6 @@
                         <el-form-item>
                             <el-button type="primary" @click="getTodo" icon="el-icon-search">查询</el-button>
                             <el-button type="info" @click="resetForm('filters')" icon="el-icon-refresh">重置</el-button>
-                            <el-button type="warning" @click="exportExcel" icon="el-icon-download">导出</el-button>
                         </el-form-item>
                     </template>
                 </template>
@@ -81,7 +80,7 @@
         <el-table :max-height="windowOutHeight-320" :data="todo" border ref="todeTable" highlight-current-row @expand-change="expandHandle" v-loading="listLoading" style="width: 100%;">
             <el-table-column type="expand">
                 <template slot-scope="props">
-                    <el-tabs v-model="activeName"
+                    <el-tabs v-model="activeName" 
                     v-loading="expandLoading"
                     element-loading-text="订单详情加载中，请稍后..."
                     element-loading-spinner="el-icon-loading"
@@ -169,7 +168,7 @@
                                     </dl>
                                 </el-col>
                                 <el-col :span="24">
-
+                                    
                                 </el-col>
                                 <el-col :span="24">
                                     <span class="formTile">车主车辆信息</span>
@@ -213,7 +212,7 @@
                                 <el-col :span="5">
                                     <dl class="dllist">
                                         <dt>车辆分类:</dt>
-                                        <dd>{{ props.row.rpvehicleinfo.vehiclecategory == 1 ? '新车' : props.row.rpvehicleinfo.vehiclecategory == 2 ? '二手车'
+                                        <dd>{{ props.row.rpvehicleinfo.vehiclecategory == 1 ? '新车' : props.row.rpvehicleinfo.vehiclecategory == 2 ? '二手车' 
                                         : '资管追回' }}</dd>
                                     </dl>
                                     <dl class="dllist">
@@ -245,7 +244,7 @@
                                 </el-col>
                             </el-row>
                         </el-tab-pane>
-
+                        
                         <el-tab-pane label="操作记录" name="2">
                             <el-table
                             :data="opHistoryData"
@@ -630,7 +629,7 @@
                 </el-col>
                 <el-col :span="24">
                     <span class="formTile">现场车辆信息</span>
-                </el-col>
+                </el-col> 
                 <el-row :gutter="20" style="height: 0;">
                     <el-col :span="24">
                         <p style="color:red;">提示：现场车架号与派单车架号必须一致！</p>
@@ -655,9 +654,9 @@
                     <el-col :span="24">
                         <el-form-item label="车辆图片：" prop="vehiclePic">
                             <el-upload
-                                name="file" class="avatar-uploader"
-                                :headers="{Authorization: 'Bearer '+ token}"
-                                :accept="accept"
+                                name="file" class="avatar-uploader" 
+                                :headers="{Authorization: 'Bearer '+ token}" 
+                                :accept="accept" 
                                 :on-success="uploadSuccessInvoice"
                                 action="/admin/atta/upload/picture"
                                 :show-file-list="false"
@@ -773,9 +772,9 @@
                         <el-col :span="24">
                             <el-form-item label="设备安装图片：">
                             <el-upload v-if="item.busiPictures.length != 0"
-                                    name="file" class="avatar-uploader"
-                                    :headers="{Authorization: 'Bearer '+ token}"
-                                    :accept="accept"
+                                    name="file" class="avatar-uploader" 
+                                    :headers="{Authorization: 'Bearer '+ token}" 
+                                    :accept="accept" 
                                     :on-success="successInvoiceOne"
                                     action="/admin/atta/upload/picture"
                                     :show-file-list="false"
@@ -785,9 +784,9 @@
                                     <i class="desc">安装位置照</i>
                                 </el-upload>
                                 <el-upload v-if="item.busiPictures.length != 0"
-                                    name="file" class="avatar-uploader"
-                                    :headers="{Authorization: 'Bearer '+ token}"
-                                    :accept="accept"
+                                    name="file" class="avatar-uploader" 
+                                    :headers="{Authorization: 'Bearer '+ token}" 
+                                    :accept="accept" 
                                     :on-success="successInvoiceTwo"
                                     action="/admin/atta/upload/picture"
                                     :show-file-list="false"
@@ -814,7 +813,7 @@
         </el-dialog>
         <!-- 完成 步骤 弹窗  end-->
 
-
+ 
     </section>
 </template>
 

@@ -4,12 +4,22 @@ import { checkVin,checkMobile, checkVehicleNumber } from '@/utils/formValidation
 
 // 列表
 export const getTodoInfoList = params => {
-    return axios.get(`/business/order/flow/page/user/nodeid`, {params: params})
+    return axios.get(`/business/order/flow/page/nodeid`, {params: params})
 };
 // 节点数量
 export const getNodesCount = params => {
+    return axios.get(`/business/order/flow/nodes?actKey=new`, {params: params})
+};
+
+// 列表
+export const getTodoInfoListByUser = params => {
+    return axios.get(`/business/order/flow/page/user/nodeid`, {params: params})
+};
+// 节点数量
+export const getNodesCountByUser = params => {
     return axios.get(`/business/order/flow/user/nodes?actKey=new`, {params: params})
 };
+
 // 操作详情
 export const getOperationRecord = params => {
     return axios.get(`/business/order/flow/history/operation`, {params: params})
@@ -38,6 +48,10 @@ export const getProdModels = params => {
 export const getModelProds = params => {
     return axios.get(`/business/busiImpdetail/query/modelProds`, {params: params})
 };
+// 完成安装-下一步
+export const nextInstall = params => {
+    return axios.put(`/business/busiVehicleinfo/addLocalVehicleInfo`, params )
+};
 // 完成安装按钮
 export const finishInstall = params => {
     return axios.post(`/business/orderNewBuild/finishInstall/`+ params.taskid, params )
@@ -46,8 +60,16 @@ export const finishInstall = params => {
 export const cldeviceIsOnstate = params => {
     return axios.post(`/gisapiservice/Prod/proddetail`, params)
 };
-
-
+//废单
+export const deleteProcess = params =>{
+    return axios.put(`
+    /business/orderNewBuild/receAbandonOrder/`+ params.taskid , params)
+}
+//退单
+export const returnProccess = params =>{
+    return axios.put(`
+    /business/orderNewBuild/receReturnOrder/`+ params.taskid , params)
+}
 
 
 
@@ -61,23 +83,7 @@ export const setStartFormRules = {
     ownername:[{required:true,message:"请输入车主姓名",trigger: 'blur'}],
     mobile:[{required:true,message:"请输入车主电话",trigger: 'blur'},{validator: checkMobile,trigger: 'blur'}],
     idcard:[{required:true,message:"请输入车主身份证号",trigger: 'blur'}],
-    model:[{required:true,message:"请选择厂牌型号",trigger: 'blur'}],
-    price:[{required:true,message:"请输入车辆购置价",trigger: 'blur'}],
+    model:[{required:true,message:"请选择厂牌型号",trigger: 'change'}],
     vehiclecategory:[{required:true,message:"请选择车辆分类",trigger: 'blur'}],
     vehicletype:[{required:true,message:"请选择车辆类型",trigger: 'blur'}],
-    enginenum:[{required:true,message:"请输入发动机号",trigger: 'blur'}],
-    indemnitylimit:[{required:true,message:"请输入赔偿限额",trigger: 'blur'}],
-    priceInsucorp:[{required:true,message:"请输入万网盗抢险服务费",trigger: 'blur'}],
-    beneficiary:[{required:true,message:"请选择第一受益人",trigger: 'blur'}],
-}
-
-//废单
-export const deleteProcess = params =>{
-    return axios.put(`
-    /business/orderNewBuild/receAbandonOrder/`+ params.taskid , params)
-}
-//退单
-export const returnProccess = params =>{
-    return axios.put(`
-    /business/orderNewBuild/receReturnOrder/`+ params.taskid , params)
 }

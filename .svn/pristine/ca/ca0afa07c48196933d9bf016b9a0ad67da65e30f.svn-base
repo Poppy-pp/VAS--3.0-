@@ -301,7 +301,6 @@
                 </template>
             </el-table-column>
             <el-table-column prop="declaredate" align="center" label="创建时间" :formatter="dateFormatter" width="140"></el-table-column>
-            <el-table-column prop="returnremark" align="center" label="退回原因"></el-table-column>
 
             <el-table-column v-if="isEmployee" label="操作" width="110" align="center" fixed="right">
                 <template slot-scope="scope">
@@ -543,7 +542,7 @@
                         </el-col>
                         <el-col :span="8">
                             <el-form-item label="能源类型" prop="vehiclepower">
-                                <el-select v-model="startForm.vehiclepower" filterable placeholder="请选择能源类型" clearable :disabled='isdisabled'>
+                                <el-select v-model="startForm.vehiclepowerList" filterable placeholder="请选择能源类型" clearable :disabled='isdisabled'>
                                     <el-option v-for="(value, key) in vehiclepowerList" :key="key" :value="key" :label="value"></el-option>
                                 </el-select>
                             </el-form-item>
@@ -608,8 +607,6 @@
                 <div v-for="(item,index) in prods">
                     <p class="invoice-title" v-if="item.cmsProduct.prodcategory == 'P_WIRE'">{{ '有线设备' }}</p>
                     <p class="invoice-title" v-if="item.cmsProduct.prodcategory == 'P_WIRELESS'">{{ '无线设备' }}</p>
-                    <p class="invoice-title" v-if="item.cmsProduct.prodcategory == 'P_OTH'">{{ '其他' }}</p>
-
 
                     <span v-if="item.cmsProduct.prodcategory != 'P_ACCESSORY'">
                 <!-- 选择设备型号 -->
@@ -685,7 +682,7 @@
                         <el-col :span="5">
                             <el-popover placement="bottom" width="1000" trigger="click">
                                 <div>信号检测结果:
-                                    <el-button style="margin-left: 10px;" type="primary" size="mini" @click="getSignalInfo(endForm.prods[index].prodnum,index)">再次检测
+                                    <el-button style="margin-left: 10px;" type="primary" size="mini" @click="getSignalInfo(endForm.prods[index].prodnum)">再次检测
                                     </el-button>
                                 </div>
                                 <table class="kv-table" style="margin-top: 10px;">
@@ -694,19 +691,19 @@
                                             设备实时状态：
                                         </td>
                                         <td class="kv-content">
-                                            {{signalInfo[index].curonlinestatus}}
+                                            {{signalInfo.curonlinestatus}}
                                         </td>
                                         <td class="kv-label">
                                             上线质量：
                                         </td>
                                         <td class="kv-content">
-                                            {{signalInfo[index].onlineStatus}}
+                                            {{signalInfo.onlineStatus}}
                                         </td>
                                         <td class="kv-label">
                                             定位方式：
                                         </td>
                                         <td class="kv-content">
-                                            {{signalInfo[index].locationmode}}
+                                            {{signalInfo.locationmode}}
                                         </td>
                                     </tr>
                                     <tr>
@@ -714,13 +711,13 @@
                                             卫星或基站数量：
                                         </td>
                                         <td class="kv-content">
-                                            {{signalInfo[index].gps_satellite_count < 0 ? '--' : signalInfo[index].gps_satellite_count}}
+                                            {{signalInfo.gps_satellite_count < 0 ? '--' : signalInfo.gps_satellite_count}}
                                         </td>
                                         <td class="kv-label">
                                             卫星/基站信号强度：
                                         </td>
                                         <td class="kv-content">
-                                            {{signalInfo[index].signalqulity ? signalInfo[index].signalqulity : '--'}}
+                                            {{signalInfo.signalqulity ? signalInfo.signalqulity : '--'}}
                                         </td>
                                         <td class="kv-label"></td>
                                         <td class="kv-content"></td>
@@ -730,13 +727,13 @@
                                             定位地址：
                                         </td>
                                         <td class="kv-content" colspan="5">
-                                            {{signalInfo[index].curaddress}}
+                                            {{signalInfo.curaddress}}
                                         </td>
                                     </tr>
                                 </table>
-                                <el-button style="margin-left: 20px;" slot="reference" :type="signalInfo[index].curonlinestatus == '离线' ? 'danger' : 'success'"
-                                           :icon="signalInfo[index].curonlinestatus == '离线' ? 'el-icon-circle-close' : 'el-icon-circle-check'" round plain
-                                           @click="getSignalInfo(endForm.prods[index].prodnum,index)">{{ signalInfo[index].curonlinestatus == '离线' ? '检测未通过' : '检测通过' }}
+                                <el-button style="margin-left: 20px;" slot="reference" :type="signalInfo.curonlinestatus == '离线' ? 'danger' : 'success'"
+                                           :icon="signalInfo.curonlinestatus == '离线' ? 'el-icon-circle-close' : 'el-icon-circle-check'" round plain
+                                           @click="getSignalInfo(endForm.prods[index].prodnum)">{{ signalInfo.curonlinestatus == '离线' ? '检测未通过' : '检测通过' }}
                                 </el-button>
                             </el-popover>
                         </el-col>
@@ -780,7 +777,7 @@
                     <el-card shadow="never" class="space">
                         <el-checkbox :indeterminate="isIndeterminate" v-model="checkAll" @change="handleCheckAllChange">全选</el-checkbox>
                         <el-checkbox-group v-model="checkedParts" @change="handleCheckedPartsChange">
-                            <el-checkbox v-for="item in parts" :label="item" :key="item.cmsProduct.prodmodelscope">{{item.cmsProduct.proddesc + '&emsp;X ' +
+                            <el-checkbox v-for="item in parts" :label="item" :key="item.cmsProduct.id">{{item.cmsProduct.proddesc + '&emsp;X ' +
                                 item.prodqty}}
                             </el-checkbox>
                         </el-checkbox-group>

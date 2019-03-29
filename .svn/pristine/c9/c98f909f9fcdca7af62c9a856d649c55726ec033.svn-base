@@ -4,22 +4,12 @@ import { checkVin,checkMobile, checkVehicleNumber } from '@/utils/formValidation
 
 // 列表
 export const getTodoInfoList = params => {
-    return axios.get(`/business/order/flow/page/nodeid`, {params: params})
-};
-// 节点数量
-export const getNodesCount = params => {
-    return axios.get(`/business/order/flow/nodes?actKey=new`, {params: params})
-};
-
-// 列表
-export const getTodoInfoListByUser = params => {
     return axios.get(`/business/order/flow/page/user/nodeid`, {params: params})
 };
 // 节点数量
-export const getNodesCountByUser = params => {
+export const getNodesCount = params => {
     return axios.get(`/business/order/flow/user/nodes?actKey=new`, {params: params})
 };
-
 // 操作详情
 export const getOperationRecord = params => {
     return axios.get(`/business/order/flow/history/operation`, {params: params})

@@ -20,7 +20,7 @@
                 <template v-for="(item,index) in filters.domSearch">
                     <template v-if="index == 0">
                         <div style="display:inline-block;margin:0 10px 10px 0;">
-                            <el-input class="noborder color icon nofocus" @keyup.native.ctrl.8="clearAll()" @keyup.native.13="handleQuery" placeholder="请输入查询内容" v-model="filters.domSearch[index].content">
+                            <el-input class="noborder color icon nofocus" @keyup.native.ctrl.8="clearAll()" @keyup.native.13="getTodo" placeholder="请输入查询内容" v-model="filters.domSearch[index].content">
                                 <el-select class="wp_select" multiple clearable filterable v-model="filters.domSearch[index].select" slot="prepend" placeholder="选择条件">
                                     <el-option label="单号" value="orderno"></el-option>
                                     <el-option label="订单来源" value="declarefromname"></el-option>
@@ -42,7 +42,7 @@
                     <template v-else>
                         <el-col :span="24">
                             <div style="display:inline-block;margin:0 10px 10px 0;">
-                                <el-input class="noborder color icon nofocus" @keyup.native.ctrl.8="clearAll()" @keyup.native.13="handleQuery" placeholder="请输入查询内容" v-model="filters.domSearch[index].content">
+                                <el-input class="noborder color icon nofocus" @keyup.native.ctrl.8="clearAll()" @keyup.native.13="getTodo" placeholder="请输入查询内容" v-model="filters.domSearch[index].content">
                                     <el-select class="wp_select" multiple clearable filterable v-model="filters.domSearch[index].select" slot="prepend" placeholder="选择条件">
                                         <el-option label="单号" value="orderno"></el-option>
                                         <el-option label="订单来源" value="declarefromname"></el-option>
@@ -97,8 +97,12 @@
                                         <dd>{{ props.row.corpname }}</dd>
                                     </dl>
                                     <dl class="dllist">
-                                        <dt>安装产品:</dt>
-                                        <dd>{{ props.row.packageid }}</dd>
+                                        <dt>拆除设备:</dt>
+                                        <dd>{{ props.row.cmsPackageInfo.packcontent }}</dd>
+                                    </dl>
+                                    <dl class="dllist">
+                                        <dt>拆除原因:</dt>
+                                        <dd>{{ props.row.rpfaultcodename }}</dd>
                                     </dl>
                                     <dl class="dllist">
                                         <dt>安装人员:</dt>
@@ -254,9 +258,23 @@
                     </el-tabs>
                 </template>
             </el-table-column>
-            <el-table-column prop="orderno" align="center" label="拆除单号" width="180"></el-table-column>
+            <el-table-column prop="orderno" align="center" label="拆除单号" width="180">
+                <template slot-scope="scope">{{scope.row.orderno}}
+                    <el-badge v-if="scope.row.status != 6 &&
+                        Dayjs(scope.row.impapplydate).format('YYYY-MM-DD HH:mm') < 
+                        Dayjs(new Date()).format('YYYY-MM-DD HH:mm')" class="mark" value="超时" style="top:0.5em;"/>
+                                    <el-badge v-if="scope.row.status == 2 &&
+                        Math.floor( (Dayjs(new Date()) - Dayjs(scope.row.impapplydate))/1000/60/60) >= -2 && 
+                        Math.floor( (Dayjs(new Date()) - Dayjs(scope.row.impapplydate))/1000/60/60) <= 0 
+                        " class="mark" value="紧急" style="top:0.5em;"/><!-- 距离安装时间小于等于2小时，显示紧急 -->
+                </template>
+            </el-table-column>
             <el-table-column prop="rptype" align="center" label="拆除类型" width="80"></el-table-column>
-            <el-table-column prop="statusname" align="center" label="当前状态" width="80"></el-table-column>
+            <el-table-column prop="statusname" align="center" label="当前状态" width="80">
+                <template slot-scope="scope">{{scope.row.statusname}}
+                    <el-badge v-if="scope.row.iscancelled == '1' && stepState == 0" class="mark" value="已作废" style="top:0.5em;"/>
+                </template>
+            </el-table-column>
             <el-table-column prop="assignbyname" align="center" label="处理人" width="80"></el-table-column>
             <el-table-column prop="corpname" align="center" label="所属公司"></el-table-column>
             <el-table-column prop="rpFaultremark" align="center" label="拆除原因"></el-table-column>
@@ -273,12 +291,12 @@
             <el-table-column prop="returnremark" align="center" label="退回原因"></el-table-column>
             <el-table-column label="操作" width="100" align="center" fixed="right">
                     <template slot-scope="scope">
-                        <el-dropdown trigger="click">
+                        <el-button v-if="scope.row.status == 6" size="mini" type="primary" @click.native="detailsOrder(scope.row)">详 情</el-button>
+                        <el-dropdown trigger="click" v-else-if="scope.row.iscancelled != '1'>
                             <el-button size="mini" type="primary">
                                 更多操作<i class="el-icon-arrow-down el-icon--right"></i>
                             </el-button>
                             <el-dropdown-menu slot="dropdown">
-                                <el-dropdown-item v-if="scope.row.status == 6" @click.native="detailsOrder(scope.row)">详 情</el-dropdown-item>
                                 <el-dropdown-item v-if="scope.row.status == 1" @click.native="dispatchOrder(scope.row)">派 单</el-dropdown-item>
                                 <el-dropdown-item v-if="scope.row.status == 2 || scope.row.status == 3" @click.native="transferOrder(scope.row)">转 派</el-dropdown-item>
                                 <el-dropdown-item v-if="scope.row.status == 2 || scope.row.status == 3" @click.native="passConstructionOrder(scope.$index, scope.row)">退 回</el-dropdown-item>
@@ -551,8 +569,8 @@
 
         <!-- 废除、退回订单、退保弹窗  start-->
         <el-dialog :title="delorder.title" :visible.sync="delorder.orderReasonDialogVisible" width="30%">
-            <el-form>
-                <el-form-item :label='delorder.title+"原因"'>
+            <el-form ref="delorder" :model="delorder">
+                <el-form-item :label='delorder.title+"原因"' prop="reson" :rules="{required: true, message: '原因不能为空', trigger: 'blur'}">
                     <el-input type="textarea" :autosize="{ minRows: 2, maxRows: 4}" :placeholder='"请输入"+delorder.title+"原因"' v-model="delorder.reson"></el-input>
                 </el-form-item>
             </el-form>
@@ -700,8 +718,9 @@
                         <el-col :span="5">
                             <el-popover placement="bottom" width="1000" trigger="click">
                                 <div>信号检测结果:
-                                    <el-button style="margin-left: 10px;" type="primary" size="mini" @click="getSignalInfo(item.stoPackinfoDto.prodnum)">再次检测
-                                    </el-button>
+                                    <el-button style="margin-left: 20px;" slot="reference" :type="signalInfo.curonlinestatus == '离线' ? 'danger' : 'success'" :icon="signalInfo.curonlinestatus == '离线' ? 'el-icon-circle-close' : 'el-icon-circle-check'" round plain
+                                           @click="getSignalInfo(endForm.prods[index].prodnum)">{{ signalInfo.curonlinestatus == '离线' ? '检测未通过' : '检测通过' }}
+                                </el-button>
                                 </div>
                                 <table class="kv-table" style="margin-top: 10px;">
                                     <tr>

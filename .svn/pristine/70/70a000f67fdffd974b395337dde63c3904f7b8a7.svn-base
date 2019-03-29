@@ -262,7 +262,7 @@ export default {
                             await submitInstallCust(this.form)
                         }
                         this.$message.success('提交派单成功')
-                        this.$router.go(-1)
+                        this.$router.push('/orderManage/declarationManage')
                     } catch (e) {
                         console.log(e)
                     }
@@ -281,7 +281,7 @@ export default {
                         }
                         await saveOrder(this.form)
                         this.$message.success('保存成功')
-                        this.$router.go(-1)
+                        this.$router.push('/orderManage/declarationManage')
                     } catch (e) {
                         console.log(e)
                     }

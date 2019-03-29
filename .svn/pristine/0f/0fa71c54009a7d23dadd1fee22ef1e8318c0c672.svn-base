@@ -686,24 +686,6 @@ export default {
             this.delorder.orderReasonDialogVisible = true;
             this.delorder.reson = '';
         },
-        exportExcel(){
-            let para = {
-                page: 1,
-                limit: 100000,
-                type: 'remove',
-                domSearch: this.filters.domSearch,
-                startTime: this.filters.timeScope ? (this.filters.timeScope[0] ? util.formatDate.format(new Date(this.filters.timeScope[0]), 'yyyy-MM-dd') : '') : '',
-                endTime: this.filters.timeScope ? (this.filters.timeScope[1] ? util.formatDate.format(new Date(this.filters.timeScope[1]), 'yyyy-MM-dd') : '') : '',
-                flowNodeId: this.flowNodeId
-            };
-            para = Object.assign(para);
-            getTodo(para).then((res) => {
-                let todo = res.data.data.records;
-                if (todo == null) todo = [];
-                this.$emit('exportExcel', todo)
-            }).catch((error) => {
-            });
-        },
         initFn() {
             if (this.isSelf) {
                 getTodo = getTodoInfoListByUser

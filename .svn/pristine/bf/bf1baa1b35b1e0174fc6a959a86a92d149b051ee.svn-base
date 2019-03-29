@@ -12,7 +12,7 @@
                 <el-radio-button label="4" :disabled="listLoading">订单完成（{{ fromNum.num4 }}）</el-radio-button>
             </el-radio-group>
         </el-col>
-        <!--报单中心列表 新装单子 拆除单子 售后单子 start-->
+        <!--报单中心列表 新装单子 拆除单子 售后单子  dropDownSizestart-->
         <!--工具条-->
         <el-col :span="24" class="toolbar" style="padding-bottom: 0px;">
              <el-form :model="filters" ref="filters" :inline="true" class="flexSearchForm">
@@ -70,7 +70,6 @@
                         <el-form-item>
                             <el-button type="primary" @click="getTodo" icon="el-icon-search">查询</el-button>
                             <el-button type="info" @click="resetForm('filters')" icon="el-icon-refresh">重置</el-button>
-                            <el-button type="warning" @click="exportExcel" icon="el-icon-download">导出</el-button>
                         </el-form-item>
                     </template>
                 </template>
@@ -497,7 +496,8 @@
                     <el-col :span="5">
                         <el-popover placement="bottom" width="1000" trigger="click">
                             <div>信号检测结果:
-                                <el-button style="margin-left: 10px;" type="primary" size="mini" @click="getSignalInfo(item.stoPackinfoDto.prodnum)">再次检测
+                                <el-button style="margin-left: 20px;" slot="reference" :type="signalInfo.curonlinestatus == '离线' ? 'danger' : 'success'" :icon="signalInfo.curonlinestatus == '离线' ? 'el-icon-circle-close' : 'el-icon-circle-check'" round plain
+                                           @click="getSignalInfo(endForm.prods[index].prodnum)">{{ signalInfo.curonlinestatus == '离线' ? '检测未通过' : '检测通过' }}
                                 </el-button>
                             </div>
                             <table class="kv-table" style="margin-top: 10px;">
@@ -546,7 +546,7 @@
                                     </td>
                                 </tr>
                             </table>
-                            <el-button style="margin-left: 20px;" slot="reference"  :type="signalInfo.curonlinestatus == '离线' ? 'danger' : 'success'"  :icon="signalInfo.curonlinestatus == '离线' ? 'el-icon-circle-close' : 'el-icon-circle-check'" round plain @click="getSignalInfo(item.stoPackinfoDto.prodnum)">{{ signalInfo.curonlinestatus == '离线' ? '检测未通过' : '检测通过' }}</el-button>
+                            <el-button style="margin-left: 20px;" slot="reference" type="success" icon="el-icon-circle-check" round plain @click="getSignalInfo(item.stoPackinfoDto.prodnum)">信号检测 </el-button>
                         </el-popover>
                     </el-col>
                     <el-col :span="24">

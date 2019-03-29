@@ -10,12 +10,12 @@
                     {{form.returnremark}}
                 </span>
                 </el-collapse-item>
-                <el-collapse class="bdcoll rpShowimgDialog" ref="rpShowimgDialog" v-model.trim="activeNames">
+                <el-collapse class="bdcoll rpShowimgDialog" ref="rpShowimgDialog" v-model="activeNames">
                     <el-collapse-item title="请选择车辆" class="lefw10 wzpdt10" name="2">
                         <el-row :gutter="20">
                             <el-col :span="8">
                                 <el-form-item label="车架号" prop="vehiclevin">
-                                    <el-autocomplete class="inline-input searchInput" popper-class="my-autocomplete" v-model.trim="vehiclevin"
+                                    <el-autocomplete class="inline-input searchInput" popper-class="my-autocomplete" v-model="vehiclevin"
                                                      :fetch-suggestions="querySearchVins" custom-item="my-item-zh" placeholder="请输入车牌号/车架号"
                                                      @select="handleSelectVin">
                                         <template slot-scope="props">
@@ -86,20 +86,20 @@
                                                 @change="changeReason"
                                                 :options="options"
                                                 :props="reasonProp"
-                                                v-model.trim="selectReason">
+                                                v-model="selectReason">
                                         </el-cascader>
                                     </el-form-item>
                                 </el-col>
                                 <el-col :span="8">
                                     <el-form-item prop="rpFaultremark" label="请填写故障现象/原因说明">
-                                        <el-input type="textarea" :rows="4" v-model.trim="form.rpFaultremark" placeholder="请填写故障现象/原因说明"></el-input>
+                                        <el-input type="textarea" :rows="4" v-model="form.rpFaultremark" placeholder="请填写故障现象/原因说明"></el-input>
                                     </el-form-item>
                                 </el-col>
                                 <el-col :span="8">
                                     <el-popover
                                             placement="bottom"
                                             width="1200"
-                                            v-model.trim="isShowHistory"
+                                            v-model="isShowHistory"
                                             trigger="click">
                                         <div id="history-orders">
                                             <div v-if="historyOrders.length" class="history-orders" style="margin-bottom: 10px;"
@@ -167,10 +167,10 @@
                         </div>
                         <ul v-if="installDetails.length">
                             <li v-for="(val, index) in installDetails">
-                                <el-checkbox v-if="!val.newDeclaration || val.newDeclaration.status === '6'" v-model.trim="val.checked" style="width: 250px;">
+                                <el-checkbox v-if="!val.newDeclaration || val.newDeclaration.status === '6'" v-model="val.checked" style="width: 250px;">
                                     {{val.promodelspecname+'设备'+val.promodelname+', '+val.prodnum}}
                                 </el-checkbox>
-                                <el-checkbox v-else v-model.trim="val.checked" style="width: 250px; " disabled>
+                                <el-checkbox v-else v-model="val.checked" style="width: 250px; " disabled>
                                     <span style="text-decoration:line-through;">
                                         {{val.promodelspecname+'设备'+val.promodelname+', '+val.prodnum}}
                                     </span>
@@ -179,7 +179,7 @@
                                 <el-popover
                                         placement="right"
                                         width="800"
-                                        v-model.trim="val.isShow"
+                                        v-model="val.isShow"
                                         trigger="click">
                                     <div style="font-size: 20px;">设备信息</div>
                                     <el-row class="mt5">

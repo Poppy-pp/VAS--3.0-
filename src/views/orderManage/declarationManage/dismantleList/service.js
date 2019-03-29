@@ -1,6 +1,5 @@
 import axios from 'axios';
-import Qs from 'qs';
-import { checkVin,checkMobile, checkVehicleNumber } from '@/utils/formValidation'
+import { checkVin } from '@/utils/formValidation'
 
 // 列表
 export const getTodoInfoList = params => {
@@ -10,13 +9,23 @@ export const getTodoInfoList = params => {
 export const getNodesCount = params => {
     return axios.get(`/business/order/flow/nodes?actKey=remove`, {params: params})
 };
+
+// 列表
+export const getTodoInfoListByUser = params => {
+    return axios.get(`/business/order/flow/page/user/nodeid`, {params: params})
+};
+// 节点数量
+export const getNodesCountByUser = params => {
+    return axios.get(`/business/order/flow/user/nodes?actKey=remove`, {params: params})
+};
+
 // 操作详情
 export const getOperationRecord = params => {
     return axios.get(`/business/order/flow/history/operation`, {params: params})
 };
 // 开始拆除
 export const startRemove = params => {
-    return axios.post(`/business/orderVindicateRemove/startRemove`, params )
+    return axios.post(`/business/orderVindicateRemove/startRemove`, params)
 };
 // 完成拆除-查询该型号的设备列表
 export const getModelProds = params => {
@@ -24,21 +33,21 @@ export const getModelProds = params => {
 };
 // 完成拆除按钮
 export const finishRemove = params => {
-    return axios.post(`/business/orderVindicateRemove/finishRemove/`+ params.taskid, params )
+    return axios.post(`/business/orderVindicateRemove/finishRemove/` + params.taskid, params)
 };
 // 完成拆除-查询安装设备信息
 export const getInstallProds = params => {
     return axios.get(`/business/busiDeclaration/query/declarationDetail`, {params: params})
 };
 //废单
-export const deleteProcess = params =>{
+export const deleteProcess = params => {
     return axios.put(`
-    /business/orderVindicateRemove/receAbandonOrder/`+ params.taskid , params)
+    /business/orderVindicateRemove/receAbandonOrder/` + params.taskid, params)
 }
 //退单
-export const returnProccess = params =>{
+export const returnProccess = params => {
     return axios.put(`
-    /business/orderVindicateRemove/receReturnOrder/`+ params.taskid , params)
+    /business/orderVindicateRemove/receReturnOrder/` + params.taskid, params)
 }
 //检查设备是否在线
 export const cldeviceIsOnstate = params => {
@@ -46,11 +55,10 @@ export const cldeviceIsOnstate = params => {
 };
 
 
-
 // 表单验证
 export const setStartFormRules = {
-    vin: [{required:true,message:"请输入车架号",trigger: 'blur'},{validator: checkVin,trigger: 'blur'}],
-    vehiclePic:[{required:true,message:"请上传车辆图片",trigger: 'blur'}],
+    vin: [{required: true, message: "请输入车架号", trigger: 'blur'}, {validator: checkVin, trigger: 'blur'}],
+    vehiclePic: [{required: true, message: "请上传车辆图片", trigger: 'blur'}],
 }
 
 //电子保单
@@ -64,8 +72,8 @@ export const getRecordsInfo = params => {
     return axios.get(`insurance/insuranceinfo/query/insuranceEvent`, {params: params});
 };
 //操作详情--退保
-export const cancelInsurance= params =>{
-    return axios.post(`/business/orderVindicateRemove/cancelInsurance/`+ params.taskid, params)
+export const cancelInsurance = params => {
+    return axios.post(`/business/orderVindicateRemove/cancelInsurance/` + params.taskid, params)
 }
 
 // 操作详情--电子保单

@@ -12,14 +12,14 @@
                 <el-radio-button label="4" :disabled="listLoading">订单完成（{{ fromNum.num4 }}）</el-radio-button>
             </el-radio-group>
         </el-col>
-        <!--报单中心列表 新装单子 拆除单子 售后单子  start-->
+        <!--报单中心列表 新装单子 拆除单子 售后单子 start-->
         <!--工具条-->
         <el-col :span="24" class="toolbar" style="padding-bottom: 0px;">
              <el-form :model="filters" ref="filters" :inline="true" class="flexSearchForm">
                 <template v-for="(item,index) in filters.domSearch">
                     <template v-if="index == 0">
                         <div style="display:inline-block;margin:0 10px 10px 0;">
-                            <el-input class="noborder color icon nofocus" @keyup.native.ctrl.8="clearAll()" @keyup.native.13="handleQuery" placeholder="请输入查询内容" v-model="filters.domSearch[index].content">
+                            <el-input class="noborder color icon nofocus" @keyup.native.ctrl.8="clearAll()" @keyup.native.13="getTodo" placeholder="请输入查询内容" v-model="filters.domSearch[index].content">
                                 <el-select class="wp_select" multiple clearable filterable v-model="filters.domSearch[index].select" slot="prepend" placeholder="选择条件">
                                     <el-option label="单号" value="orderno"></el-option>
                                     <el-option label="订单来源" value="declarefromname"></el-option>
@@ -41,7 +41,7 @@
                     <template v-else>
                         <el-col :span="24">
                             <div style="display:inline-block;margin:0 10px 10px 0;">
-                                <el-input class="noborder color icon nofocus" @keyup.native.ctrl.8="clearAll()" @keyup.native.13="handleQuery" placeholder="请输入查询内容" v-model="filters.domSearch[index].content">
+                                <el-input class="noborder color icon nofocus" @keyup.native.ctrl.8="clearAll()" @keyup.native.13="getTodo" placeholder="请输入查询内容" v-model="filters.domSearch[index].content">
                                     <el-select class="wp_select" multiple clearable filterable v-model="filters.domSearch[index].select" slot="prepend" placeholder="选择条件">
                                         <el-option label="单号" value="orderno"></el-option>
                                         <el-option label="订单来源" value="declarefromname"></el-option>
@@ -96,8 +96,12 @@
                             <dd>{{ props.row.corpname }}</dd>
                         </dl>
                         <dl class="dllist">
-                            <dt>安装产品:</dt>
-                            <dd>{{ props.row.packageid }}</dd>
+                            <dt>维修设备:</dt>
+                            <dd>{{ props.row.cmsPackageInfo.packcontent }}</dd>
+                        </dl>
+                        <dl class="dllist">
+                            <dt>维修原因:</dt>
+                            <dd>{{ props.row.rpfaultcodename }}</dd>
                         </dl>
                         <dl class="dllist">
                             <dt>安装人员:</dt>
@@ -253,9 +257,23 @@
         </el-tabs>
     </template>
 </el-table-column>
-<el-table-column prop="orderno" align="center" label="维修单号" width="180"></el-table-column>
+<el-table-column prop="orderno" align="center" label="维修单号" width="180">
+     <template slot-scope="scope">{{scope.row.orderno}}
+        <el-badge v-if="scope.row.status != 6 &&
+            Dayjs(scope.row.impapplydate).format('YYYY-MM-DD HH:mm') < 
+            Dayjs(new Date()).format('YYYY-MM-DD HH:mm')" class="mark" value="超时" style="top:0.5em;"/>
+                        <el-badge v-if="scope.row.status == 2 &&
+            Math.floor( (Dayjs(new Date()) - Dayjs(scope.row.impapplydate))/1000/60/60) >= -2 && 
+            Math.floor( (Dayjs(new Date()) - Dayjs(scope.row.impapplydate))/1000/60/60) <= 0 
+            " class="mark" value="紧急" style="top:0.5em;"/><!-- 距离安装时间小于等于2小时，显示紧急 -->
+    </template>
+</el-table-column>
 <el-table-column prop="rptype" align="center" label="维修类型" width="80"></el-table-column>
-<el-table-column prop="statusname" align="center" label="当前状态" width="80"></el-table-column>
+<el-table-column prop="statusname" align="center" label="当前状态" width="80">
+    <template slot-scope="scope">{{scope.row.statusname}}
+        <el-badge v-if="scope.row.iscancelled == '1' && stepState == 0" class="mark" value="已作废" style="top:0.5em;"/>
+    </template>
+</el-table-column>
 <el-table-column prop="assignbyname" align="center" label="处理人" width="80"></el-table-column>
 <el-table-column prop="corpname" align="center" label="所属公司"></el-table-column>
 <el-table-column prop="rpfaultcodename" align="center" label="维修原因"></el-table-column>
@@ -273,12 +291,12 @@
 
 <el-table-column label="操作" width="100" align="center" fixed="right">
     <template slot-scope="scope">
-        <el-dropdown trigger="click">
+        <el-button v-if="scope.row.status == 6" size="mini" type="primary" @click.native="detailsOrder(scope.row)">详 情</el-button>
+        <el-dropdown trigger="click" v-else-if="scope.row.iscancelled != '1'">
             <el-button size="mini" type="primary">
                 更多操作<i class="el-icon-arrow-down el-icon--right"></i>
             </el-button>
             <el-dropdown-menu slot="dropdown">
-                <el-dropdown-item v-if="scope.row.status == 6" @click.native="detailsOrder(scope.row)">详 情</el-dropdown-item>
                 <el-dropdown-item v-if="scope.row.status == 1" @click.native="dispatchOrder(scope.row)">派 单</el-dropdown-item>
                 <el-dropdown-item v-if="scope.row.status == 2 || scope.row.status == 3" @click.native="transferOrder(scope.row)">转 派</el-dropdown-item>
                 <el-dropdown-item v-if="scope.row.status == 2 || scope.row.status == 3" @click.native="passConstructionOrder(scope.$index, scope.row)">退 回</el-dropdown-item>
@@ -297,8 +315,8 @@
 
 <!-- 废除、退回订单 弹窗  start-->
 <el-dialog :title="delorder.title" :visible.sync="delorder.orderReasonDialogVisible" width="30%">
-    <el-form>
-        <el-form-item :label='delorder.title+"原因"'>
+    <el-form ref="delorder" :model="delorder">
+        <el-form-item :label='delorder.title+"原因"' prop="reson" :rules="{required: true, message: '原因不能为空', trigger: 'blur'}">
             <el-input type="textarea" :autosize="{ minRows: 2, maxRows: 4}" :placeholder='"请输入"+delorder.title+"原因"' v-model="delorder.reson"></el-input>
         </el-form-item>
     </el-form>
@@ -403,19 +421,30 @@
         <el-col :span="24">
             <span class="formTile">选择维修设备</span>
         </el-col>
-        <div v-for="(item,index) in prodCatagorys" >
+        <div v-for="(item,index) in endForm.prodCatagorys" >
             <el-col :span="24">
                 <p class="invoice-title">{{ item.stoPackinfoDto.promodelspecname + '设备' }}</p>
-                <el-select v-model="item.actiontype" placeholder="请选择维修情况" class="row_select">
+                <el-select v-model="item.actiontype" placeholder="请选择维修情况" class="row_select" @change="chooseActionType($event,index)">
                     <el-option v-for="item in actionTypes" :key="item.value" :label="item.label" :value="item.value"> </el-option>
                 </el-select>
                 <el-button v-if="ischange[index]"  type="warning" round class="updateBtn" icon="el-icon-close" @click="cancelChoose(index)">取消更换</el-button>
                 <el-popover ref="popover" v-else-if="item.actiontype == 'CHANGE' || item.actiontype == 'LOST-INSTALL'" placement="bottom" width="720" trigger="click" @show="getProds(item,index)">
+                    <el-col :span="10" class="search">
+                        <el-input placeholder="请输入设备号查询" v-model="filters.prodnum"></el-input>
+                    </el-col>
+                    <el-col :span="12" class="search">
+                        <el-button type="primary" @click="getProds(index)" icon="el-icon-search">查询</el-button>
+                    </el-col>
                     <el-table :data="prodData" @row-dblclick="deviceClickHandle" v-loading="prodLoading" max-height="400">
-                        <el-table-column align="center" prop="storagename" label="库房" width="130"></el-table-column>
+                        <el-table-column align="center" prop="storagename" label="库房" width="130"></el-table-column> 
+                        <el-table-column align="center" prop="prodnum" label="设备编号">
+                            <template slot-scope="scope">{{scope.row.prodnum}}
+                                <el-badge v-if="scope.row.isold == '0' && scope.row.isrepairing !== '2'" class="new" value="新" style="top:0.5em;" />
+                                <el-badge v-if="scope.row.isrepairing == '2'" class="mark" value="坏" style="top:0.5em;" />
+                            </template>
+                        </el-table-column>
                         <el-table-column align="center" prop="modelspecname" label="规格" width="80"></el-table-column>
                         <el-table-column align="center" prop="modelname" label="设备型号"></el-table-column>
-                        <el-table-column align="center" prop="prodnum" label="设备编号"></el-table-column>
                         <el-table-column align="center" prop="prodstatus" label="设备状态" width="80"></el-table-column>
                     </el-table>
                     <el-col :span="24" class="toolbar">
@@ -452,7 +481,8 @@
                     </el-col>
                     <el-col :span="11">
                         <el-form-item v-if="ischange[index]" label="设备安装位置：" 
-                             prop="installpositioncode" :rules="endFormRules.installpositioncode">
+                             :prop="'prodCatagorys.'+index+'.installpositioncode'"
+                             :rules="endFormRules.installpositioncode">
                             <el-select filterable :loading="codeloading" @visible-change="changeInstallDecode" v-model="item.installpositioncode" placeholder="请选择设备安装位置">
                                 <el-option v-for="item in InstallPositionArray" :key="item.dictdatavalue" :label="item.dictdatavalue" :value="item.dictdataname">
                                 </el-option>
@@ -466,7 +496,8 @@
                     <el-col :span="5">
                         <el-popover placement="bottom" width="1000" trigger="click">
                             <div>信号检测结果:
-                                <el-button style="margin-left: 10px;" type="primary" size="mini" @click="getSignalInfo(item.stoPackinfoDto.prodnum)">再次检测
+                                <el-button style="margin-left: 20px;" slot="reference" :type="signalInfo.curonlinestatus == '离线' ? 'danger' : 'success'" :icon="signalInfo.curonlinestatus == '离线' ? 'el-icon-circle-close' : 'el-icon-circle-check'" round plain
+                                           @click="getSignalInfo(endForm.prods[index].prodnum)">{{ signalInfo.curonlinestatus == '离线' ? '检测未通过' : '检测通过' }}
                                 </el-button>
                             </div>
                             <table class="kv-table" style="margin-top: 10px;">
@@ -519,8 +550,38 @@
                         </el-popover>
                     </el-col>
                     <el-col :span="24">
-                        <el-form-item label="设备安装图片："  prop="busiPictures" :rules="endFormRules.busiPictures">
+                        <el-form-item v-if="ischange[index]" label="设备安装图片："  :prop="'prodCatagorys.'+index+'.busiPictures[0].piclink'" :rules="endFormRules.piclink">
                             <el-upload v-if="item.busiPictures.length != 0"
+                                    name="file" class="avatar-uploader" 
+                                    :headers="{Authorization: 'Bearer '+ token}" 
+                                    :accept="accept" 
+                                    :on-success="successInvoiceOne"
+                                    action="/admin/atta/upload/picture"
+                                    :show-file-list="false"
+                                    v-model="item.busiPictures[0].piclink">
+                                    <img v-if="item.busiPictures[0].piclink" :src="$store.state.IMG_URL+item.busiPictures[0].piclink" class="avatar">
+                                    <i v-else class="el-icon-plus avatar-uploader-icon"></i>
+                                    <i class="desc">安装位置照</i>
+                            </el-upload>
+                            <el-upload v-if="item.busiPictures.length != 0"
+                                name="file" class="avatar-uploader" 
+                                :headers="{Authorization: 'Bearer '+ token}" 
+                                :accept="accept" 
+                                :on-success="successInvoiceTwo"
+                                action="/admin/atta/upload/picture"
+                                :show-file-list="false"
+                                v-model="item.busiPictures[1].piclink">
+                                <img v-if="item.busiPictures[1].piclink" :src="$store.state.IMG_URL+item.busiPictures[1].piclink" class="avatar">
+                                <i v-else class="el-icon-plus avatar-uploader-icon"></i>
+                                <i class="desc">铭牌+设备照</i>
+                            </el-upload>
+                            <p v-else>暂无照片</p>
+                        </el-form-item>
+
+                        <dl class="dllist" v-else>
+                            <dt>设备安装图片：</dt>
+                            <dd>
+                                <el-upload v-if="item.busiPictures.length != 0"
                                     name="file" class="avatar-uploader" 
                                     :headers="{Authorization: 'Bearer '+ token}" 
                                     :accept="accept" 
@@ -545,7 +606,8 @@
                                     <i class="desc">铭牌+设备照</i>
                                 </el-upload>
                                 <p v-else>暂无照片</p>
-                        </el-form-item>
+                            </dd>
+                        </dl>
                     </el-col>
                 </el-card>
             </el-col>
@@ -577,6 +639,7 @@ dl.dllist { margin-bottom: 5px; }
 .img_card{width: 150px;height: 150px;}
 .updateBtn{float: right;}
 .space{margin-bottom:10px;}
+.search{margin:0 10px 10px 0;}
 .kv-table {
     td {
         line-height: 38px;

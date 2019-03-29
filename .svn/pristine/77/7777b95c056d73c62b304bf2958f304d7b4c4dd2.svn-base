@@ -217,7 +217,7 @@
 							<dd> 111 </dd>
 						</dl>
 						<dl class="dllist" style="margin-bottom:10px;">
-							<dt>设备接入时间:</dt> 
+							<dt>设备接入时间:</dt>
 							<dd> 222 </dd>
 						</dl>
 					</el-col>
